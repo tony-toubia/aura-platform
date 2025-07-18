@@ -1,7 +1,20 @@
 {
+  // keep ESLint auto–workspace detection
   "eslint.workingDirectories": [
     {
       "mode": "auto"
     }
-  ]
+  ],
+
+  // Turn off built-in CSS validation (it doesn’t know Tailwind’s at-rules)
+  "css.validate": false,
+
+  // Tell Tailwind IntelliSense where your config lives
+  "tailwindCSS.experimental.configFile": "apps/web/tailwind.config.ts",
+
+  // Have the extension treat plain CSS files as Tailwind CSS
+  "tailwindCSS.includeLanguages": {
+    "css": "css",
+    "plaintext": "css"
+  }
 }

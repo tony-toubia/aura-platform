@@ -1,0 +1,150 @@
+// packages/database/prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  name          String?
+  passwordHash  String
+  subscription  Subscription?
+  auras         Aura[]
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Subscription {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  user      User     @relation(fields: [userId], references: [id])
+  tier      Tier     @default(FREE)
+  status    Status   @default(ACTIVE)
+  expiresAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Aura {
+  id                String         @id @default(cuid())
+  userId            String
+  user              User           @relation(fields: [userId], references: [id])
+  name              String
+  vesselType        VesselType
+  personality       Json           // Stores trait values
+  communicationStyle String
+  voiceProfile      String
+  enabled           Boolean        @default(true)
+  senses            AuraSense[]
+  rules             BehaviorRule[]
+  knowledge         Knowledge[]
+  conversations     Conversation[]
+  analytics         Analytics?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  
+  @@index([userId])
+}
+
+model Sense {
+  id          String      @id @default(cuid())
+  code        String      @unique // e.g., "weather_openweather"
+  name        String
+  category    String
+  tier        SenseTier
+  config      Json        // Default configuration
+  auraSenses  AuraSense[]
+  createdAt   DateTime    @default(now())
+}
+
+model AuraSense {
+  id        String   @id @default(cuid())
+  auraId    String
+  aura      Aura     @relation(fields: [auraId], references: [id])
+  senseId   String
+  sense     Sense    @relation(fields: [senseId], references: [id])
+  config    Json     // Aura-specific configuration
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  
+  @@unique([auraId, senseId])
+}
+
+model BehaviorRule {
+  id        String   @id @default(cuid())
+  auraId    String
+  aura      Aura     @relation(fields: [auraId], references: [id])
+  name      String
+  trigger   Json     // Trigger conditions
+  action    Json     // Action configuration
+  priority  Int      @default(0)
+  enabled   Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Conversation {
+  id        String    @id @default(cuid())
+  auraId    String
+  aura      Aura      @relation(fields: [auraId], references: [id])
+  sessionId String    @unique
+  messages  Message[]
+  context   Json?
+  startedAt DateTime  @default(now())
+  endedAt   DateTime?
+  
+  @@index([auraId])
+}
+
+model Message {
+  id             String       @id @default(cuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  role           MessageRole
+  content        String
+  metadata       Json?        // Includes influence factors
+  createdAt      DateTime     @default(now())
+  
+  @@index([conversationId])
+}
+
+// Enums
+enum Tier {
+  FREE
+  PERSONAL
+  FAMILY
+  BUSINESS
+}
+
+enum Status {
+  ACTIVE
+  CANCELLED
+  EXPIRED
+}
+
+enum VesselType {
+  TERRA
+  COMPANION
+  MEMORY
+  SAGE
+  CUSTOM
+}
+
+enum SenseTier {
+  FREE
+  VESSEL
+  PREMIUM
+  ENTERPRISE
+}
+
+enum MessageRole {
+  USER
+  AURA
+  SYSTEM
+}
