@@ -6,11 +6,11 @@ import { AuraEditForm } from "@/components/aura/aura-edit-form"
 import type { Aura as TAura } from "@/types"
 
 interface PageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
 export default async function EditAuraPage({ params }: PageProps) {
-  // 1) Make this page async so we can `await params` and avoid sync-dynamic warning
+  // 1) Await params (Next.js 15 requirement)
   const { id: auraId } = await params
 
   // 2) Auth check
@@ -47,6 +47,8 @@ export default async function EditAuraPage({ params }: PageProps) {
     vesselType: auraRow.vessel_type as TAura["vesselType"],
     personality:auraRow.personality,
     senses:     auraRow.senses,
+    selectedStudyId:  auraRow.selected_study_id,
+    selectedIndividualId: auraRow.selected_individual_id,
     avatar:     auraRow.avatar,
     enabled:    auraRow.enabled,
     createdAt:  new Date(auraRow.created_at),

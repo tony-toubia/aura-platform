@@ -1,13 +1,17 @@
 // apps/web/app/api/auras/[id]/route.ts
+
 import { NextResponse } from "next/server"
 import { createServerSupabase } from "@/lib/supabase/server.server"
 import type { NextRequest } from "next/server"
 
-export async function PUT(
-  req: NextRequest,
-  { params }: { params: { id: string } }
-) {
-  const auraId = params.id
+type RouteParams = {
+  params: {
+    id: string
+  }
+}
+
+export async function PUT(req: NextRequest, context: RouteParams) {
+  const auraId = context.params.id
   const body = await req.json()
   const { name, vesselType, personality, senses } = body
 
