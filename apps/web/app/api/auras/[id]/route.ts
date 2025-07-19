@@ -5,13 +5,13 @@ import { createServerSupabase } from "@/lib/supabase/server.server"
 import type { NextRequest } from "next/server"
 
 type RouteParams = {
-  params: {
+  params: Promise<{
     id: string
-  }
+  }>
 }
 
 export async function PUT(req: NextRequest, context: RouteParams) {
-  const auraId = context.params.id
+  const { id: auraId } = await context.params
   const body = await req.json()
   const { name, vesselType, personality, senses } = body
 
