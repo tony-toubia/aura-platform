@@ -5,9 +5,9 @@ import { createServerSupabase } from "@/lib/supabase/server.server"
 
 export async function PUT(
   req: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
-  const ruleId = params.id
+  const { id: ruleId } = await params
   const body = await req.json()
   const {
     name,
