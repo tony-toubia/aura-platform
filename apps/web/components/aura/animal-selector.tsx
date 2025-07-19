@@ -10,69 +10,77 @@ import {
   SelectValue,
 } from "../ui/select"
 
-// Define the shape of the data we expect from our new API endpoint
+/** 
+ * Each object must include the real UUID in `individualId`,
+ * plus the human-readable label for display. 
+ */
 interface CombinedIndividual {
-  studyId: number;
-  individualId: string;
-  label: string; // e.g., "A01 (Galapagos Albatrosses)"
+  studyId: number
+  individualId: string  // <-- this must be the UUID your DB expects
+  label: string         // e.g. "Vespertilio murinus VMR-12"
 }
 
 interface Props {
-  // We still need to inform the parent component of the selection
   onStudyChange: (id: number) => void
   onIndividualChange: (id: string) => void
 }
 
-export function AnimalSelector({ onStudyChange, onIndividualChange }: Props) {
-  // State to hold the combined list of all animals
+export function AnimalSelector({
+  onStudyChange,
+  onIndividualChange,
+}: Props) {
   const [animals, setAnimals] = useState<CombinedIndividual[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [selectedValue, setSelectedValue] = useState("")
+  const [selectedIndividualId, setSelectedIndividualId] = useState("")
 
-  // Fetch the combined list from our new endpoint when the component loads
   useEffect(() => {
     fetch("/api/wildlife/all-individuals")
       .then((r) => r.json())
-      .then((data) => {
+      .then((data: CombinedIndividual[]) => {
         setAnimals(data)
         setIsLoading(false)
       })
-      .catch(error => {
+      .catch((error) => {
         console.error("Failed to fetch animals:", error)
         setIsLoading(false)
       })
   }, [])
 
-  // When a user makes a selection, we parse the value and update the parent
   const handleValueChange = (value: string) => {
-    if (!value) return;
+    setSelectedIndividualId(value)
 
-    try {
-      const selected: CombinedIndividual = JSON.parse(value);
-      setSelectedValue(value);
-      onStudyChange(selected.studyId);
-      onIndividualChange(selected.individualId);
-    } catch (error) {
-      console.error("Failed to parse selected animal value:", error);
+    // Find the matching object so we can also emit the studyId
+    const selected = animals.find((a) => a.individualId === value)
+    if (selected) {
+      onStudyChange(selected.studyId)
+      onIndividualChange(selected.individualId)
     }
-  };
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-4 mb-6">
       <div>
-        <label className="block text-sm font-medium mb-1">Animal Companion</label>
+        <label className="block text-sm font-medium mb-1">
+          Animal Companion
+        </label>
         <Select
-          value={selectedValue}
+          value={selectedIndividualId}
           onValueChange={handleValueChange}
           disabled={isLoading}
         >
           <SelectTrigger>
-            <SelectValue placeholder={isLoading ? "Loading animals..." : "Select an animal"} />
+            <SelectValue
+              placeholder={
+                isLoading ? "Loading animals..." : "Select an animal"
+              }
+            />
           </SelectTrigger>
           <SelectContent>
             {animals.map((animal) => (
-              // The value is a stringified JSON object containing all necessary info
-              <SelectItem key={animal.label} value={JSON.stringify(animal)}>
+              <SelectItem
+                key={animal.individualId}
+                value={animal.individualId}
+              >
                 {animal.label}
               </SelectItem>
             ))}

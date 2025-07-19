@@ -135,16 +135,51 @@ export function ChatInterface({
   }
 
   const renderSenseStatus = () => (
-    <div className="flex items-center space-x-4 text-sm">
+    <div className="flex flex-wrap items-center space-x-6 text-sm">
       <span className="font-medium text-gray-700">Live Senses:</span>
-      {/* weather, soil, light omitted for brevity */}
+
+      {/* Weather */}
+      {aura.senses.includes("weather") && senseData.weather && (
+        <div className="flex items-center space-x-2">
+          <Cloud className="w-4 h-4 text-blue-500" />
+          <span className="text-gray-700">
+            {/** if OpenWeather format */}
+            {senseData.weather.main?.temp
+              ? `${Math.round(senseData.weather.main.temp)}°C, ${senseData.weather.weather[0]?.description}`
+              : /** fallback if service shapes differently */
+                senseData.weather.temperature
+                ? `${senseData.weather.temperature}°C, ${senseData.weather.description}`
+                : "Weather data"}
+          </span>
+        </div>
+      )}
+
+      {/* Soil Moisture */}
+      {aura.senses.includes("soil_moisture") && senseData.soil_moisture && (
+        <div className="flex items-center space-x-2">
+          <Droplets className="w-4 h-4 text-blue-700" />
+          <span className="text-gray-700">
+            Soil: {Math.round(senseData.soil_moisture)}%
+          </span>
+        </div>
+      )}
+
+      {/* Light Level */}
+      {aura.senses.includes("light_level") && senseData.light_level && (
+        <div className="flex items-center space-x-2">
+          <Sun className="w-4 h-4 text-yellow-500" />
+          <span className="text-gray-700">
+            Light: {Math.round(senseData.light_level)} lx
+          </span>
+        </div>
+      )}
+
+      {/* News */}
       {aura.senses.includes("news") && senseData.news && (
         <div className="flex flex-col text-sm text-gray-700">
           <span className="font-medium">Top headlines:</span>
           <ul className="list-disc ml-4">
-            {(
-              senseData.news.articles as NewsArticle[]
-            )
+            {(senseData.news.articles as NewsArticle[])
               .slice(0, 3)
               .map((article, idx) => (
                 <li key={idx}>
@@ -160,6 +195,7 @@ export function ChatInterface({
           </ul>
         </div>
       )}
+
       <Button
         variant="ghost"
         size="sm"
@@ -249,7 +285,7 @@ export function ChatInterface({
               >
                 <p className="text-sm">{message.content}</p>
 
-                { /* show which rule triggered, if any */ }
+                {/* show which rule triggered, if any */}
                 {message.metadata?.triggeredRule && (
                   <div className="flex items-center space-x-1 text-xs mt-2 text-amber-600">
                     <Zap className="w-3 h-3" />

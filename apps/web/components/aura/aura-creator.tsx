@@ -1,17 +1,10 @@
 // apps/web/components/aura/aura-creator.tsx
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import {
-  Tabs,
-  TabsContent,
-  TabsList,
-  TabsTrigger,
-} from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { RuleBuilder } from "./rule-builder"
 import {
   Card,
   CardContent,
@@ -22,23 +15,24 @@ import {
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
 import { AnimalSelector } from "./animal-selector"
-import { VESSEL_TYPES } from "@/lib/constants"
+import { RuleBuilder } from "./rule-builder"
 import {
-  Info,
-  Brain,
-  Wifi,
-  GitBranch,
-  Save,
-  Check,
-  AlertCircle,
-} from "lucide-react"
+  VESSEL_TYPES,
+  VESSEL_SENSE_CONFIG,
+  AVAILABLE_SENSES,
+  type VesselTypeId,
+} from "@/lib/constants"
+import { Check, AlertCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule } from "@/types"
+
+type Step = "vessel" | "senses" | "details" | "rules"
 
 interface AuraForm {
   id: string
   name: string
-  vesselType: "terra" | "companion" | "memory" | "sage"
+  vesselType: VesselTypeId | ""
+  vesselCode: string
   personality: {
     warmth: number
     playfulness: number
@@ -54,14 +48,15 @@ interface AuraForm {
 
 export function AuraCreator() {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState("basics")
+  const [step, setStep] = useState<Step>("vessel")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const [auraData, setAuraData] = useState<AuraForm>({
     id: "",
     name: "",
-    vesselType: "terra",
+    vesselType: "",
+    vesselCode: "",
     personality: {
       warmth: 50,
       playfulness: 50,
@@ -75,11 +70,18 @@ export function AuraCreator() {
     selectedIndividualId: undefined,
   })
 
-  const updatePersonality = (trait: string, value: number) =>
+  // Reset senses whenever vesselType changes
+  useEffect(() => {
+    if (!auraData.vesselType) return
+
+    const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
     setAuraData((prev) => ({
       ...prev,
-      personality: { ...prev.personality, [trait]: value },
+      senses: cfg.defaultSenses,
+      selectedStudyId: undefined,
+      selectedIndividualId: undefined,
     }))
+  }, [auraData.vesselType])
 
   const toggleSense = (senseId: string) =>
     setAuraData((prev) => ({
@@ -102,6 +104,7 @@ export function AuraCreator() {
         body: JSON.stringify({
           name: auraData.name,
           vesselType: auraData.vesselType,
+          vesselCode: auraData.vesselCode || undefined,
           personality: auraData.personality,
           senses: senseCodes,
           selectedStudyId: auraData.selectedStudyId,
@@ -110,9 +113,8 @@ export function AuraCreator() {
       })
       const body = await resp.json()
       if (!resp.ok) throw new Error(body.error || "Failed to create Aura")
-
       setAuraData((prev) => ({ ...prev, id: body.id }))
-      setActiveTab("rules")
+      setStep("rules")
     } catch (err: any) {
       setError(err.message)
     } finally {
@@ -120,113 +122,166 @@ export function AuraCreator() {
     }
   }
 
-  const canCreate = Boolean(auraData.name && auraData.senses.length)
+  // Step‐validations
+  const canNextVessel =
+    auraData.vesselType !== "" &&
+    (auraData.vesselType === "digital" || auraData.vesselCode.trim() !== "")
+
+  const canNextSenses = (() => {
+    if (!auraData.vesselType) return false
+    const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
+    const hasDefaults = cfg.defaultSenses.every((d) =>
+      auraData.senses.includes(d)
+    )
+    const hasAnimal =
+      auraData.vesselType !== "companion" ||
+      (auraData.selectedStudyId && auraData.selectedIndividualId)
+    return hasDefaults && hasAnimal
+  })()
+
+  const canNextDetails = auraData.name.trim() !== ""
+
+  // Derive which senses to show
+  const senseConfig = auraData.vesselType
+    ? VESSEL_SENSE_CONFIG[auraData.vesselType]
+    : { defaultSenses: [], optionalSenses: [] }
+  const allowedSenses = AVAILABLE_SENSES.filter((s) =>
+    [...senseConfig.defaultSenses, ...senseConfig.optionalSenses].includes(
+      s.id
+    )
+  )
+
+  const onNext = () => {
+    if (step === "vessel") setStep("senses")
+    else if (step === "senses") setStep("details")
+    else if (step === "details") handleCreate()
+  }
+  const onBack = () => {
+    if (step === "senses") setStep("vessel")
+    else if (step === "details") setStep("senses")
+    else if (step === "rules") setStep("details")
+  }
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6">
+    <div className="max-w-4xl mx-auto">
       <Card>
         <CardHeader>
           <CardTitle>Create New Aura</CardTitle>
           <CardDescription>
-            Design a unique personality that will inhabit your chosen vessel
+            Follow the steps below to configure your Aura.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-5">
-              <TabsTrigger value="basics" className="flex items-center gap-2">
-                <Info className="w-4 h-4" /> Basics
-              </TabsTrigger>
-              <TabsTrigger
-                value="personality"
-                className="flex items-center gap-2"
-              >
-                <Brain className="w-4 h-4" /> Personality
-              </TabsTrigger>
-              <TabsTrigger value="senses" className="flex items-center gap-2">
-                <Wifi className="w-4 h-4" /> Senses
-              </TabsTrigger>
-              <TabsTrigger
-                value="rules"
-                disabled={!auraData.id}
-                className="flex items-center gap-2"
-              >
-                <GitBranch className="w-4 h-4" /> Rules
-              </TabsTrigger>
-            </TabsList>
+          {/* Stepper */}
+          <div className="flex items-center mb-8">
+            {(["vessel", "senses", "details", "rules"] as Step[]).map(
+              (s, i) => (
+                <React.Fragment key={s}>
+                  <div
+                    className={cn(
+                      "flex items-center",
+                      step === s ? "text-purple-700" : "text-gray-400"
+                    )}
+                  >
+                    <div
+                      className={cn(
+                        "rounded-full w-8 h-8 flex items-center justify-center",
+                        step === s
+                          ? "bg-purple-700 text-white"
+                          : "bg-gray-200"
+                      )}
+                    >
+                      {i + 1}
+                    </div>
+                    <span className="ml-2 capitalize">
+                      {{
+                        vessel: "Vessel",
+                        senses: "Senses",
+                        details: "Details",
+                        rules: "Rules",
+                      }[s]}
+                    </span>
+                  </div>
+                  {i < 3 && <div className="flex-1 h-px bg-gray-200 mx-2" />}
+                </React.Fragment>
+              )
+            )}
+          </div>
 
-            {/* BASICS */}
-            <TabsContent value="basics" className="space-y-6">
-              <div>
-                <label className="block text-sm font-medium mb-2">
-                  Aura Name
-                </label>
-                <Input
-                  placeholder="Give your Aura a unique name..."
-                  value={auraData.name}
-                  onChange={(e) =>
-                    setAuraData((prev) => ({ ...prev, name: e.target.value }))
-                  }
-                />
+          {/* Step Content */}
+          {step === "vessel" && (
+            <>
+              <label className="block text-sm font-medium mb-4">
+                Select Vessel Type
+              </label>
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                {VESSEL_TYPES.map((v) => {
+                  const selected = auraData.vesselType === v.id
+                  return (
+                    <button
+                      key={v.id}
+                      type="button"
+                      disabled={v.disabled}
+                      onClick={() =>
+                        setAuraData((prev) => ({
+                          ...prev,
+                          vesselType: v.id,
+                        }))
+                      }
+                      className={cn(
+                        "relative p-6 rounded-xl border-2 transition-all",
+                        selected
+                          ? "border-purple-700 bg-purple-50 shadow-md"
+                          : "border-gray-200 hover:border-gray-300",
+                        v.disabled && "opacity-50 cursor-not-allowed"
+                      )}
+                    >
+                      {selected && (
+                        <div className="absolute top-2 right-2 bg-purple-700 text-white rounded-full p-1">
+                          <Check className="w-4 h-4" />
+                        </div>
+                      )}
+                      <div className="text-4xl mb-2">{v.icon}</div>
+                      <div className="font-semibold text-lg mb-1">
+                        {v.name}
+                      </div>
+                      <div className="text-sm">
+                        {v.disabled ? "Coming Soon" : v.description}
+                      </div>
+                    </button>
+                  )
+                })}
               </div>
-              <div>
-                <label className="block text-sm font-medium mb-4">
-                  Select Vessel Type
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  {VESSEL_TYPES.map((v) => {
-                    const isSelected = auraData.vesselType === v.id
-                    return (
-                      <button
-                        key={v.id}
-                        type="button"
-                        onClick={() =>
-                          setAuraData((prev) => ({
-                            ...prev,
-                            vesselType: v.id,
-                          }))
-                        }
-                        className={cn(
-                          "relative p-6 rounded-xl border-2 transition-all group",
-                          isSelected
-                            ? "border-purple-700 bg-purple-50 shadow-md"
-                            : "border-border hover:border-gray-300"
-                        )}
-                      >
-                        {isSelected && (
-                          <div className="absolute top-2 right-2 bg-purple-700 text-white rounded-full p-1">
-                            <Check className="w-4 h-4" />
-                          </div>
-                        )}
-                        <div className="text-4xl mb-3">{v.icon}</div>
-                        <div className="font-semibold text-lg mb-1">
-                          {v.name}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {v.description}
-                        </div>
-                      </button>
-                    )
-                  })}
+
+              {auraData.vesselType && auraData.vesselType !== "digital" && (
+                <div className="mb-6">
+                  <label className="block text-sm font-medium mb-2">
+                    Enter Vessel ID
+                  </label>
+                  <Input
+                    value={auraData.vesselCode}
+                    onChange={(e) =>
+                      setAuraData((prev) => ({
+                        ...prev,
+                        vesselCode: e.target.value,
+                      }))
+                    }
+                    placeholder="Scan or type your vessel code"
+                  />
                 </div>
-              </div>
-            </TabsContent>
+              )}
+            </>
+          )}
 
-            {/* PERSONALITY */}
-            <TabsContent value="personality">
-              <PersonalityMatrix
-                personality={auraData.personality}
-                onChange={updatePersonality}
-              />
-            </TabsContent>
-
-            {/* SENSES */}
-            <TabsContent value="senses" className="space-y-6">
-              {/* only for Companion vessels */}
+          {step === "senses" && (
+            <>
               {auraData.vesselType === "companion" && (
                 <AnimalSelector
                   onStudyChange={(sid) =>
-                    setAuraData((prev) => ({ ...prev, selectedStudyId: sid }))
+                    setAuraData((prev) => ({
+                      ...prev,
+                      selectedStudyId: sid,
+                    }))
                   }
                   onIndividualChange={(iid) =>
                     setAuraData((prev) => ({
@@ -236,84 +291,105 @@ export function AuraCreator() {
                   }
                 />
               )}
+
               <SenseSelector
+                availableSenses={allowedSenses}
+                nonToggleableSenses={senseConfig.defaultSenses}
                 selectedSenses={auraData.senses}
                 onToggle={toggleSense}
               />
-            </TabsContent>
+            </>
+          )}
 
-            {/* RULES */}
-            <TabsContent value="rules">
-              {!auraData.id ? (
-                <div className="p-8 text-center text-gray-700">
-                  <p className="mb-2">Please finish creating the Aura first.</p>
-                  <Button
-                    onClick={handleCreate}
-                    disabled={!canCreate || loading}
-                  >
-                    {loading ? "Creating…" : "Create Aura"}
-                  </Button>
-                </div>
-              ) : (
-                <RuleBuilder
-                  auraId={auraData.id}
-                  availableSenses={auraData.senses}
-                  existingRules={auraData.rules}
-                  onAddRule={(rule) =>
+          {step === "details" && (
+            <>
+              <div className="mb-6">
+                <label className="block text-sm font-medium mb-2">
+                  Aura Name
+                </label>
+                <Input
+                  value={auraData.name}
+                  onChange={(e) =>
                     setAuraData((prev) => ({
                       ...prev,
-                      rules: [...prev.rules, rule],
+                      name: e.target.value,
                     }))
                   }
-                  onDeleteRule={(ruleId) =>
-                    setAuraData((prev) => ({
-                      ...prev,
-                      rules: prev.rules.filter((r) => r.id !== ruleId),
-                    }))
-                  }
-                  onToggleRule={(ruleId, enabled) =>
-                    setAuraData((prev) => ({
-                      ...prev,
-                      rules: prev.rules.map((r) =>
-                        r.id === ruleId ? { ...r, enabled } : r
-                      ),
-                    }))
-                  }
+                  placeholder="Give your Aura a unique name"
                 />
-              )}
-            </TabsContent>
-          </Tabs>
+              </div>
+              <PersonalityMatrix
+                personality={auraData.personality}
+                onChange={(trait, value) =>
+                  setAuraData((prev) => ({
+                    ...prev,
+                    personality: { ...prev.personality, [trait]: value },
+                  }))
+                }
+              />
+            </>
+          )}
+
+          {step === "rules" && (
+            <RuleBuilder
+              auraId={auraData.id}
+              availableSenses={auraData.senses}
+              existingRules={auraData.rules}
+              onAddRule={(rule) =>
+                setAuraData((prev) => ({
+                  ...prev,
+                  rules: [...prev.rules, rule],
+                }))
+              }
+              onDeleteRule={(ruleId) =>
+                setAuraData((prev) => ({
+                  ...prev,
+                  rules: prev.rules.filter((r) => r.id !== ruleId),
+                }))
+              }
+              onToggleRule={(ruleId, enabled) =>
+                setAuraData((prev) => ({
+                  ...prev,
+                  rules: prev.rules.map((r) =>
+                    r.id === ruleId ? { ...r, enabled } : r
+                  ),
+                }))
+              }
+            />
+          )}
 
           {error && (
-            <div className="mt-4 bg-destructive/10 text-destructive p-3 rounded-md flex items-center gap-2">
+            <div className="mt-4 bg-red-50 text-red-700 p-3 rounded-md flex items-center gap-2">
               <AlertCircle className="w-4 h-4" />
               <p className="text-sm">{error}</p>
             </div>
           )}
 
-          {/* Create Button on Basics/Personality/Senses */}
-          {["basics", "personality", "senses"].includes(activeTab) && (
-            <div className="flex justify-between items-center mt-8 pt-6 border-t">
-              <div className="text-sm text-muted-foreground">
-                {canCreate ? (
-                  <span className="text-green-600 flex items-center gap-2">
-                    <Check className="w-4 h-4" /> Ready to create
-                  </span>
-                ) : (
-                  <span>Complete all required fields</span>
-                )}
-              </div>
+          {/* Navigation */}
+          <div className="flex justify-between items-center mt-8 pt-6 border-t">
+            <Button
+              variant="outline"
+              onClick={onBack}
+              disabled={step === "vessel" || loading}
+            >
+              Back
+            </Button>
+            {step !== "rules" && (
               <Button
-                onClick={handleCreate}
-                disabled={!canCreate || loading}
+                onClick={onNext}
+                disabled={
+                  loading ||
+                  (step === "vessel" && !canNextVessel) ||
+                  (step === "senses" && !canNextSenses) ||
+                  (step === "details" && !canNextDetails)
+                }
                 size="lg"
                 className="flex items-center gap-2"
               >
-                <Save className="w-4 h-4" />
-                {loading ? "Creating…" : "Create Aura"}
+                {step === "details" && loading ? "Creating…" : "Next"}
               </Button>
-            </div>
-          )}
+            )}
+          </div>
         </CardContent>
       </Card>
     </div>

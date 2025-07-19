@@ -11,15 +11,25 @@ import {
   Activity,
   Wind,
   Info,
+  Lock,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
+// derive the element type from your constant
+type AvailableSense = typeof AVAILABLE_SENSES[number]
+
 interface SenseSelectorProps {
+  /** only render these senses */
+  availableSenses: AvailableSense[]
+  /** built-in senses that cannot be turned off */
+  nonToggleableSenses?: string[]
+  /** currently selected IDs */
   selectedSenses: string[]
+  /** toggle callback */
   onToggle: (senseId: string) => void
 }
 
-// Keys must match AVAILABLE_SENSES[].id exactly (snake_case)
+// icon lookup
 const senseIcons: Record<string, React.ComponentType<any>> = {
   weather: Cloud,
   soil_moisture: Droplets,
@@ -35,7 +45,12 @@ const tierColors: Record<string, string> = {
   premium: "bg-purple-100 text-purple-700",
 }
 
-export function SenseSelector({ selectedSenses, onToggle }: SenseSelectorProps) {
+export function SenseSelector({
+  availableSenses,
+  nonToggleableSenses = [],
+  selectedSenses,
+  onToggle,
+}: SenseSelectorProps) {
   return (
     <div className="space-y-4">
       {/* Header */}
@@ -56,23 +71,34 @@ export function SenseSelector({ selectedSenses, onToggle }: SenseSelectorProps) 
         </div>
       </div>
 
-      {/* Grid of senses */}
+      {/* Grid of allowed senses */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {AVAILABLE_SENSES.map((sense) => {
+        {availableSenses.map((sense) => {
           const Icon = senseIcons[sense.id] ?? Info
           const isSelected = selectedSenses.includes(sense.id)
+          const isLocked = nonToggleableSenses.includes(sense.id)
 
           return (
             <button
               key={sense.id}
-              onClick={() => onToggle(sense.id)}
+              onClick={() => {
+                if (!isLocked) onToggle(sense.id)
+              }}
+              disabled={isLocked}
               className={cn(
-                "relative p-4 rounded-xl border-2 transition-all",
+                "relative p-4 rounded-xl border-2 transition-all text-left",
                 isSelected
                   ? "border-purple-700 bg-purple-50 shadow-md"
-                  : "border-gray-200 hover:border-purple-500 hover:shadow-sm"
+                  : "border-gray-200 hover:border-purple-500 hover:shadow-sm",
+                isLocked && "opacity-70 cursor-not-allowed"
               )}
             >
+              {isLocked && (
+                <div className="absolute top-2 right-2 text-gray-500">
+                  <Lock className="w-4 h-4" />
+                </div>
+              )}
+
               <div className="flex items-start justify-between">
                 <div className="flex items-start space-x-3">
                   <div
@@ -85,7 +111,7 @@ export function SenseSelector({ selectedSenses, onToggle }: SenseSelectorProps) 
                   >
                     <Icon className="w-4 h-4" />
                   </div>
-                  <div className="text-left">
+                  <div>
                     <div className="font-medium">{sense.name}</div>
                     <div className="text-xs text-muted-foreground mt-1">
                       {sense.category}
@@ -117,8 +143,8 @@ export function SenseSelector({ selectedSenses, onToggle }: SenseSelectorProps) 
               Selected Senses: {selectedSenses.length}
             </p>
             <p className="text-blue-700">
-              Each sense adds unique context to your Aura&apos;s responses. Premium
-              senses require a Pro subscription.
+              Each sense adds unique context to your Aura&apos;s responses.
+              Premium senses require a Pro subscription.
             </p>
           </div>
         </div>
