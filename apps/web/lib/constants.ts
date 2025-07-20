@@ -23,7 +23,7 @@ export const VESSEL_TYPES: VesselType[] = [
   {
     id: "digital",
     name: "Digital",
-    icon: "📶",
+    icon: "🤖",
     description: "Free digital vessel, no hardware required",
     disabled: false,
   },
