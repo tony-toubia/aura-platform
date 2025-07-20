@@ -1,6 +1,18 @@
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import { redirect } from 'next/navigation'
+import React from 'react' // Import React for type definitions
 import { DashboardContent } from '@/components/aura/dashboard-content'
+
+// Define the props interface here to ensure type safety within this file
+interface DashboardStats {
+  auras: number
+  conversations: number
+  subscription: string
+}
+
+interface DashboardContentProps {
+  stats: DashboardStats
+}
 
 export default async function DashboardPage() {
   const supabase = await createServerSupabase()
@@ -26,8 +38,11 @@ export default async function DashboardPage() {
     .select('tier')
     .single()
 
+  // FIX: Cast the imported component to explicitly tell TypeScript it accepts the 'stats' prop.
+  const TypedDashboardContent = DashboardContent as React.FC<DashboardContentProps>
+
   return (
-    <DashboardContent 
+    <TypedDashboardContent 
       stats={{
         auras: aurasCount || 0,
         conversations: conversationsCount || 0,

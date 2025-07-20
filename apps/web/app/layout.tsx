@@ -24,8 +24,11 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50`}
+        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-white`}
       >
+        {/* This file is now just a basic shell. 
+          The public and dashboard layouts will add their own headers and footers.
+        */}
         {children}
       </body>
     </html>

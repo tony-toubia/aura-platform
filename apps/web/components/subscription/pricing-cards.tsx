@@ -1,5 +1,3 @@
-// apps/web/components/subscription/pricing-cards.tsx
-
 "use client"
 
 import React from 'react'
@@ -13,8 +11,7 @@ import {
   CardTitle,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { Badge } from '@/components/ui/badge'
-import { Check, X, Zap, Heart, Users, Building } from 'lucide-react'
+import { Check, X, Zap, Heart, Users, Building, Star } from 'lucide-react'
 import { SUBSCRIPTION_TIERS } from '@/lib/services/subscription-service'
 import { cn } from '@/lib/utils'
 
@@ -23,28 +20,41 @@ interface PricingCardsProps {
   onSelectTier?: (tierId: string) => void
 }
 
-const tierIcons = {
-  free: Zap,
-  personal: Heart,
-  family: Users,
-  business: Building,
+const tierConfig = {
+  free: {
+    icon: Zap,
+    description: 'For getting started with the magic of Auras.',
+    borderColor: 'border-gray-300',
+    gradient: 'from-gray-50 to-white',
+    buttonClass: 'bg-gray-800 hover:bg-gray-900',
+    textColor: 'text-gray-800'
+  },
+  personal: {
+    icon: Heart,
+    description: 'For creators who want to unlock more features and potential.',
+    borderColor: 'border-purple-400',
+    gradient: 'from-purple-50 to-white',
+    buttonClass: 'bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700',
+    textColor: 'text-purple-700'
+  },
+  family: {
+    icon: Users,
+    description: 'Share the magic with your entire family and friends.',
+    borderColor: 'border-blue-400',
+    gradient: 'from-blue-50 to-white',
+    buttonClass: 'bg-gradient-to-r from-blue-600 to-sky-600 hover:from-blue-700 hover:to-sky-700',
+    textColor: 'text-blue-700'
+  },
+  business: {
+    icon: Building,
+    description: 'Enterprise-grade capabilities for your organization.',
+    borderColor: 'border-amber-400',
+    gradient: 'from-amber-50 to-white',
+    buttonClass: 'bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-700 hover:to-orange-700',
+    textColor: 'text-amber-700'
+  },
 }
 
-const tierColors = {
-  free: 'border-gray-200',
-  personal: 'border-purple-200',
-  family: 'border-blue-200',
-  business: 'border-amber-200',
-}
-
-const tierGradients = {
-  free: 'from-gray-50 to-gray-100',
-  personal: 'from-purple-50 to-purple-100',
-  family: 'from-blue-50 to-blue-100',
-  business: 'from-amber-50 to-amber-100',
-}
-
-// define a feature descriptor with a looser "format" signature
 type FeatureDef = {
   key: keyof typeof SUBSCRIPTION_TIERS['free']['features']
   label: string
@@ -89,9 +99,11 @@ export function PricingCards({
   }
 
   return (
-    <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+    // FIX: Replaced the fixed-column grid with a responsive, auto-fitting grid.
+    <div className="grid gap-8 justify-center grid-cols-[repeat(auto-fit,minmax(280px,1fr))]">
       {Object.entries(SUBSCRIPTION_TIERS).map(([tierId, tier]) => {
-        const Icon = tierIcons[tierId as keyof typeof tierIcons]
+        const config = tierConfig[tierId as keyof typeof tierConfig]
+        const Icon = config.icon
         const isCurrentTier = currentTier === tierId
         const isPopular = tierId === 'personal'
 
@@ -99,39 +111,44 @@ export function PricingCards({
           <Card
             key={tierId}
             className={cn(
-              'relative overflow-hidden transition-all hover:shadow-lg',
-              tierColors[tierId as keyof typeof tierColors],
-              isPopular && 'md:scale-105 shadow-lg'
+              'flex flex-col h-full', 
+              'relative overflow-hidden transition-shadow duration-300 ease-in-out',
+              'bg-white hover:shadow-2xl',
+              isCurrentTier ? config.borderColor : 'border-gray-200',
+              isCurrentTier ? 'border-2 shadow-xl' : 'border shadow-md',
+              isPopular && !isCurrentTier && 'border-purple-300'
             )}
           >
             {isPopular && (
-              <div className="absolute top-0 right-0">
-                <Badge className="rounded-bl-lg rounded-tr-lg">
-                  Most Popular
-                </Badge>
+              <div className="absolute top-0 right-0 bg-gradient-to-r from-purple-600 to-blue-600 text-white px-4 py-1 text-xs font-bold rounded-bl-lg shadow-md z-10">
+                <Star className="w-3 h-3 inline-block mr-1" />
+                Most Popular
               </div>
             )}
 
             <CardHeader
               className={cn(
-                'bg-gradient-to-br',
-                tierGradients[tierId as keyof typeof tierGradients]
+                'p-6 bg-gradient-to-br text-center',
+                config.gradient
               )}
             >
-              <div className="flex items-center justify-between">
-                <Icon className="w-8 h-8 text-gray-700" />
-                {isCurrentTier && <Badge variant="secondary">Current Plan</Badge>}
+              <div className="w-16 h-16 flex items-center justify-center rounded-full mx-auto mb-4 bg-white shadow-inner">
+                <Icon className={cn("w-8 h-8", config.textColor)} />
               </div>
-              <CardTitle className="text-2xl">{tier.name}</CardTitle>
-              <CardDescription>
-                <span className="text-3xl font-bold text-gray-900">
+              <div className="min-h-[110px]">
+                <CardTitle className="text-xl font-bold">{tier.name}</CardTitle>
+                <p className="text-3xl font-extrabold text-gray-900 mt-2">
                   ${tier.price}
-                </span>
-                {tier.price > 0 && <span className="text-gray-600">/month</span>}
-              </CardDescription>
+                  {tier.price > 0 && <span className="text-base font-medium text-gray-500">/mo</span>}
+                </p>
+                <CardDescription className="text-sm text-gray-600 mt-2 px-2">
+                  {config.description}
+                </CardDescription>
+              </div>
             </CardHeader>
 
-            <CardContent className="pt-6">
+            <CardContent className="flex-1 p-6 space-y-4">
+              <p className="text-sm font-semibold text-gray-700">Features include:</p>
               <ul className="space-y-3">
                 {features.map(({ key, label, format }) => {
                   const rawValue = tier.features[key]
@@ -141,78 +158,46 @@ export function PricingCards({
                   return (
                     <li
                       key={key}
-                      className="flex items-center space-x-2 text-sm"
+                      className="flex items-start space-x-3 text-sm"
                     >
-                      {isBoolean ? (
-                        formatted ? (
-                          <Check className="w-4 h-4 text-green-600" />
+                      <div className="flex-shrink-0 pt-0.5">
+                        {isBoolean ? (
+                          formatted ? (
+                            <Check className="w-5 h-5 text-green-500" />
+                          ) : (
+                            <X className="w-5 h-5 text-gray-400" />
+                          )
                         ) : (
-                          <X className="w-4 h-4 text-gray-400" />
-                        )
-                      ) : (
-                        <Check className="w-4 h-4 text-green-600" />
-                      )}
+                          <Check className="w-5 h-5 text-green-500" />
+                        )}
+                      </div>
                       <span
                         className={cn(
-                          isBoolean && !formatted && 'text-gray-400'
+                          'flex-1 text-left',
+                          isBoolean && !formatted && 'text-gray-400 line-through'
                         )}
                       >
-                        {label}:{' '}
-                        {!isBoolean && <strong>{formatted}</strong>}
+                        {label}
+                        {!isBoolean && <strong className={cn("ml-1 font-bold", config.textColor)}>{formatted}</strong>}
                       </span>
                     </li>
                   )
                 })}
               </ul>
-
-              {/* Sense Categories */}
-              <div className="mt-4 pt-4 border-t">
-                <p className="text-sm font-medium mb-2">Available Senses:</p>
-                <div className="flex flex-wrap gap-1">
-                  {tier.features.availableSenses.includes('all') ? (
-                    <Badge variant="secondary" className="text-xs">
-                      All Senses
-                    </Badge>
-                  ) : (
-                    <>
-                      {tier.features.availableSenses.includes('weather') && (
-                        <Badge variant="secondary" className="text-xs">
-                          Weather
-                        </Badge>
-                      )}
-                      {tier.features.availableSenses.includes(
-                        'soil_moisture'
-                      ) && (
-                        <Badge variant="secondary" className="text-xs">
-                          Sensors
-                        </Badge>
-                      )}
-                      {tier.features.availableSenses.includes('wildlife') && (
-                        <Badge variant="secondary" className="text-xs">
-                          Premium
-                        </Badge>
-                      )}
-                    </>
-                  )}
-                </div>
-              </div>
             </CardContent>
 
-            <CardFooter>
+            <CardFooter className="p-6 mt-auto bg-gray-50/50">
               {isCurrentTier ? (
-                <Button className="w-full" disabled>
+                <Button className="w-full" disabled variant="outline">
+                  <Check className="w-4 h-4 mr-2" />
                   Current Plan
-                </Button>
-              ) : tier.price === 0 ? (
-                <Button className="w-full" variant="outline" disabled>
-                  Free Plan
                 </Button>
               ) : (
                 <Button
-                  className="w-full"
+                  className={cn("w-full text-white shadow-lg transition-transform hover:scale-105", config.buttonClass)}
                   onClick={() => handleUpgrade(tierId)}
                 >
-                  Upgrade to {tier.name}
+                  {tier.price > 0 ? `Upgrade to ${tier.name}` : 'Get Started'}
                 </Button>
               )}
             </CardFooter>

@@ -86,6 +86,9 @@ export interface Message {
     influences?: string[]
     senseData?: { sense: string; timestamp: string | Date }[]
     triggeredRule?: string
+    senseInfluences?: string[]
+    personalityFactors?: string[]
+    isError?: boolean
   }
 }
 

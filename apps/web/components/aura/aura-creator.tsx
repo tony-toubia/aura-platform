@@ -21,7 +21,18 @@ import {
   AVAILABLE_SENSES,
   type VesselTypeId,
 } from "@/lib/constants"
-import { AlertCircle } from "lucide-react"
+import { 
+  AlertCircle, 
+  Sparkles, 
+  Zap, 
+  Leaf, 
+  Globe, 
+  Heart,
+  ArrowRight,
+  CheckCircle,
+  QrCode,
+  Scan
+} from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule } from "@/types"
 
@@ -44,6 +55,39 @@ interface AuraForm {
   selectedStudyId?: number
   selectedIndividualId?: string
 }
+
+const vesselTypes = [
+  {
+    id: "terra",
+    name: "Terra Spirit",
+    description: "Plant & garden companions that share their growth journey",
+    icon: "🌱",
+    color: "from-green-500 to-emerald-600",
+    bgColor: "from-green-50 to-emerald-50",
+    borderColor: "border-green-200 hover:border-green-400",
+    example: "\"I love this morning sunshine! My leaves are so happy! ☀️\""
+  },
+  {
+    id: "companion", 
+    name: "Companion Spirit",
+    description: "Wildlife trackers that experience adventures in the wild",
+    icon: "🦋",
+    color: "from-blue-500 to-sky-600", 
+    bgColor: "from-blue-50 to-sky-50",
+    borderColor: "border-blue-200 hover:border-blue-400",
+    example: "\"The migration is starting! I can feel the change in the air! 🌬️\""
+  },
+  {
+    id: "digital",
+    name: "Digital Being", 
+    description: "Pure consciousness exploring the world through data streams",
+    icon: "✨",
+    color: "from-purple-500 to-violet-600",
+    bgColor: "from-purple-50 to-violet-50", 
+    borderColor: "border-purple-200 hover:border-purple-400",
+    example: "\"I've been reading about space exploration! Want to chat about it? 🚀\""
+  }
+]
 
 export function AuraCreator() {
   const router = useRouter()
@@ -99,12 +143,12 @@ export function AuraCreator() {
     }
   }
 
-  // Digital vessel handler
-  const handleDigitalSelect = () => {
+  // Vessel type selection handler
+  const handleVesselSelect = (vesselType: VesselTypeId) => {
     setAuraData((prev) => ({
       ...prev,
-      vesselType: "digital",
-      vesselCode: "",
+      vesselType,
+      vesselCode: vesselType === "digital" ? "" : vesselType,
     }))
     setStep("senses")
     setError(null)
@@ -183,92 +227,191 @@ export function AuraCreator() {
     else if (step === "rules") setStep("details")
   }
 
+  const selectedVessel = vesselTypes.find(v => v.id === auraData.vesselType)
+
   return (
-    <div className="max-w-4xl mx-auto">
-      <Card>
-        <CardHeader>
-          <CardTitle>Create New Aura</CardTitle>
-          <CardDescription>
-            Follow the steps below to configure your Aura.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
+    <div className="max-w-5xl mx-auto">
+      {/* Magical Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+          Create Your Aura
+        </h1>
+        <p className="text-xl text-gray-600">
+          Bring a unique personality to life through magical connection and understanding
+        </p>
+      </div>
+
+      <Card className="backdrop-blur-sm bg-white/95 border-2 border-purple-100 shadow-xl">
+        <CardContent className="p-8">
           {step === "vessel" ? (
-            <div className="flex flex-col items-center space-y-6 py-10">
-              <h2 className="text-xl font-semibold text-center">
-                Scan a vessel QR code or enter vessel ID
-              </h2>
-              <Input
-                value={manualInput}
-                onChange={(e) => {
-                  setManualInput(e.target.value)
-                  setError(null)
-                }}
-                placeholder='Enter "terra" or "companion"'
-                className="max-w-sm"
-              />
-              {error && (
-                <p className="text-sm text-destructive text-center">{error}</p>
-              )}
-              <Button
-                onClick={handleManualSubmit}
-                disabled={!manualInput.trim()}
-                size="lg"
-              >
-                Continue
-              </Button>
-              <div className="text-sm text-gray-500">— OR —</div>
-              <Button
-                variant="outline"
-                onClick={handleDigitalSelect}
-                size="lg"
-              >
-                Create a digital vessel aura
-              </Button>
+            <div className="space-y-8">
+              {/* Physical Vessel Option */}
+              <div className="text-center space-y-6">
+                <div className="space-y-3">
+                  <h2 className="text-2xl font-bold flex items-center justify-center gap-2">
+                    <QrCode className="w-6 h-6 text-purple-600" />
+                    Do you have a physical vessel?
+                  </h2>
+                  <p className="text-gray-600">
+                    Scan your vessel's QR code or enter its ID to connect with a physical companion
+                  </p>
+                </div>
+
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="relative">
+                    <Input
+                      value={manualInput}
+                      onChange={(e) => {
+                        setManualInput(e.target.value)
+                        setError(null)
+                      }}
+                      placeholder='Enter vessel ID (e.g., "terra" or "companion")'
+                      className="text-center text-lg py-6 border-2 border-purple-200 focus:border-purple-400"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Scan className="w-5 h-5 text-gray-400" />
+                    </div>
+                  </div>
+                  
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
+                      {error}
+                    </div>
+                  )}
+                  
+                  <Button
+                    onClick={handleManualSubmit}
+                    disabled={!manualInput.trim()}
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  >
+                    Connect Vessel
+                  </Button>
+                </div>
+              </div>
+
+              {/* Divider */}
+              <div className="flex items-center gap-4">
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+                <span className="text-gray-500 font-medium">OR</span>
+                <div className="flex-1 h-px bg-gradient-to-r from-transparent via-gray-300 to-transparent" />
+              </div>
+
+              {/* Digital Only Option */}
+              <div className="space-y-6">
+                <div className="text-center">
+                  <h3 className="text-xl font-semibold mb-2">Create a Digital Being</h3>
+                  <p className="text-gray-600">No physical vessel? No problem! Create a pure digital consciousness</p>
+                </div>
+
+                <div className="max-w-md mx-auto">
+                  <button
+                    onClick={() => handleVesselSelect("digital")}
+                    className="group relative w-full p-8 rounded-2xl border-3 transition-all duration-300 text-center hover:scale-105 hover:shadow-xl border-purple-200 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-violet-50"
+                  >
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center">
+                        <div className="text-6xl mb-2">✨</div>
+                      </div>
+                      
+                      <div>
+                        <h4 className="text-2xl font-bold mb-3 text-purple-800">Digital Being</h4>
+                        <p className="text-gray-600 text-sm mb-4">
+                          Pure consciousness exploring the world through data streams, news, and environmental awareness
+                        </p>
+                        <div className="bg-white/70 p-4 rounded-lg border border-white/50">
+                          <p className="text-sm italic text-gray-700">
+                            "I've been reading about space exploration! Want to chat about it? 🚀"
+                          </p>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center justify-center gap-2 mt-4">
+                        <Sparkles className="w-5 h-5 text-purple-600" />
+                        <span className="text-purple-600 font-medium">Start Creating Magic</span>
+                        <ArrowRight className="w-5 h-5 text-purple-600 group-hover:translate-x-1 transition-transform" />
+                      </div>
+                    </div>
+                  </button>
+                </div>
+                
+                <div className="text-center text-sm text-gray-500">
+                  ✨ Digital beings can later be connected to any vessel type
+                </div>
+              </div>
             </div>
           ) : (
             <>
-              {/* Stepper */}
-              <div className="flex items-center mb-8">
-                {(["vessel", "senses", "details", "rules"] as Step[]).map(
-                  (s, i) => (
-                    <React.Fragment key={s}>
+              {/* Enhanced Stepper */}
+              <div className="flex items-center mb-10">
+                {(["vessel", "senses", "details", "rules"] as Step[]).map((s, i) => (
+                  <React.Fragment key={s}>
+                    <div className="flex items-center">
                       <div
                         className={cn(
-                          "flex items-center",
-                          step === s ? "text-purple-700" : "text-gray-400"
+                          "rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold transition-all duration-300",
+                          step === s
+                            ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-110"
+                            : i < (["vessel", "senses", "details", "rules"] as Step[]).indexOf(step)
+                            ? "bg-green-500 text-white"
+                            : "bg-gray-200 text-gray-500"
                         )}
                       >
-                        <div
-                          className={cn(
-                            "rounded-full w-8 h-8 flex items-center justify-center",
-                            step === s
-                              ? "bg-purple-700 text-white"
-                              : "bg-gray-200"
-                          )}
-                        >
-                          {i + 1}
-                        </div>
-                        <span className="ml-2 capitalize">
-                          {{
-                            vessel: "Vessel",
-                            senses: "Senses",
-                            details: "Details",
-                            rules: "Rules",
-                          }[
-                            s
-                          ]}
-                        </span>
+                        {i < (["vessel", "senses", "details", "rules"] as Step[]).indexOf(step) ? (
+                          <CheckCircle className="w-5 h-5" />
+                        ) : (
+                          i + 1
+                        )}
                       </div>
-                      {i < 3 && <div className="flex-1 h-px bg-gray-200 mx-2" />}
-                    </React.Fragment>
-                  )
-                )}
+                      <span className={cn(
+                        "ml-3 font-medium transition-colors",
+                        step === s ? "text-purple-700" : "text-gray-500"
+                      )}>
+                        {{
+                          vessel: "Choose Vessel",
+                          senses: "Connect Senses", 
+                          details: "Define Personality",
+                          rules: "Set Behaviors",
+                        }[s]}
+                      </span>
+                    </div>
+                    {i < 3 && <div className={cn(
+                      "flex-1 h-1 mx-4 rounded transition-colors",
+                      i < (["vessel", "senses", "details", "rules"] as Step[]).indexOf(step)
+                        ? "bg-green-500"
+                        : "bg-gray-200"
+                    )} />}
+                  </React.Fragment>
+                ))}
               </div>
+
+              {/* Selected Vessel Display */}
+              {selectedVessel && (
+                <div className={cn(
+                  "mb-8 p-4 rounded-xl border-2 bg-gradient-to-r",
+                  selectedVessel.bgColor,
+                  selectedVessel.borderColor.replace('hover:', '')
+                )}>
+                  <div className="flex items-center gap-3">
+                    <div className="text-2xl">{selectedVessel.icon}</div>
+                    <div>
+                      <h3 className="font-semibold">{selectedVessel.name}</h3>
+                      <p className="text-sm text-gray-600">{selectedVessel.description}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               {/* Senses Step */}
               {step === "senses" && (
-                <>
+                <div className="space-y-8">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-2">Connect Your Aura's Senses</h2>
+                    <p className="text-gray-600">
+                      Choose how your {selectedVessel?.name} will perceive and understand the world
+                    </p>
+                  </div>
+
                   {auraData.vesselType === "companion" && (
                     <AnimalSelector
                       onStudyChange={(sid) =>
@@ -282,30 +425,40 @@ export function AuraCreator() {
                       }
                     />
                   )}
+                  
                   <SenseSelector
                     availableSenses={allowedSenses}
                     nonToggleableSenses={senseConfig.defaultSenses}
                     selectedSenses={auraData.senses}
                     onToggle={toggleSense}
                   />
-                </>
+                </div>
               )}
 
               {/* Details Step */}
               {step === "details" && (
-                <>
-                  <div className="mb-6">
-                    <label className="block text-sm font-medium mb-2">
-                      Aura Name
+                <div className="space-y-8">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-2">Shape Their Personality</h2>
+                    <p className="text-gray-600">
+                      Give your {selectedVessel?.name} a unique character that will shine through every interaction
+                    </p>
+                  </div>
+
+                  <div className="max-w-md mx-auto">
+                    <label className="block text-sm font-medium mb-3 text-center">
+                      What should we call your Aura?
                     </label>
                     <Input
                       value={auraData.name}
                       onChange={(e) =>
                         setAuraData((p) => ({ ...p, name: e.target.value }))
                       }
-                      placeholder="Give your Aura a unique name"
+                      placeholder="Give your Aura a magical name..."
+                      className="text-center text-lg py-6 border-2 border-purple-200 focus:border-purple-400"
                     />
                   </div>
+                  
                   <PersonalityMatrix
                     personality={auraData.personality}
                     onChange={(trait, value) =>
@@ -315,49 +468,80 @@ export function AuraCreator() {
                       }))
                     }
                   />
-                </>
+                </div>
               )}
 
               {/* Rules Step */}
               {step === "rules" && (
-                <RuleBuilder
-                  auraId={auraData.id}
-                  vesselType={auraData.vesselType as VesselTypeId}  // Add this line
-                  availableSenses={auraData.senses}
-                  existingRules={auraData.rules}
-                  onAddRule={(r) =>
-                    setAuraData((p) => ({ ...p, rules: [...p.rules, r] }))
-                  }
-                  onDeleteRule={(id) =>
-                    setAuraData((p) => ({
-                      ...p,
-                      rules: p.rules.filter((r) => r.id !== id),
-                    }))
-                  }
-                  onToggleRule={(id, en) =>
-                    setAuraData((p) => ({
-                      ...p,
-                      rules: p.rules.map((r) =>
-                        r.id === id ? { ...r, enabled: en } : r
-                      ),
-                    }))
-                  }
-                />
+                <div className="space-y-8">
+                  <div className="text-center">
+                    <h2 className="text-2xl font-bold mb-2">
+                      <Sparkles className="w-6 h-6 inline mr-2" />
+                      Teaching {auraData.name} to React
+                    </h2>
+                    <p className="text-gray-600">
+                      Set up automatic responses so {auraData.name} can share their experiences with the world
+                    </p>
+                  </div>
+
+                  <RuleBuilder
+                    auraId={auraData.id}
+                    vesselType={auraData.vesselType as VesselTypeId}
+                    availableSenses={auraData.senses}
+                    existingRules={auraData.rules}
+                    onAddRule={(r) =>
+                      setAuraData((p) => ({ ...p, rules: [...p.rules, r] }))
+                    }
+                    onDeleteRule={(id) =>
+                      setAuraData((p) => ({
+                        ...p,
+                        rules: p.rules.filter((r) => r.id !== id),
+                      }))
+                    }
+                    onToggleRule={(id, en) =>
+                      setAuraData((p) => ({
+                        ...p,
+                        rules: p.rules.map((r) =>
+                          r.id === id ? { ...r, enabled: en } : r
+                        ),
+                      }))
+                    }
+                  />
+
+                  {/* Success Message for Rules Step */}
+                  <div className="text-center p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
+                    <Heart className="w-8 h-8 text-green-600 mx-auto mb-3" />
+                    <h3 className="text-lg font-semibold text-green-800 mb-2">
+                      🎉 {auraData.name} is ready to come alive!
+                    </h3>
+                    <p className="text-green-700">
+                      Your Aura is now configured and ready to start experiencing the world. 
+                      You can always add more rules or adjust their personality later.
+                    </p>
+                  </div>
+                </div>
               )}
 
               {/* API Error */}
               {error && (
-                <div className="mt-4 bg-red-50 text-red-700 p-3 rounded-md flex items-center gap-2">
-                  <AlertCircle className="w-4 h-4" />
-                  <p className="text-sm">{error}</p>
+                <div className="bg-red-50 border-2 border-red-200 text-red-700 p-4 rounded-xl flex items-center gap-3">
+                  <AlertCircle className="w-5 h-5 flex-shrink-0" />
+                  <p>{error}</p>
                 </div>
               )}
 
-              {/* Navigation */}
-              <div className="flex justify-between items-center mt-8 pt-6 border-t">
-                <Button variant="outline" onClick={onBack} disabled={loading}>
+              {/* Enhanced Navigation */}
+              <div className="flex justify-between items-center mt-10 pt-8 border-t-2 border-gray-100">
+                <Button 
+                  variant="outline" 
+                  onClick={onBack} 
+                  disabled={loading}
+                  size="lg"
+                  className="px-8"
+                >
                   Back
                 </Button>
+                
                 {step !== "rules" && (
                   <Button
                     onClick={onNext}
@@ -367,9 +551,30 @@ export function AuraCreator() {
                       (step === "details" && !canNextDetails)
                     }
                     size="lg"
-                    className="flex items-center gap-2"
+                    className="px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                   >
-                    {step === "details" && loading ? "Creating…" : "Next"}
+                    {step === "details" && loading ? (
+                      <>
+                        <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                        Creating Magic...
+                      </>
+                    ) : (
+                      <>
+                        Continue
+                        <ArrowRight className="w-4 h-4 ml-2" />
+                      </>
+                    )}
+                  </Button>
+                )}
+
+                {step === "rules" && (
+                  <Button
+                    onClick={() => router.push(`/auras/${auraData.id}`)}
+                    size="lg"
+                    className="px-8 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                  >
+                    <Heart className="w-4 h-4 mr-2" />
+                    Meet {auraData.name}
                   </Button>
                 )}
               </div>

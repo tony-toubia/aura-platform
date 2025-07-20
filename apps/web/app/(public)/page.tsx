@@ -6,32 +6,7 @@ import { Zap, Brain, Wifi, MessageCircle, Sparkles, Heart, Globe, Leaf, ArrowRig
 export default function HomePage() {
   return (
     <div className="min-h-screen">
-      {/* Navigation */}
-      <nav className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50">
-        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-              <Sparkles className="w-5 h-5 text-white" />
-            </div>
-            <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Aura Engine
-            </span>
-          </div>
-          <div className="flex items-center space-x-4">
-            <Link href="/vessels">
-              <Button variant="ghost" size="sm">Shop Vessels</Button>
-            </Link>
-            <Link href="/login">
-              <Button variant="ghost">Sign In</Button>
-            </Link>
-            <Link href="/register">
-              <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-                Get Started
-              </Button>
-            </Link>
-          </div>
-        </div>
-      </nav>
+      {/* The <nav> section has been removed from here. It is now in the RootLayout. */}
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
