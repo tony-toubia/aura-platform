@@ -32,6 +32,7 @@ import type { BehaviorRule } from "@/types"
 
 interface RuleBuilderProps {
   auraId: string
+  vesselType?: string
   availableSenses: string[]
   existingRules?: BehaviorRule[]
   editingRule?: BehaviorRule | null
@@ -60,6 +61,7 @@ const OPERATORS = {
 
 export function RuleBuilder({
   auraId,
+  vesselType,
   availableSenses,
   existingRules = [],
   editingRule = null,
@@ -257,7 +259,7 @@ export function RuleBuilder({
           <CardTitle>{isEditing ? "Edit Rule" : "Add New Rule"}</CardTitle>
           <CardDescription>
             {isEditing
-              ? "Modify this rule’s settings"
+              ? "Modify this rule's settings"
               : "Create automatic responses based on sensor conditions"}
           </CardDescription>
         </CardHeader>
@@ -317,7 +319,7 @@ export function RuleBuilder({
           <div>
             <label className="text-sm font-medium mb-2 block">Response Message</label>
             <Input
-              placeholder="I’m thirsty! Soil moisture is low."
+              placeholder="I'm thirsty! Soil moisture is low."
               value={actionMessage}
               onChange={(e) => setActionMessage(e.target.value)}
             />
@@ -366,30 +368,348 @@ export function RuleBuilder({
       {/* Rule Examples */}
       <Card>
         <CardHeader>
-          <CardTitle>Rule Examples</CardTitle>
-          <CardDescription>Common rules for different vessel types</CardDescription>
+          <CardTitle>Quick Start Templates</CardTitle>
+          <CardDescription>Click any example to pre-configure the rule form</CardDescription>
         </CardHeader>
-        <CardContent className="space-y-3">
-          <div className="space-y-2">
-            <h4 className="font-medium flex items-center gap-2">
-              <Leaf className="w-4 h-4" /> Terra (Plant)
-            </h4>
-            <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-              <li>• Alert when soil moisture drops below 20%</li>
-              <li>• Celebrate when light level exceeds 1000 lux</li>
-              <li>• Warn about extreme temperatures</li>
-            </ul>
-          </div>
+        <CardContent className="space-y-4">
+          {/* Digital Rules - only show if vesselType is digital */}
+          {vesselType === "digital" && (
+            <div className="space-y-3">
+              <h4 className="font-medium flex items-center gap-2">
+                <Zap className="w-4 h-4" /> Digital Rules
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* News Alert - only if news sense is available */}
+                {availableSenses.includes("news") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Breaking News Alert")
+                      setSelectedSensor("news.importance")
+                      setOperator(">")
+                      setThreshold("7")
+                      setActionMessage("🚨 Breaking news detected with importance level {sensor.value}! Something significant is happening.")
+                      setPriority("9")
+                      setCooldown("3600")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">📰 Breaking News Alert</div>
+                    <div className="text-sm text-muted-foreground">When news importance {">"} 7</div>
+                  </Button>
+                )}
 
-          <div className="space-y-2">
-            <h4 className="font-medium flex items-center gap-2">
-              <Globe className="w-4 h-4" /> Companion (Wildlife)
-            </h4>
-            <ul className="text-sm text-muted-foreground space-y-1 ml-6">
-              <li>• Notify about extreme weather in habitat</li>
-              <li>• Alert when tracked animal moves unusually fast</li>
-              <li>• Share updates during migration seasons</li>
-            </ul>
+                {/* Wildlife Movement Alert - only if wildlife sense is available */}
+                {availableSenses.includes("wildlife") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Wildlife Activity Spike")
+                      setSelectedSensor("wildlife.activity")
+                      setOperator(">")
+                      setThreshold("80")
+                      setActionMessage("🦋 High wildlife activity detected at {sensor.value}%! The ecosystem is buzzing with life.")
+                      setPriority("4")
+                      setCooldown("7200")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">🦋 Wildlife Activity Spike</div>
+                    <div className="text-sm text-muted-foreground">When activity {">"} 80%</div>
+                  </Button>
+                )}
+
+                {/* Data Feed Error - generic digital rule */}
+                <Button
+                  variant="outline"
+                  className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                  onClick={() => {
+                    setRuleName("System Health Check")
+                    setSelectedSensor("system.uptime")
+                    setOperator("<")
+                    setThreshold("95")
+                    setActionMessage("⚠️ System performance is at {sensor.value}%. I might be experiencing some digital hiccups!")
+                    setPriority("7")
+                    setCooldown("1800")
+                    nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                  }}
+                >
+                  <div className="font-medium text-base">⚠️ System Health Check</div>
+                  <div className="text-sm text-muted-foreground">When uptime {"<"} 95%</div>
+                </Button>
+
+                {/* Light patterns for digital displays */}
+                {availableSenses.includes("light_level") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Digital Display Optimization")
+                      setSelectedSensor("light_level.value")
+                      setOperator("<")
+                      setThreshold("50")
+                      setActionMessage("🌙 Ambient light is low at {sensor.value} lux. Switching to dark mode for better visibility!")
+                      setPriority("2")
+                      setCooldown("1800")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">🌙 Dark Mode Trigger</div>
+                    <div className="text-sm text-muted-foreground">When light {"<"} 50 lux</div>
+                  </Button>
+                )}
+
+                {/* Air quality for digital environments */}
+                {availableSenses.includes("air_quality") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Environment Monitor")
+                      setSelectedSensor("air_quality.aqi")
+                      setOperator(">")
+                      setThreshold("150")
+                      setActionMessage("🌫️ Air quality index is {sensor.value} - that's unhealthy! Time to recommend indoor activities.")
+                      setPriority("6")
+                      setCooldown("10800")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">🌫️ Environment Monitor</div>
+                    <div className="text-sm text-muted-foreground">When AQI {">"} 150</div>
+                  </Button>
+                )}
+
+                {/* Weather for digital assistants */}
+                {availableSenses.includes("weather") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Weather Advisory")
+                      setSelectedSensor("weather.temperature")
+                      setOperator(">")
+                      setThreshold("30")
+                      setActionMessage("🔥 It's a scorching {sensor.value}°C outside! Perfect weather for staying indoors with digital entertainment.")
+                      setPriority("3")
+                      setCooldown("14400")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">🔥 Hot Weather Advisory</div>
+                    <div className="text-sm text-muted-foreground">When temp {">"} 30°C</div>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Terra (Plant) Rules - only show if vesselType is terra */}
+          {vesselType === "terra" && (
+            <div className="space-y-3">
+              <h4 className="font-medium flex items-center gap-2">
+                <Leaf className="w-4 h-4" /> Terra (Plant) Rules
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Low Moisture Alert - only if soil_moisture sense is available */}
+                {availableSenses.includes("soil_moisture") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Low Soil Moisture Alert")
+                      setSelectedSensor("soil_moisture.value")
+                      setOperator("<")
+                      setThreshold("20")
+                      setActionMessage("I'm getting thirsty! My soil moisture is at {sensor.value}%")
+                      setPriority("8")
+                      setCooldown("1800")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">💧 Low Moisture Alert</div>
+                    <div className="text-sm text-muted-foreground">When soil {"<"} 20%</div>
+                  </Button>
+                )}
+
+                {/* Light Celebration - only if light_level sense is available */}
+                {availableSenses.includes("light_level") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Perfect Light Celebration")
+                      setSelectedSensor("light_level.value")
+                      setOperator(">")
+                      setThreshold("1000")
+                      setActionMessage("Ah, perfect sunlight! I'm basking in {sensor.value} lux of beautiful light ☀️")
+                      setPriority("3")
+                      setCooldown("3600")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">☀️ Light Celebration</div>
+                    <div className="text-sm text-muted-foreground">When light {">"} 1000 lux</div>
+                  </Button>
+                )}
+
+                {/* Temperature Warning - only if weather sense is available */}
+                {availableSenses.includes("weather") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Temperature Warning")
+                      setSelectedSensor("weather.temperature")
+                      setOperator(">")
+                      setThreshold("35")
+                      setActionMessage("Whew! It's getting hot out here at {sensor.value}°C. I could use some shade!")
+                      setPriority("6")
+                      setCooldown("7200")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">🌡️ Heat Warning</div>
+                    <div className="text-sm text-muted-foreground">When temp {">"} 35°C</div>
+                  </Button>
+                )}
+
+                {/* Cold Weather Alert - only if weather sense is available */}
+                {availableSenses.includes("weather") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Cold Weather Alert")
+                      setSelectedSensor("weather.temperature")
+                      setOperator("<")
+                      setThreshold("5")
+                      setActionMessage("Brrr! It's only {sensor.value}°C - I hope my roots stay warm!")
+                      setPriority("7")
+                      setCooldown("7200")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">❄️ Cold Alert</div>
+                    <div className="text-sm text-muted-foreground">When temp {"<"} 5°C</div>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Companion (Wildlife) Rules - only show if vesselType is companion */}
+          {vesselType === "companion" && (
+            <div className="space-y-3">
+              <h4 className="font-medium flex items-center gap-2">
+                <Globe className="w-4 h-4" /> Companion (Wildlife) Rules
+              </h4>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {/* Storm Warning - only if weather sense is available */}
+                {availableSenses.includes("weather") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Storm Warning")
+                      setSelectedSensor("weather.humidity")
+                      setOperator(">")
+                      setThreshold("85")
+                      setActionMessage("Storm clouds gathering! Humidity is at {sensor.value}% - my animal friends should seek shelter.")
+                      setPriority("9")
+                      setCooldown("3600")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">⛈️ Storm Warning</div>
+                    <div className="text-sm text-muted-foreground">When humidity {">"} 85%</div>
+                  </Button>
+                )}
+
+                {/* Air Quality Alert - only if air_quality sense is available */}
+                {availableSenses.includes("air_quality") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Air Quality Alert")
+                      setSelectedSensor("air_quality.aqi")
+                      setOperator(">")
+                      setThreshold("100")
+                      setActionMessage("Air quality is concerning at AQI {sensor.value}. Wildlife in the area should be cautious.")
+                      setPriority("8")
+                      setCooldown("7200")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">💨 Air Quality Alert</div>
+                    <div className="text-sm text-muted-foreground">When AQI {">"} 100</div>
+                  </Button>
+                )}
+
+                {/* Perfect Conditions - only if weather sense is available */}
+                {availableSenses.includes("weather") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Perfect Conditions")
+                      setSelectedSensor("weather.temperature")
+                      setOperator(">=")
+                      setThreshold("18")
+                      setActionMessage("Beautiful weather today! {sensor.value}°C is perfect for wildlife activity 🦋")
+                      setPriority("2")
+                      setCooldown("14400")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">🌤️ Perfect Conditions</div>
+                    <div className="text-sm text-muted-foreground">When temp {">="} 18°C</div>
+                  </Button>
+                )}
+
+                {/* Night Activity - only if light_level sense is available */}
+                {availableSenses.includes("light_level") && (
+                  <Button
+                    variant="outline"
+                    className="h-auto p-4 text-left flex flex-col items-start space-y-1"
+                    onClick={() => {
+                      setRuleName("Night Activity")
+                      setSelectedSensor("light_level.value")
+                      setOperator("<")
+                      setThreshold("10")
+                      setActionMessage("Night has fallen with only {sensor.value} lux. Time for nocturnal creatures to emerge! 🦉")
+                      setPriority("4")
+                      setCooldown("21600")
+                      nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                    }}
+                  >
+                    <div className="font-medium text-base">🌙 Night Activity</div>
+                    <div className="text-sm text-muted-foreground">When light {"<"} 10 lux</div>
+                  </Button>
+                )}
+              </div>
+            </div>
+          )}
+
+          {/* Show message if no templates are available */}
+          {(!vesselType || 
+            (vesselType === "terra" && !availableSenses.some(s => ["soil_moisture", "light_level", "weather"].includes(s))) ||
+            (vesselType === "companion" && !availableSenses.some(s => ["weather", "air_quality", "light_level"].includes(s))) ||
+            (vesselType === "digital" && !availableSenses.some(s => ["news", "wildlife", "light_level", "air_quality", "weather"].includes(s)))
+          ) && (
+            <div className="text-center py-8 text-muted-foreground">
+              <p>No rule templates available for this vessel type and sensor configuration.</p>
+              <p className="text-sm mt-2">Use the form above to create custom rules.</p>
+            </div>
+          )}
+
+          <div className="mt-4 p-3 bg-blue-50 rounded-lg">
+            <p className="text-sm text-blue-700">
+              💡 <strong>Tip:</strong> Click any template above to auto-fill the form, then customize the values, message, and timing to fit your needs!
+            </p>
           </div>
         </CardContent>
       </Card>

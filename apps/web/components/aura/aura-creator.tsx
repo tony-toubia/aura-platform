@@ -3,7 +3,13 @@
 
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PersonalityMatrix } from "./personality-matrix"
@@ -64,10 +70,9 @@ export function AuraCreator() {
     selectedIndividualId: undefined,
   })
 
-  // Whenever vesselType changes, reset senses & companion selections to defaults
+  // Reset senses when vesselType changes
   useEffect(() => {
     if (!auraData.vesselType) return
-
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
     setAuraData((prev) => ({
       ...prev,
@@ -78,7 +83,7 @@ export function AuraCreator() {
     setError(null)
   }, [auraData.vesselType])
 
-  // Handle manual QR / ID entry
+  // Manual entry handler
   const handleManualSubmit = () => {
     const val = manualInput.trim().toLowerCase()
     if (val === "terra" || val === "companion") {
@@ -94,7 +99,7 @@ export function AuraCreator() {
     }
   }
 
-  // Handle quick digital-vessel creation
+  // Digital vessel handler
   const handleDigitalSelect = () => {
     setAuraData((prev) => ({
       ...prev,
@@ -144,7 +149,7 @@ export function AuraCreator() {
     }
   }
 
-  // Validation for senses & details steps
+  // Step validations
   const canNextSenses = (() => {
     if (!auraData.vesselType) return false
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
@@ -156,10 +161,9 @@ export function AuraCreator() {
       (auraData.selectedStudyId && auraData.selectedIndividualId)
     return hasDefaults && hasAnimal
   })()
-
   const canNextDetails = auraData.name.trim() !== ""
 
-  // Derive which senses to show
+  // Determine allowed senses
   const senseConfig = auraData.vesselType
     ? VESSEL_SENSE_CONFIG[auraData.vesselType]
     : { defaultSenses: [], optionalSenses: [] }
@@ -189,7 +193,6 @@ export function AuraCreator() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {/* === STEP: Vessel === */}
           {step === "vessel" ? (
             <div className="flex flex-col items-center space-y-6 py-10">
               <h2 className="text-xl font-semibold text-center">
@@ -215,13 +218,17 @@ export function AuraCreator() {
                 Continue
               </Button>
               <div className="text-sm text-gray-500">— OR —</div>
-              <Button variant="outline" onClick={handleDigitalSelect} size="lg">
+              <Button
+                variant="outline"
+                onClick={handleDigitalSelect}
+                size="lg"
+              >
                 Create a digital vessel aura
               </Button>
             </div>
           ) : (
             <>
-              {/* === Stepper === */}
+              {/* Stepper */}
               <div className="flex items-center mb-8">
                 {(["vessel", "senses", "details", "rules"] as Step[]).map(
                   (s, i) => (
@@ -248,7 +255,9 @@ export function AuraCreator() {
                             senses: "Senses",
                             details: "Details",
                             rules: "Rules",
-                          }[s]}
+                          }[
+                            s
+                          ]}
                         </span>
                       </div>
                       {i < 3 && <div className="flex-1 h-px bg-gray-200 mx-2" />}
@@ -257,17 +266,17 @@ export function AuraCreator() {
                 )}
               </div>
 
-              {/* === STEP CONTENT === */}
+              {/* Senses Step */}
               {step === "senses" && (
                 <>
                   {auraData.vesselType === "companion" && (
                     <AnimalSelector
                       onStudyChange={(sid) =>
-                        setAuraData((prev) => ({ ...prev, selectedStudyId: sid }))
+                        setAuraData((p) => ({ ...p, selectedStudyId: sid }))
                       }
                       onIndividualChange={(iid) =>
-                        setAuraData((prev) => ({
-                          ...prev,
+                        setAuraData((p) => ({
+                          ...p,
                           selectedIndividualId: iid,
                         }))
                       }
@@ -282,6 +291,7 @@ export function AuraCreator() {
                 </>
               )}
 
+              {/* Details Step */}
               {step === "details" && (
                 <>
                   <div className="mb-6">
@@ -291,10 +301,7 @@ export function AuraCreator() {
                     <Input
                       value={auraData.name}
                       onChange={(e) =>
-                        setAuraData((prev) => ({
-                          ...prev,
-                          name: e.target.value,
-                        }))
+                        setAuraData((p) => ({ ...p, name: e.target.value }))
                       }
                       placeholder="Give your Aura a unique name"
                     />
@@ -302,44 +309,43 @@ export function AuraCreator() {
                   <PersonalityMatrix
                     personality={auraData.personality}
                     onChange={(trait, value) =>
-                      setAuraData((prev) => ({
-                        ...prev,
-                        personality: { ...prev.personality, [trait]: value },
+                      setAuraData((p) => ({
+                        ...p,
+                        personality: { ...p.personality, [trait]: value },
                       }))
                     }
                   />
                 </>
               )}
 
+              {/* Rules Step */}
               {step === "rules" && (
                 <RuleBuilder
                   auraId={auraData.id}
+                  vesselType={auraData.vesselType as VesselTypeId}  // Add this line
                   availableSenses={auraData.senses}
                   existingRules={auraData.rules}
-                  onAddRule={(rule) =>
-                    setAuraData((prev) => ({
-                      ...prev,
-                      rules: [...prev.rules, rule],
+                  onAddRule={(r) =>
+                    setAuraData((p) => ({ ...p, rules: [...p.rules, r] }))
+                  }
+                  onDeleteRule={(id) =>
+                    setAuraData((p) => ({
+                      ...p,
+                      rules: p.rules.filter((r) => r.id !== id),
                     }))
                   }
-                  onDeleteRule={(ruleId) =>
-                    setAuraData((prev) => ({
-                      ...prev,
-                      rules: prev.rules.filter((r) => r.id !== ruleId),
-                    }))
-                  }
-                  onToggleRule={(ruleId, enabled) =>
-                    setAuraData((prev) => ({
-                      ...prev,
-                      rules: prev.rules.map((r) =>
-                        r.id === ruleId ? { ...r, enabled } : r
+                  onToggleRule={(id, en) =>
+                    setAuraData((p) => ({
+                      ...p,
+                      rules: p.rules.map((r) =>
+                        r.id === id ? { ...r, enabled: en } : r
                       ),
                     }))
                   }
                 />
               )}
 
-              {/* === API / creation error === */}
+              {/* API Error */}
               {error && (
                 <div className="mt-4 bg-red-50 text-red-700 p-3 rounded-md flex items-center gap-2">
                   <AlertCircle className="w-4 h-4" />
@@ -347,13 +353,9 @@ export function AuraCreator() {
                 </div>
               )}
 
-              {/* === Navigation === */}
+              {/* Navigation */}
               <div className="flex justify-between items-center mt-8 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={onBack}
-                  disabled={loading}
-                >
+                <Button variant="outline" onClick={onBack} disabled={loading}>
                   Back
                 </Button>
                 {step !== "rules" && (
