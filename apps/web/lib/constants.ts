@@ -77,11 +77,11 @@ export const PERSONALITY_TRAITS = [
 // ————————————————
 export const AVAILABLE_SENSES = [
   { id: "weather",       name: "Weather",          category: "Environmental", tier: "free"    },
+  { id: "news",          name: "News Feed",        category: "Knowledge",     tier: "free"    },
+  { id: "air_quality",   name: "Air Quality",      category: "Environmental", tier: "free"    },
   { id: "soil_moisture", name: "Soil Moisture",    category: "Sensors",       tier: "vessel"  },
   { id: "light_level",   name: "Light Level",      category: "Sensors",       tier: "vessel"  },
-  { id: "news",          name: "News Feed",        category: "Knowledge",     tier: "free"    },
   { id: "wildlife",      name: "Wildlife Tracking",category: "Nature",        tier: "premium" },
-  { id: "air_quality",   name: "Air Quality",      category: "Environmental", tier: "free"    },
 ] as const
 
 export type SenseId = typeof AVAILABLE_SENSES[number]["id"]
