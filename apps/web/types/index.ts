@@ -16,7 +16,7 @@ export interface Subscription {
 export interface Aura {
   id: string
   name: string
-  vesselType: 'terra' | 'companion' | 'memory' | 'sage'
+  vesselType: 'digital' | 'terra' | 'companion' | 'memory' | 'sage'
   personality: {
     warmth: number
     playfulness: number

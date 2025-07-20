@@ -21,7 +21,7 @@ import {
 } from "@/components/ui/card"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
-import { VESSEL_TYPES } from "@/lib/constants"
+import { VESSEL_TYPES, AVAILABLE_SENSES } from "@/lib/constants"
 import {
   Info,
   Brain,
@@ -37,7 +37,7 @@ import type { BehaviorRule } from "@/types"
 export interface AuraForm {
   id: string
   name: string
-  vesselType: "terra" | "companion" | "memory" | "sage"
+  vesselType: "digital" | "terra" | "companion" | "memory" | "sage"
   personality: {
     warmth: number
     playfulness: number
@@ -115,7 +115,7 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Edit Aura</CardTitle>
-          <CardDescription>Modify your Aura’s settings</CardDescription>
+          <CardDescription>Modify your Aura's settings</CardDescription>
         </CardHeader>
         <CardContent>
           <Tabs
@@ -126,7 +126,7 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
               )
             }
           >
-            <TabsList className="grid w-full grid-cols-5">
+            <TabsList className="grid w-full grid-cols-4">
               <TabsTrigger value="basics" className="flex items-center gap-2">
                 <Info className="w-4 h-4" /> Basics
               </TabsTrigger>
@@ -215,6 +215,7 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
             {/* SENSES */}
             <TabsContent value="senses">
               <SenseSelector
+                availableSenses={AVAILABLE_SENSES}
                 selectedSenses={auraData.senses}
                 onToggle={toggleSense}
               />

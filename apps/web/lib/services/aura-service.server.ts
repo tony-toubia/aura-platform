@@ -4,7 +4,7 @@ import type { Aura } from '@/types'
 
 export interface CreateAuraInput {
   name: string
-  vesselType: 'terra' | 'companion' | 'memory' | 'sage'
+  vesselType: 'digital' | 'terra' | 'companion' | 'memory' | 'sage'
   personality: Record<string, number>
   senses: string[]
   communicationStyle?: string

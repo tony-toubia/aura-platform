@@ -20,7 +20,7 @@ type AvailableSense = typeof AVAILABLE_SENSES[number]
 
 interface SenseSelectorProps {
   /** only render these senses */
-  availableSenses: AvailableSense[]
+  availableSenses: readonly AvailableSense[]
   /** built-in senses that cannot be turned off */
   nonToggleableSenses?: string[]
   /** currently selected IDs */
