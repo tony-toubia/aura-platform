@@ -76,7 +76,6 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // FIX: Initialize state with a normalized structure to ensure selectedStudyId is a number, matching the creator logic.
   const [auraData, setAuraData] = useState({
     ...initialAura,
     selectedStudyId: initialAura.selectedStudyId ? Number(initialAura.selectedStudyId) : undefined,
@@ -110,7 +109,6 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
       })
       const body = await resp.json()
       if (!resp.ok) throw new Error(body.error || "Failed to save Aura")
-      // On successful save, move to the next step
       setStep("rules")
     } catch (err: any) {
       setError(err.message)
@@ -119,7 +117,6 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
     }
   }
 
-  // Step validations
   const canNextSenses = (() => {
     if (!auraData.vesselType) return false
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
@@ -133,7 +130,6 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
   })()
   const canNextDetails = auraData.name.trim() !== ""
 
-  // Determine allowed senses
   const senseConfig = VESSEL_SENSE_CONFIG[auraData.vesselType]
   const allowedSenses = AVAILABLE_SENSES.filter((s) =>
     [...senseConfig.defaultSenses, ...senseConfig.optionalSenses].includes(
@@ -151,6 +147,7 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
   }
 
   const selectedVessel = vesselTypes.find(v => v.id === auraData.vesselType)
+  const steps: Step[] = ["senses", "details", "rules"];
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -164,29 +161,30 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
       </div>
 
       <Card className="backdrop-blur-sm bg-white/95 border-2 border-purple-100 shadow-xl">
-        <CardContent className="p-8">
-          <div className="flex items-center mb-10">
-            {(["senses", "details", "rules"] as Step[]).map((s, i) => (
+        <CardContent className="p-6 sm:p-8">
+          {/* Enhanced Stepper */}
+          <div className="flex items-center justify-center sm:justify-start mb-10 px-4 sm:px-0">
+            {steps.map((s, i) => (
               <React.Fragment key={s}>
-                <div className="flex items-center">
+                <div className="flex flex-col sm:flex-row items-center">
                   <div
                     className={cn(
-                      "rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold transition-all duration-300",
+                      "rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold transition-all duration-300 flex-shrink-0",
                       step === s
                         ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-110"
-                        : i < (["senses", "details", "rules"] as Step[]).indexOf(step)
+                        : i < steps.indexOf(step)
                         ? "bg-green-500 text-white"
                         : "bg-gray-200 text-gray-500"
                     )}
                   >
-                    {i < (["senses", "details", "rules"] as Step[]).indexOf(step) ? (
+                    {i < steps.indexOf(step) ? (
                       <CheckCircle className="w-5 h-5" />
                     ) : (
                       i + 1
                     )}
                   </div>
                   <span className={cn(
-                    "ml-3 font-medium transition-colors",
+                    "ml-0 sm:ml-3 mt-2 sm:mt-0 text-center sm:text-left font-medium transition-colors text-xs sm:text-base",
                     step === s ? "text-purple-700" : "text-gray-500"
                   )}>
                     {{
@@ -196,9 +194,9 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
                     }[s]}
                   </span>
                 </div>
-                {i < 2 && <div className={cn(
-                  "flex-1 h-1 mx-4 rounded transition-colors",
-                  i < (["senses", "details", "rules"] as Step[]).indexOf(step)
+                {i < steps.length - 1 && <div className={cn(
+                  "flex-1 h-1 mx-2 sm:mx-4 rounded transition-colors",
+                  i < steps.indexOf(step)
                     ? "bg-green-500"
                     : "bg-gray-200"
                 )} />}

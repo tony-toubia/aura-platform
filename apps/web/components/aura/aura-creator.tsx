@@ -1,4 +1,3 @@
-// apps/web/components/aura/aura-creator.tsx
 "use client"
 
 import React, { useState, useEffect } from "react"
@@ -228,6 +227,7 @@ export function AuraCreator() {
   }
 
   const selectedVessel = vesselTypes.find(v => v.id === auraData.vesselType)
+  const steps: Step[] = ["vessel", "senses", "details", "rules"];
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -242,7 +242,7 @@ export function AuraCreator() {
       </div>
 
       <Card className="backdrop-blur-sm bg-white/95 border-2 border-purple-100 shadow-xl">
-        <CardContent className="p-8">
+        <CardContent className="p-6 sm:p-8">
           {step === "vessel" ? (
             <div className="space-y-8">
               {/* Physical Vessel Option */}
@@ -343,28 +343,28 @@ export function AuraCreator() {
           ) : (
             <>
               {/* Enhanced Stepper */}
-              <div className="flex items-center mb-10">
-                {(["vessel", "senses", "details", "rules"] as Step[]).map((s, i) => (
+              <div className="flex items-center justify-center sm:justify-start mb-10 px-4 sm:px-0">
+                {steps.map((s, i) => (
                   <React.Fragment key={s}>
-                    <div className="flex items-center">
+                    <div className="flex flex-col sm:flex-row items-center">
                       <div
                         className={cn(
-                          "rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold transition-all duration-300",
+                          "rounded-full w-10 h-10 flex items-center justify-center text-sm font-bold transition-all duration-300 flex-shrink-0",
                           step === s
                             ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg scale-110"
-                            : i < (["vessel", "senses", "details", "rules"] as Step[]).indexOf(step)
+                            : i < steps.indexOf(step)
                             ? "bg-green-500 text-white"
                             : "bg-gray-200 text-gray-500"
                         )}
                       >
-                        {i < (["vessel", "senses", "details", "rules"] as Step[]).indexOf(step) ? (
+                        {i < steps.indexOf(step) ? (
                           <CheckCircle className="w-5 h-5" />
                         ) : (
                           i + 1
                         )}
                       </div>
                       <span className={cn(
-                        "ml-3 font-medium transition-colors",
+                        "ml-0 sm:ml-3 mt-2 sm:mt-0 text-center sm:text-left font-medium transition-colors text-xs sm:text-base",
                         step === s ? "text-purple-700" : "text-gray-500"
                       )}>
                         {{
@@ -375,9 +375,9 @@ export function AuraCreator() {
                         }[s]}
                       </span>
                     </div>
-                    {i < 3 && <div className={cn(
-                      "flex-1 h-1 mx-4 rounded transition-colors",
-                      i < (["vessel", "senses", "details", "rules"] as Step[]).indexOf(step)
+                    {i < steps.length - 1 && <div className={cn(
+                      "flex-1 h-1 mx-2 sm:mx-4 rounded transition-colors",
+                      i < steps.indexOf(step)
                         ? "bg-green-500"
                         : "bg-gray-200"
                     )} />}
