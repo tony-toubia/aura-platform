@@ -189,6 +189,12 @@ export class ConversationService {
   /** Completely canned fallback if OpenAI isn’t available */
   private static getFallbackResponse(aura: Aura, message: string): string {
     const map: Record<Aura['vesselType'], string[]> = {
+      digital: [  // Add this section
+        "As a digital entity, I process information at the speed of light!",
+        "My circuits are buzzing with excitement to help you.",
+        "In the digital realm, anything is possible!",
+        // Add more digital responses as needed
+      ],
       terra: [
         "As a plant, I thrive on sunlight and water—and good chat!",
         "My leaves rustle with curiosity about your words.",
