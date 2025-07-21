@@ -68,8 +68,13 @@ export function RulesDashboard({ aura, rules }: RulesDashboardProps) {
       ]
       const context: RuleContext = {
         senseData: dataMap,
-        auraPersonality: aura.personality,
-        timeOfDay:
+        auraPersonality: {
+          warmth: aura.personality.warmth || 50,
+          playfulness: aura.personality.playfulness || 50,
+          verbosity: aura.personality.verbosity || 50,
+          empathy: aura.personality.empathy || 50,
+          creativity: aura.personality.creativity || 50,
+},        timeOfDay:
           hour < 12 ? "morning" : hour < 18 ? "afternoon" : "evening",
         dayOfWeek: days[now.getDay()]!, // assert non-null
       }
