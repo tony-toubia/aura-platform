@@ -80,7 +80,7 @@ export function PricingCards({
     },
     {
       key: 'maxConversations',
-      label: 'Conversations/month',
+      label: 'Conversations per month',
       format: (v) => (v === -1 ? 'Unlimited' : (v as number).toLocaleString()),
     },
     { key: 'hasAnalytics', label: 'Advanced Analytics', format: (v) => v },

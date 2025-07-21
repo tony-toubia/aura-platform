@@ -16,17 +16,16 @@ import {
   Cloud,
   Droplets,
   Sun,
-  Info,
-  Zap,
-  Sparkles,
-  Brain,
-  MessageCircle,
   Globe,
   Wind,
+  Brain,
+  MessageCircle,
+  Sparkles,
+  Zap,
   Heart,
   CheckCircle,
   AlertCircle,
-  TrendingUp
+  TrendingUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { ConversationService } from "@/lib/services/conversation-service"
@@ -61,9 +60,10 @@ export function ChatInterface({
   const [conversationId, setConversationId] = useState(initialConversationId)
   const [senseData, setSenseData] = useState<Record<string, any>>({})
   const [isLoadingSenses, setIsLoadingSenses] = useState(false)
+  const [showSenseStatus, setShowSenseStatus] = useState(true) // toggle Live Awareness section
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
-  // auto-scroll on new messages
+  // auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
@@ -100,10 +100,9 @@ export function ChatInterface({
     }
   }
 
-  // send & receive messages
+  // send & receive
   const handleSend = async () => {
     if (!input.trim() || !conversationId) return
-
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
@@ -113,7 +112,6 @@ export function ChatInterface({
     setMessages((m) => [...m, userMsg])
     setInput("")
     setIsTyping(true)
-
     try {
       const res = await fetch("/api/aura/chat", {
         method: "POST",
@@ -122,12 +120,11 @@ export function ChatInterface({
           auraId: aura.id,
           userMessage: input,
           conversationId,
-          senseData, // Include current sense data for better context
+          senseData,
         }),
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Chat failed")
-
       const auraMsg: Message = {
         id: Date.now().toString() + "_aura",
         role: "aura",
@@ -136,7 +133,7 @@ export function ChatInterface({
         metadata: {
           influences: json.influences || json.metadata?.influences || [],
           triggeredRule: json.triggeredRule || json.metadata?.triggeredRule,
-          senseData: json.senseData || json.metadata?.senseData || []
+          senseData: json.senseData || json.metadata?.senseData || [],
         },
       }
       setMessages((m) => [...m, auraMsg])
@@ -150,9 +147,7 @@ export function ChatInterface({
           content:
             "I'm having trouble connecting right now. Please try again.",
           timestamp: new Date(),
-          metadata: {
-            isError: true
-          }
+          metadata: { isError: true },
         },
       ])
     } finally {
@@ -160,6 +155,7 @@ export function ChatInterface({
     }
   }
 
+  // Full Live Awareness panel (with sense cards)
   const renderSenseStatus = () => (
     <div className="bg-gradient-to-r from-purple-50 to-blue-50 rounded-xl p-4 border border-purple-100">
       <div className="flex items-center justify-between mb-3">
@@ -277,9 +273,9 @@ export function ChatInterface({
       </div>
 
       {Object.keys(senseData).length === 0 && (
-        <div className="text-center py-4 text-gray-500">
-          <AlertCircle className="w-6 h-6 mx-auto mb-2 opacity-50" />
-          <p className="text-sm">No sense data available</p>
+        <div className="text-center py-2 text-gray-500">
+          <AlertCircle className="w-5 h-5 mx-auto mb-1 opacity-50" />
+          <p className="text-xs">No sense data available</p>
         </div>
       )}
     </div>
@@ -287,7 +283,7 @@ export function ChatInterface({
 
   return (
     <Card className="flex flex-col h-[700px] border-2 border-purple-100 shadow-xl overflow-hidden">
-      {/* Enhanced Header */}
+      {/* Header */}
       <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 p-6 text-white">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center space-x-4">
@@ -298,11 +294,25 @@ export function ChatInterface({
               <h3 className="text-xl font-bold">{aura.name}</h3>
               <div className="flex items-center space-x-2 text-white/80">
                 <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-sm">Online & Sensing</span>
+                <span className="text-sm">Online &amp; Sensing</span>
+                {!showSenseStatus && (
+                  <div className="flex items-center space-x-1 ml-3">
+                    {aura.senses.map((id) => {
+                      const key = id as keyof typeof senseIcons
+                      const Icon = senseIcons[key]
+                      return (
+                        <Icon
+                          key={id}
+                          className="w-4 h-4 text-white opacity-80"
+                        />
+                      )
+                    })}
+                  </div>
+                )}
               </div>
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
@@ -313,11 +323,7 @@ export function ChatInterface({
                 voiceEnabled && "bg-white/20"
               )}
             >
-              {voiceEnabled ? (
-                <Volume2 className="w-4 h-4" />
-              ) : (
-                <Mic className="w-4 h-4" />
-              )}
+              {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
             </Button>
             <Button
               variant="ghost"
@@ -329,19 +335,29 @@ export function ChatInterface({
               )}
               title={showInfluence ? "Hide influence details" : "Show influence details"}
             >
-              {showInfluence ? (
-                <Eye className="w-4 h-4" />
-              ) : (
-                <EyeOff className="w-4 h-4" />
+              {showInfluence ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+            </Button>
+            {/* Brain toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowSenseStatus((v) => !v)}
+              className={cn(
+                "text-white hover:bg-white/20 border border-white/30",
+                !showSenseStatus && "opacity-60"
               )}
+              title={showSenseStatus ? "Hide Live Awareness" : "Show Live Awareness"}
+            >
+              <Brain className="w-5 h-5" />
             </Button>
           </div>
         </div>
-        
-        {renderSenseStatus()}
+
+        {/* conditional Live Awareness */}
+        {showSenseStatus && renderSenseStatus()}
       </div>
 
-      {/* Enhanced Messages */}
+      {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-br from-purple-50/50 to-blue-50/50">
         {messages.length === 0 ? (
           <div className="text-center py-12">
@@ -501,7 +517,7 @@ export function ChatInterface({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Enhanced Input */}
+      {/* Input */}
       <div className="p-6 border-t bg-white">
         <form
           onSubmit={(e) => {
@@ -526,7 +542,6 @@ export function ChatInterface({
             <Send className="w-5 h-5" />
           </Button>
         </form>
-        
         {showInfluence && (
           <div className="mt-3 text-center">
             <span className="text-xs text-purple-600 bg-purple-50 px-3 py-1 rounded-full">

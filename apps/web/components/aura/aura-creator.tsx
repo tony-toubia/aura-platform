@@ -4,42 +4,30 @@
 
 import React, { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
-// AnimalSelector is no longer needed
-// import { AnimalSelector } from "./animal-selector"
 import { RuleBuilder } from "./rule-builder"
 import {
   VESSEL_SENSE_CONFIG,
   AVAILABLE_SENSES,
   type VesselTypeId,
 } from "@/lib/constants"
-import { 
-  AlertCircle, 
-  Sparkles, 
-  Zap, 
-  Leaf, 
-  Globe, 
+import {
+  AlertCircle,
+  Sparkles,
   Heart,
   ArrowRight,
   CheckCircle,
   QrCode,
-  Scan
+  Scan,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { BehaviorRule } from "@/types"
+import type { BehaviorRule, Personality } from "@/types"
 
 type Step = "vessel" | "senses" | "details" | "rules"
-
 type SenseId =
   | "weather"
   | "news"
@@ -53,16 +41,9 @@ interface AuraForm {
   name: string
   vesselType: VesselTypeId | ""
   vesselCode: string
-  personality: {
-    warmth: number
-    playfulness: number
-    verbosity: number
-    empathy: number
-    creativity: number
-  }
+  personality: Personality
   senses: SenseId[]
   rules: BehaviorRule[]
-  // FIX: Changed selectedStudyId to be a string to support UUIDs
   selectedStudyId?: string
   selectedIndividualId?: string
 }
@@ -76,28 +57,28 @@ const vesselTypes = [
     color: "from-green-500 to-emerald-600",
     bgColor: "from-green-50 to-emerald-50",
     borderColor: "border-green-200 hover:border-green-400",
-    example: "\"I love this morning sunshine! My leaves are so happy! ☀️\""
+    example: "\"I love this morning sunshine! My leaves are so happy! ☀️\"",
   },
   {
-    id: "companion", 
+    id: "companion",
     name: "Companion Spirit",
     description: "Wildlife trackers that experience adventures in the wild",
     icon: "🦋",
-    color: "from-blue-500 to-sky-600", 
+    color: "from-blue-500 to-sky-600",
     bgColor: "from-blue-50 to-sky-50",
     borderColor: "border-blue-200 hover:border-blue-400",
-    example: "\"The migration is starting! I can feel the change in the air! 🌬️\""
+    example: "\"The migration is starting! I can feel the change in the air! 🌬️\"",
   },
   {
     id: "digital",
-    name: "Digital Being", 
+    name: "Digital Being",
     description: "Pure consciousness exploring the world through data streams",
     icon: "✨",
     color: "from-purple-500 to-violet-600",
-    bgColor: "from-purple-50 to-violet-50", 
+    bgColor: "from-purple-50 to-violet-50",
     borderColor: "border-purple-200 hover:border-purple-400",
-    example: "\"I've been reading about space exploration! Want to chat about it? 🚀\""
-  }
+    example: "\"I've been reading about space exploration! Want to chat about it? 🚀\"",
+  },
 ]
 
 export function AuraCreator() {
@@ -105,7 +86,10 @@ export function AuraCreator() {
   const [step, setStep] = useState<Step>("vessel")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  // Manual entry + focus state
   const [manualInput, setManualInput] = useState("")
+  const [isInputFocused, setIsInputFocused] = useState(false)
 
   const [auraData, setAuraData] = useState<AuraForm>({
     id: "",
@@ -118,6 +102,10 @@ export function AuraCreator() {
       verbosity: 50,
       empathy: 50,
       creativity: 50,
+      persona: 'balanced',
+      tone: 'casual',
+      vocabulary: 'average',
+      quirks: [],
     },
     senses: [],
     rules: [],
@@ -125,21 +113,16 @@ export function AuraCreator() {
     selectedIndividualId: undefined,
   })
 
-  // Reset senses and set placeholder companion IDs when vesselType changes
+  // Reset senses & generate uuids for companion
   useEffect(() => {
     if (!auraData.vesselType) return
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
-    
-    let studyId: string | undefined = undefined;
-    let individualId: string | undefined = undefined;
-
-    // If companion, generate placeholder UUIDs to satisfy validation
-    if (auraData.vesselType === 'companion') {
-        // FIX: Generate a UUID for studyId instead of a random number
-        studyId = crypto.randomUUID(); 
-        individualId = crypto.randomUUID();
+    let studyId: string | undefined
+    let individualId: string | undefined
+    if (auraData.vesselType === "companion") {
+      studyId = crypto.randomUUID()
+      individualId = crypto.randomUUID()
     }
-
     setAuraData((prev) => ({
       ...prev,
       senses: cfg.defaultSenses,
@@ -149,23 +132,42 @@ export function AuraCreator() {
     setError(null)
   }, [auraData.vesselType])
 
-  // Manual entry handler
+  // 1️⃣ & 3️⃣ manual submit logic
   const handleManualSubmit = () => {
-    const val = manualInput.trim().toLowerCase()
-    if (val === "terra" || val === "companion") {
+    const raw = manualInput.trim()
+    const val = raw.toLowerCase()
+    const manualOptions: { code: string; type: VesselTypeId }[] = [
+      { code: "terra", type: "terra" },
+      { code: "terra - sensor", type: "terra" },
+      { code: "terra - pot", type: "terra" },
+      { code: "companion", type: "companion" },
+      { code: "companion - elephant", type: "companion" },
+      { code: "companion - tortoise", type: "companion" },
+      { code: "companion - lion", type: "companion" },
+      { code: "companion - whale", type: "companion" },
+      { code: "companion - giraffe", type: "companion" },
+      { code: "companion - shark", type: "companion" },
+      { code: "companion - gorilla", type: "companion" },
+    ]
+    const found = manualOptions.find((o) => o.code === val)
+    if (found) {
       setAuraData((prev) => ({
         ...prev,
-        vesselType: val as VesselTypeId,
-        vesselCode: val,
+        vesselType: found.type,
+        vesselCode: raw,
       }))
       setStep("senses")
       setError(null)
     } else {
-      setError('Vessel not found. Please enter "terra" or "companion".')
+      setError(
+        `Vessel not found. Please enter one of: ${manualOptions
+          .map((o) => `"${o.code}"`)
+          .join(", ")}.`
+      )
     }
   }
 
-  // Vessel type selection handler
+  // digital or QR selection
   const handleVesselSelect = (vesselType: VesselTypeId) => {
     setAuraData((prev) => ({
       ...prev,
@@ -215,29 +217,24 @@ export function AuraCreator() {
     }
   }
 
-  // Step validations
   const canNextSenses = (() => {
     if (!auraData.vesselType) return false
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
-    return cfg.defaultSenses.every((d) =>
-      auraData.senses.includes(d)
-    )
+    return cfg.defaultSenses.every((d) => auraData.senses.includes(d))
   })()
   const canNextDetails = auraData.name.trim() !== ""
 
-  // Determine allowed senses
   const senseConfig = auraData.vesselType
     ? VESSEL_SENSE_CONFIG[auraData.vesselType]
     : { defaultSenses: [], optionalSenses: [] }
   const allowedSenses = AVAILABLE_SENSES.filter((s) =>
-    [...senseConfig.defaultSenses, ...senseConfig.optionalSenses].includes(
-      s.id
-    )
+    [...senseConfig.defaultSenses, ...senseConfig.optionalSenses].includes(s.id)
   )
 
   const onNext = () => {
-    if (step === "senses") setStep("details")
-    else if (step === "details") handleCreate()
+    step === "senses"
+      ? setStep("details")
+      : step === "details" && handleCreate()
   }
   const onBack = () => {
     if (step === "senses") setStep("vessel")
@@ -245,19 +242,21 @@ export function AuraCreator() {
     else if (step === "rules") setStep("details")
   }
 
-  const selectedVessel = vesselTypes.find(v => v.id === auraData.vesselType)
-  const steps: Step[] = ["vessel", "senses", "details", "rules"];
-  const meetButtonText = auraData.name.length > 12 ? 'Meet Your Aura' : `Meet ${auraData.name}`;
+  const selectedVessel = vesselTypes.find((v) => v.id === auraData.vesselType)
+  const steps: Step[] = ["vessel", "senses", "details", "rules"]
+  const meetButtonText =
+    auraData.name.length > 12 ? "Meet Your Aura" : `Meet ${auraData.name}`
 
   return (
     <div className="max-w-5xl mx-auto">
-      {/* Magical Header */}
+      {/* Header */}
       <div className="text-center mb-8">
         <h1 className="text-4xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
           Create Your Aura
         </h1>
         <p className="text-xl text-gray-600">
-          Bring a unique personality to life through magical connection and understanding
+          Bring a unique personality to life through magical connection and
+          understanding
         </p>
       </div>
 
@@ -273,7 +272,8 @@ export function AuraCreator() {
                     Do you have a physical vessel?
                   </h2>
                   <p className="text-gray-600">
-                    Scan your vessel's QR code or enter its ID to connect with a physical companion
+                    Scan your vessel’s QR code or enter its ID to connect with a
+                    physical companion
                   </p>
                 </div>
 
@@ -285,20 +285,40 @@ export function AuraCreator() {
                         setManualInput(e.target.value)
                         setError(null)
                       }}
-                      placeholder='Enter vessel ID (e.g., "terra" or "companion")'
+                      placeholder={
+                        !isInputFocused && !manualInput
+                          ? "Scan QR code or manually enter the ID on your vessel or packaging"
+                          : ""
+                      }
+                      onFocus={() => setIsInputFocused(true)}
+                      onBlur={() => setIsInputFocused(false)}
                       className="text-center text-lg py-6 border-2 border-purple-200 focus:border-purple-400"
                     />
                     <div className="absolute right-3 top-1/2 -translate-y-1/2">
                       <Scan className="w-5 h-5 text-gray-400" />
                     </div>
                   </div>
-                  
+
+                  {/* Simulation note */}
+                  <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
+                    To simulate ID entry/QR scanning, manually input any of the
+                    following vessel types:
+                    <ul className="list-disc list-inside mt-1 space-y-1">
+                      <li>Terra – Sensor / Terra – Pot</li>
+                      <li>
+                        Companion – Elephant / Companion – Tortoise / Companion –
+                        Lion / Companion – Whale / Companion – Giraffe / Companion
+                        – Shark / Companion – Gorilla
+                      </li>
+                    </ul>
+                  </div>
+
                   {error && (
                     <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
                       {error}
                     </div>
                   )}
-                  
+
                   <Button
                     onClick={handleManualSubmit}
                     disabled={!manualInput.trim()}
@@ -320,8 +340,13 @@ export function AuraCreator() {
               {/* Digital Only Option */}
               <div className="space-y-6">
                 <div className="text-center">
-                  <h3 className="text-xl font-semibold mb-2">Create a Digital Being</h3>
-                  <p className="text-gray-600">No physical vessel? No problem! Create a pure digital consciousness</p>
+                  <h3 className="text-xl font-semibold mb-2">
+                    Create a Digital Being
+                  </h3>
+                  <p className="text-gray-600">
+                    No physical vessel? No problem! Create a pure digital
+                    consciousness
+                  </p>
                 </div>
 
                 <div className="max-w-md mx-auto">
@@ -333,28 +358,34 @@ export function AuraCreator() {
                       <div className="flex items-center justify-center">
                         <div className="text-6xl mb-2">✨</div>
                       </div>
-                      
+
                       <div>
-                        <h4 className="text-2xl font-bold mb-3 text-purple-800">Digital Being</h4>
+                        <h4 className="text-2xl font-bold mb-3 text-purple-800">
+                          Digital Being
+                        </h4>
                         <p className="text-gray-600 text-sm mb-4">
-                          Pure consciousness exploring the world through data streams, news, and environmental awareness
+                          Pure consciousness exploring the world through data
+                          streams, news, and environmental awareness
                         </p>
                         <div className="bg-white/70 p-4 rounded-lg border border-white/50">
                           <p className="text-sm italic text-gray-700">
-                            "I've been reading about space exploration! Want to chat about it? 🚀"
+                            "I've been reading about space exploration! Want to
+                            chat about it? 🚀"
                           </p>
                         </div>
                       </div>
-                      
+
                       <div className="flex items-center justify-center gap-2 mt-4">
                         <Sparkles className="w-5 h-5 text-purple-600" />
-                        <span className="text-purple-600 font-medium">Start Creating Magic</span>
+                        <span className="text-purple-600 font-medium">
+                          Start Creating Magic
+                        </span>
                         <ArrowRight className="w-5 h-5 text-purple-600 group-hover:translate-x-1 transition-transform" />
                       </div>
                     </div>
                   </button>
                 </div>
-                
+
                 <div className="text-center text-sm text-gray-500">
                   ✨ Digital beings can later be connected to any vessel type
                 </div>
@@ -383,40 +414,56 @@ export function AuraCreator() {
                           i + 1
                         )}
                       </div>
-                      <span className={cn(
-                        "ml-0 sm:ml-3 mt-2 sm:mt-0 text-center sm:text-left font-medium transition-colors text-xs sm:text-base",
-                        step === s ? "text-purple-700" : "text-gray-500"
-                      )}>
+                      <span
+                        className={cn(
+                          "ml-0 sm:ml-3 mt-2 sm:mt-0 text-center sm:text-left font-medium transition-colors text-xs sm:text-base",
+                          step === s ? "text-purple-700" : "text-gray-500"
+                        )}
+                      >
                         {{
                           vessel: "Choose Vessel",
-                          senses: "Connect Senses", 
+                          senses: "Connect Senses",
                           details: "Define Personality",
                           rules: "Set Behaviors",
                         }[s]}
                       </span>
                     </div>
-                    {i < steps.length - 1 && <div className={cn(
-                      "flex-1 h-1 mx-2 sm:mx-4 rounded transition-colors",
-                      i < steps.indexOf(step)
-                        ? "bg-green-500"
-                        : "bg-gray-200"
-                    )} />}
+                    {i < steps.length - 1 && (
+                      <div
+                        className={cn(
+                          "flex-1 h-1 mx-2 sm:mx-4 rounded transition-colors",
+                          i < steps.indexOf(step)
+                            ? "bg-green-500"
+                            : "bg-gray-200"
+                        )}
+                      />
+                    )}
                   </React.Fragment>
                 ))}
               </div>
 
               {/* Selected Vessel Display */}
               {selectedVessel && (
-                <div className={cn(
-                  "mb-8 p-4 rounded-xl border-2 bg-gradient-to-r",
-                  selectedVessel.bgColor,
-                  selectedVessel.borderColor.replace('hover:', '')
-                )}>
+                <div
+                  className={cn(
+                    "mb-8 p-4 rounded-xl border-2 bg-gradient-to-r",
+                    selectedVessel.bgColor,
+                    selectedVessel.borderColor.replace("hover:", "")
+                  )}
+                >
                   <div className="flex items-center gap-3">
                     <div className="text-2xl">{selectedVessel.icon}</div>
                     <div>
-                      <h3 className="font-semibold">{selectedVessel.name}</h3>
-                      <p className="text-sm text-gray-600">{selectedVessel.description}</p>
+                      <h3 className="font-semibold">
+                        {selectedVessel.name}
+                        {auraData.vesselCode &&
+                        selectedVessel.id !== "digital"
+                          ? ` (${auraData.vesselCode})`
+                          : ""}
+                      </h3>
+                      <p className="text-sm text-gray-600">
+                        {selectedVessel.description}
+                      </p>
                     </div>
                   </div>
                 </div>
@@ -426,12 +473,19 @@ export function AuraCreator() {
               {step === "senses" && (
                 <div className="space-y-8">
                   <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-2">Connect Your Aura's Senses</h2>
+                    <h2 className="text-2xl font-bold mb-2">
+                      Connect Your Aura's Senses
+                    </h2>
                     <p className="text-gray-600">
-                      Choose how your {selectedVessel?.name} will perceive and understand the world
+                      Choose how your {selectedVessel?.name}
+                      {auraData.vesselCode &&
+                      selectedVessel?.id !== "digital"
+                        ? ` (${auraData.vesselCode})`
+                        : ""}{" "}
+                      will perceive and understand the world
                     </p>
                   </div>
-                  
+
                   <SenseSelector
                     availableSenses={allowedSenses}
                     nonToggleableSenses={senseConfig.defaultSenses}
@@ -446,9 +500,17 @@ export function AuraCreator() {
               {step === "details" && (
                 <div className="space-y-8">
                   <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-2">Shape Their Personality</h2>
+                    <h2 className="text-2xl font-bold mb-2">
+                      Shape Their Personality
+                    </h2>
                     <p className="text-gray-600">
-                      Give your {selectedVessel?.name} a unique character that will shine through every interaction
+                      Give your {selectedVessel?.name}
+                      {auraData.vesselCode &&
+                      selectedVessel?.id !== "digital"
+                        ? ` (${auraData.vesselCode})`
+                        : ""}{" "}
+                      a unique character that will shine through every
+                      interaction
                     </p>
                   </div>
 
@@ -465,13 +527,12 @@ export function AuraCreator() {
                       className="text-center text-lg py-6 border-2 border-purple-200 focus:border-purple-400"
                     />
                   </div>
-                  
                   <PersonalityMatrix
                     personality={auraData.personality}
-                    onChange={(trait, value) =>
+                    onChange={(update) =>
                       setAuraData((p) => ({
                         ...p,
-                        personality: { ...p.personality, [trait]: value },
+                        personality: { ...p.personality, ...update },
                       }))
                     }
                   />
@@ -487,7 +548,8 @@ export function AuraCreator() {
                       Teaching {auraData.name} to React
                     </h2>
                     <p className="text-gray-600">
-                      Set up automatic responses so {auraData.name} can share their experiences with the world
+                      Set up automatic responses so {auraData.name} can share
+                      their experiences with the world
                     </p>
                   </div>
 
@@ -515,15 +577,15 @@ export function AuraCreator() {
                     }
                   />
 
-                  {/* Success Message for Rules Step */}
                   <div className="text-center p-6 bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-xl">
                     <Heart className="w-8 h-8 text-green-600 mx-auto mb-3" />
                     <h3 className="text-lg font-semibold text-green-800 mb-2">
                       🎉 {auraData.name} is ready to come alive!
                     </h3>
                     <p className="text-green-700">
-                      Your Aura is now configured and ready to start experiencing the world. 
-                      You can always add more rules or adjust their personality later.
+                      Your Aura is now configured and ready to start experiencing
+                      the world. You can always add more rules or adjust their
+                      personality later.
                     </p>
                   </div>
                 </div>
@@ -538,25 +600,22 @@ export function AuraCreator() {
               )}
 
               {/* Enhanced Navigation */}
-              <div className={cn(
-                "flex items-center mt-10 pt-8 border-t-2 border-gray-100",
-                step === 'rules' 
-                  ? "flex-col-reverse gap-4" 
-                  : "justify-between"
-              )}>
-                <Button 
-                  variant="outline" 
-                  onClick={onBack} 
+              <div
+                className={cn(
+                  "flex items-center mt-10 pt-8 border-t-2 border-gray-100",
+                  step === "rules" ? "flex-col-reverse gap-4" : "justify-between"
+                )}
+              >
+                <Button
+                  variant="outline"
+                  onClick={onBack}
                   disabled={loading}
                   size="lg"
-                  className={cn(
-                    "px-8",
-                    step === 'rules' && "w-full max-w-xs"
-                  )}
+                  className={cn("px-8", step === "rules" && "w-full max-w-xs")}
                 >
                   Back
                 </Button>
-                
+
                 {step !== "rules" && (
                   <Button
                     onClick={onNext}

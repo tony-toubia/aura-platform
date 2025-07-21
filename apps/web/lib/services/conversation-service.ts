@@ -1,8 +1,7 @@
-// apps/web/lib/services/conversation-service.ts
 import { createClient } from '@/lib/supabase/client'
 import { SenseDataService } from './sense-data-service'
 import { RuleEngine, RuleContext } from './rule-engine'
-import type { Aura, Message, BehaviorRule } from '@/types'
+import type { Aura, Message, BehaviorRule, Personality } from '@/types'
 
 /** Raw sense entry from SenseDataService */
 interface FullSenseEntry {
@@ -15,6 +14,16 @@ interface MetaSenseEntry {
   sense:     string
   timestamp: string
 }
+
+const getNumericTraits = (personality: Personality): Record<string, number> => {
+  return {
+    warmth: personality.warmth,
+    playfulness: personality.playfulness,
+    verbosity: personality.verbosity,
+    empathy: personality.empathy,
+    creativity: personality.creativity,
+  };
+};
 
 export class ConversationService {
   /** Create a new conversation row and return its ID */
@@ -69,7 +78,7 @@ export class ConversationService {
     const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday']
     const ruleContext: RuleContext = {
       senseData:       senseDataMap,
-      auraPersonality: aura.personality,
+      auraPersonality: getNumericTraits(aura.personality),
       timeOfDay:
         hour < 12 ? 'morning' :
         hour < 18 ? 'afternoon' :
@@ -90,11 +99,11 @@ export class ConversationService {
         .from('messages')
         .insert({
           conversation_id: conversationId,
-          role:            'aura',
-          content:         highestPriority.message ?? 'A rule was triggered!',
+          role:             'aura',
+          content:          highestPriority.message ?? 'A rule was triggered!',
           metadata: {
             triggeredRule: highestPriority.rule.name,
-            influences:    [`Rule: ${highestPriority.rule.name}`],
+            influences:   [`Rule: ${highestPriority.rule.name}`],
             senseData:     metaSenseData,
           },
         })
@@ -129,8 +138,8 @@ export class ConversationService {
     const supabase = createClient()
     await supabase.from('messages').insert({
       conversation_id: conversationId,
-      role:            'user',
-      content:         userMessage,
+      role:             'user',
+      content:          userMessage,
     })
 
     // 4) Persist the Aura’s reply, storing metadata
@@ -138,7 +147,7 @@ export class ConversationService {
       .from('messages')
       .insert({
         conversation_id: conversationId,
-        role:            'aura',
+        role:             'aura',
         content,
         metadata: {
           senseData: metaSenseData,
@@ -189,7 +198,7 @@ export class ConversationService {
   /** Completely canned fallback if OpenAI isn’t available */
   private static getFallbackResponse(aura: Aura, message: string): string {
     const map: Record<Aura['vesselType'], string[]> = {
-      digital: [  // Add this section
+      digital: [   // Add this section
         "As a digital entity, I process information at the speed of light!",
         "My circuits are buzzing with excitement to help you.",
         "In the digital realm, anything is possible!",

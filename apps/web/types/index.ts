@@ -13,17 +13,23 @@ export interface Subscription {
   expiresAt?: Date
 }
 
+export interface Personality {
+  warmth: number
+  playfulness: number
+  verbosity: number
+  empathy: number
+  creativity: number
+  persona: string
+  tone: 'casual' | 'formal' | 'poetic' | 'humorous'
+  vocabulary: 'simple' | 'average' | 'scholarly'
+  quirks: string[]
+}
+
 export interface Aura {
   id: string
   name: string
   vesselType: 'digital' | 'terra' | 'companion' | 'memory' | 'sage'
-  personality: {
-    warmth: number
-    playfulness: number
-    verbosity: number
-    empathy: number
-    creativity: number
-  }
+  personality: Personality
   senses: string[]
   selectedStudyId: string
   selectedIndividualId: string
