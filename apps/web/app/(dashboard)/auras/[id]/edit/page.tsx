@@ -22,11 +22,14 @@ export default async function EditAuraPage({ params }: PageProps) {
     redirect("/login")
   }
 
-  // 3) Fetch the aura and its rules in one go (no generic on from, to avoid infinite-type instantiation)
+  // 3) Fetch the aura with its senses and rules
   const { data: auraRow, error } = await supabase
     .from("auras")
     .select(
       `*,
+      aura_senses (
+        sense:senses ( code )
+      ),
       behavior_rules (
         id, name, trigger, action, priority, enabled,
         created_at, updated_at
@@ -46,7 +49,8 @@ export default async function EditAuraPage({ params }: PageProps) {
     name:       auraRow.name,
     vesselType: auraRow.vessel_type as TAura["vesselType"],
     personality:auraRow.personality,
-    senses:     auraRow.senses,
+    // Extract senses from the joined data
+    senses:     auraRow.aura_senses?.map((as: any) => as.sense.code) || [],
     selectedStudyId:  auraRow.selected_study_id,
     selectedIndividualId: auraRow.selected_individual_id,
     avatar:     auraRow.avatar,

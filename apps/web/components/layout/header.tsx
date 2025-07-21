@@ -26,7 +26,9 @@ export async function Header() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/auras', label: 'Auras' },
     { href: '/vessels', label: 'Vessel Shop' },
-    { href: '/analytics', label: 'Analytics' },
+    // ✨ FIX: Corrected typo from "lable" to "label"
+    { href: '/meet-the-animals', label: 'Meet the Animals' },
+//    { href: '/analytics', label: 'Analytics' },
     { href: '/subscription', label: 'Subscription' },
   ]
 

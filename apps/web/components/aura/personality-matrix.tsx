@@ -284,8 +284,8 @@ export function PersonalityMatrix({ personality, onChange }: PersonalityMatrixPr
     const selectedPersona = PERSONAS.find(p => p.id === personaId)
     if (selectedPersona) {
       onChange({ persona: personaId, ...selectedPersona.settings })
-      // Automatically move user to the next step for a smoother workflow
-      setTimeout(() => setActiveTab('traits'), 300)
+      // Removed automatic tab switching to prevent scroll issues
+      // Users can manually click on the next tab when ready
     }
   }
 
@@ -378,7 +378,7 @@ export function PersonalityMatrix({ personality, onChange }: PersonalityMatrixPr
                     <p className="text-sm text-gray-600 leading-relaxed">{persona.description}</p>
                     {isSelected && (
                       <div className="mt-4 flex items-center justify-center gap-2 text-purple-600 text-sm font-medium">
-                        <span>Continue to fine-tune</span>
+                        <span>Click "2. Core Traits" to fine-tune</span>
                         <ArrowRight className="w-4 h-4" />
                       </div>
                     )}

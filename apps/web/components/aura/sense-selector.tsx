@@ -38,7 +38,16 @@ interface SenseSelectorProps {
 
 // Helper function to normalize sense IDs for consistent matching
 const normalizeSenseId = (senseId: string): string => {
-  return senseId.replace(/([A-Z])/g, "_$1").toLowerCase()
+  // Handle camelCase to snake_case conversion
+  // First, handle the case where it's already snake_case
+  if (senseId.includes('_')) {
+    return senseId.toLowerCase()
+  }
+  
+  // Convert camelCase to snake_case
+  return senseId
+    .replace(/([a-z])([A-Z])/g, '$1_$2')  // Add underscore between lowercase and uppercase
+    .toLowerCase()
 }
 
 // Enhanced icon lookup with more expressive icons
