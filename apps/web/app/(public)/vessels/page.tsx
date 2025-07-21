@@ -149,7 +149,6 @@ export default function VesselsPage() {
     animalOptions.find((a) => a.id === id) ?? animalOptions[0]
 
   return (
-    // FIX: Added responsive horizontal padding (px-4 sm:px-6 lg:px-8)
     <div className="max-w-7xl mx-auto space-y-12 py-12 px-4 sm:px-6 lg:px-8">
       {/* Header */}
       <header className="text-center space-y-2 mb-8">
@@ -204,7 +203,7 @@ export default function VesselsPage() {
                         "border-2"
                       )}
                     >
-                      <CardHeader className="pb-2">
+                      <CardHeader className="pb-4">
                         <div className="text-center mb-4">
                           <div className="text-6xl">{selected.icon}</div>
                           <CardTitle className="mt-2 text-xl">
@@ -213,28 +212,30 @@ export default function VesselsPage() {
                               : `${selected.label} Figurine`}
                           </CardTitle>
                         </div>
-                        <CardDescription className="text-sm text-center mb-4">
+                        <CardDescription className="text-sm text-center">
                           {v.description}
                         </CardDescription>
-                        {/* Horizontal animal selector */}
-                        <div className="flex space-x-4 overflow-x-auto px-2 pt-2 pb-2">
-                          {animalOptions.map((opt) => (
-                            <button
-                              key={opt.id}
-                              onClick={() => setter(opt.id)}
-                              className={cn(
-                                "flex-shrink-0 w-16 h-16 rounded-full flex items-center justify-center text-2xl transition",
-                                opt.id === selected.id
-                                  ? "ring-4 ring-blue-300"
-                                  : "ring-1 ring-gray-200 hover:ring-blue-200"
-                              )}
-                            >
-                              {opt.icon}
-                            </button>
-                          ))}
-                        </div>
                       </CardHeader>
-                      <CardContent className="flex-1 flex flex-col">
+                      <CardContent className="flex-1 flex flex-col p-6 pt-0">
+                        {/* FIX: Moved animal selector into CardContent and made it scrollable */}
+                        <div className="w-full overflow-x-auto py-4 mb-4 border-y">
+                          <div className="flex space-x-4 px-2">
+                            {animalOptions.map((opt) => (
+                              <button
+                                key={opt.id}
+                                onClick={() => setter(opt.id)}
+                                className={cn(
+                                  "flex-shrink-0 w-16 h-16 rounded-full flex items-center justify-center text-2xl transition",
+                                  opt.id === selected.id
+                                    ? "ring-4 ring-blue-300"
+                                    : "ring-1 ring-gray-200 hover:ring-blue-200"
+                                )}
+                              >
+                                {opt.icon}
+                              </button>
+                            ))}
+                          </div>
+                        </div>
                         <ul className="space-y-1 mb-4">
                           {v.features.map((feat, i) => (
                             <li key={i} className="text-sm flex items-center">

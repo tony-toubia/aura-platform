@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect } from "react"
+import React, { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   Card,
@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
-import { AnimalSelector } from "./animal-selector"
+// AnimalSelector is no longer needed
+// import { AnimalSelector } from "./animal-selector"
 import { RuleBuilder } from "./rule-builder"
 import {
   VESSEL_SENSE_CONFIG,
@@ -39,7 +40,6 @@ const vesselTypes = [
     name: "Terra Spirit",
     description: "Plant & garden companions that share their growth journey",
     icon: "🌱",
-    color: "from-green-500 to-emerald-600",
     bgColor: "from-green-50 to-emerald-50",
     borderColor: "border-green-200",
   },
@@ -48,7 +48,6 @@ const vesselTypes = [
     name: "Companion Spirit",
     description: "Wildlife trackers that experience adventures in the wild",
     icon: "🦋",
-    color: "from-blue-500 to-sky-600", 
     bgColor: "from-blue-50 to-sky-50",
     borderColor: "border-blue-200",
   },
@@ -57,7 +56,6 @@ const vesselTypes = [
     name: "Digital Being", 
     description: "Pure consciousness exploring the world through data streams",
     icon: "✨",
-    color: "from-purple-500 to-violet-600",
     bgColor: "from-purple-50 to-violet-50", 
     borderColor: "border-purple-200",
   }
@@ -117,12 +115,14 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
     }
   }
 
+  // Step validations
   const canNextSenses = (() => {
     if (!auraData.vesselType) return false
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
     const hasDefaults = cfg.defaultSenses.every((d) =>
       auraData.senses.includes(d)
     )
+    // The hasAnimal check is still valid because it confirms the initial data is present
     const hasAnimal =
       auraData.vesselType !== "companion" ||
       (auraData.selectedStudyId && auraData.selectedIndividualId)
@@ -228,20 +228,6 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
                   Choose how your {selectedVessel?.name} will perceive and understand the world
                 </p>
               </div>
-
-              {auraData.vesselType === "companion" && (
-                <AnimalSelector
-                  onStudyChange={(sid) =>
-                    setAuraData((p) => ({ ...p, selectedStudyId: sid }))
-                  }
-                  onIndividualChange={(iid) =>
-                    setAuraData((p) => ({
-                      ...p,
-                      selectedIndividualId: iid,
-                    }))
-                  }
-                />
-              )}
               
               <SenseSelector
                 availableSenses={allowedSenses}
@@ -333,7 +319,7 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
               onClick={onBack} 
               disabled={loading || step === 'senses'}
               size="lg"
-              className="px-8"
+              className="px-8 flex-shrink-0"
             >
               Back
             </Button>
@@ -347,7 +333,10 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
                   (step === "details" && !canNextDetails)
                 }
                 size="lg"
-                className="px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                className={cn(
+                    "px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",
+                    step === "details" && loading && "w-36 justify-center" // Fix for loading state width
+                )}
               >
                 {step === "details" && loading ? (
                   <>

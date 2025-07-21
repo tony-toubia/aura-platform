@@ -1,4 +1,3 @@
-// apps/web/components/aura/rule-builder.tsx
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
@@ -258,11 +257,11 @@ export function RuleBuilder({
               Your Aura will respond automatically when these conditions are met
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-4 sm:p-6 space-y-4">
             {existingRules.map((rule) => (
               <div
                 key={rule.id}
-                className="group relative p-5 rounded-2xl border-2 border-gray-200 hover:border-purple-300 bg-gradient-to-r from-white to-gray-50 hover:from-purple-50 hover:to-blue-50 transition-all duration-300"
+                className="group relative p-4 sm:p-5 rounded-2xl border-2 border-gray-200 hover:border-purple-300 bg-gradient-to-r from-white to-gray-50 hover:from-purple-50 hover:to-blue-50 transition-all duration-300"
               >
                 <div className="flex items-start justify-between">
                   <div className="flex items-start gap-4 flex-1">
@@ -271,7 +270,7 @@ export function RuleBuilder({
                     </div>
                     
                     <div className="flex-1 space-y-2">
-                      <div className="flex items-center gap-3">
+                      <div className="flex flex-wrap items-center gap-2">
                         <h4 className="font-semibold text-lg text-gray-800">{rule.name}</h4>
                         <div className="flex items-center gap-2">
                           {rule.enabled ? (
@@ -315,12 +314,12 @@ export function RuleBuilder({
                     </div>
                   </div>
                   
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1 sm:gap-2">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => onEditRule?.(rule)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-2"
                     >
                       <Edit2 className="w-4 h-4" />
                     </Button>
@@ -335,7 +334,7 @@ export function RuleBuilder({
                         variant="ghost"
                         size="sm"
                         onClick={() => onDeleteRule(rule.id)}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700 hover:bg-red-50"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
                       >
                         <Trash2 className="w-4 h-4" />
                       </Button>
@@ -374,7 +373,7 @@ export function RuleBuilder({
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-4 sm:p-6 space-y-6">
           {/* Rule Name */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -549,7 +548,7 @@ export function RuleBuilder({
           </CardDescription>
         </CardHeader>
         
-        <CardContent className="p-6 space-y-8">
+        <CardContent className="p-4 sm:p-6 space-y-8">
           {/* Digital Rules */}
           {vesselType === "digital" && (
             <div className="space-y-4">

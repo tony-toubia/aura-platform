@@ -13,7 +13,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
-import { AnimalSelector } from "./animal-selector"
+// AnimalSelector is no longer needed
+// import { AnimalSelector } from "./animal-selector"
 import { RuleBuilder } from "./rule-builder"
 import {
   VESSEL_SENSE_CONFIG,
@@ -113,15 +114,25 @@ export function AuraCreator() {
     selectedIndividualId: undefined,
   })
 
-  // Reset senses when vesselType changes
+  // Reset senses and set placeholder companion IDs when vesselType changes
   useEffect(() => {
     if (!auraData.vesselType) return
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
+    
+    let studyId: number | undefined = undefined;
+    let individualId: string | undefined = undefined;
+
+    // If companion, generate placeholder UUIDs to satisfy validation
+    if (auraData.vesselType === 'companion') {
+        studyId = Math.floor(Math.random() * 1000000); // Placeholder study ID
+        individualId = crypto.randomUUID(); // Placeholder individual ID
+    }
+
     setAuraData((prev) => ({
       ...prev,
       senses: cfg.defaultSenses,
-      selectedStudyId: undefined,
-      selectedIndividualId: undefined,
+      selectedStudyId: studyId,
+      selectedIndividualId: individualId,
     }))
     setError(null)
   }, [auraData.vesselType])
@@ -196,13 +207,9 @@ export function AuraCreator() {
   const canNextSenses = (() => {
     if (!auraData.vesselType) return false
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
-    const hasDefaults = cfg.defaultSenses.every((d) =>
+    return cfg.defaultSenses.every((d) =>
       auraData.senses.includes(d)
     )
-    const hasAnimal =
-      auraData.vesselType !== "companion" ||
-      (auraData.selectedStudyId && auraData.selectedIndividualId)
-    return hasDefaults && hasAnimal
   })()
   const canNextDetails = auraData.name.trim() !== ""
 
@@ -228,6 +235,7 @@ export function AuraCreator() {
 
   const selectedVessel = vesselTypes.find(v => v.id === auraData.vesselType)
   const steps: Step[] = ["vessel", "senses", "details", "rules"];
+  const meetButtonText = auraData.name.length > 12 ? 'Meet Your Aura' : `Meet ${auraData.name}`;
 
   return (
     <div className="max-w-5xl mx-auto">
@@ -411,20 +419,6 @@ export function AuraCreator() {
                       Choose how your {selectedVessel?.name} will perceive and understand the world
                     </p>
                   </div>
-
-                  {auraData.vesselType === "companion" && (
-                    <AnimalSelector
-                      onStudyChange={(sid) =>
-                        setAuraData((p) => ({ ...p, selectedStudyId: sid }))
-                      }
-                      onIndividualChange={(iid) =>
-                        setAuraData((p) => ({
-                          ...p,
-                          selectedIndividualId: iid,
-                        }))
-                      }
-                    />
-                  )}
                   
                   <SenseSelector
                     availableSenses={allowedSenses}
@@ -531,13 +525,21 @@ export function AuraCreator() {
               )}
 
               {/* Enhanced Navigation */}
-              <div className="flex justify-between items-center mt-10 pt-8 border-t-2 border-gray-100">
+              <div className={cn(
+                "flex items-center mt-10 pt-8 border-t-2 border-gray-100",
+                step === 'rules' 
+                  ? "flex-col-reverse gap-4" 
+                  : "justify-between"
+              )}>
                 <Button 
                   variant="outline" 
                   onClick={onBack} 
                   disabled={loading}
                   size="lg"
-                  className="px-8"
+                  className={cn(
+                    "px-8",
+                    step === 'rules' && "w-full max-w-xs"
+                  )}
                 >
                   Back
                 </Button>
@@ -571,10 +573,10 @@ export function AuraCreator() {
                   <Button
                     onClick={() => router.push(`/auras/${auraData.id}`)}
                     size="lg"
-                    className="px-8 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                    className="px-8 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 w-full max-w-xs"
                   >
                     <Heart className="w-4 h-4 mr-2" />
-                    Meet {auraData.name}
+                    <span className="truncate">{meetButtonText}</span>
                   </Button>
                 )}
               </div>
