@@ -1,12 +1,56 @@
+"use client"
+
+import React, { useState } from 'react'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { Zap, Brain, Wifi, MessageCircle, Sparkles, Heart, Globe, Leaf, ArrowRight, Play, Star } from 'lucide-react'
+import { Zap, Brain, Wifi, MessageCircle, Sparkles, Heart, Globe, Leaf, ArrowRight, Play, Star, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+function VideoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div 
+        className="relative bg-black rounded-2xl shadow-2xl w-full max-w-4xl aspect-video overflow-hidden"
+        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the video itself
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 bg-black/50 text-white hover:bg-white/20 hover:text-white rounded-full"
+        >
+          <X className="w-6 h-6" />
+          <span className="sr-only">Close video</span>
+        </Button>
+        {/* IMPORTANT: Replace this src with the path to your video file.
+          Place your video (e.g., "aura-demo.mp4") in the `/public` directory of your project.
+        */}
+        <video 
+          src="/videos/aura-demo.mp4" 
+          className="w-full h-full object-contain"
+          controls 
+          autoPlay 
+          loop 
+          playsInline
+        >
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+  )
+}
+
 
 export default function HomePage() {
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
   return (
     <div className="min-h-screen">
-      {/* The <nav> section has been removed from here. It is now in the RootLayout. */}
+      {isModalOpen && <VideoModal onClose={() => setIsModalOpen(false)} />}
 
       {/* Hero Section */}
       <section className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
@@ -39,12 +83,16 @@ export default function HomePage() {
                   Start Creating Magic
                 </Button>
               </Link>
-              <Link href="/demo">
-                <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2">
-                  <Play className="w-5 h-5 mr-2" />
-                  Watch Demo
-                </Button>
-              </Link>
+              {/* This button now opens the modal */}
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-lg px-8 py-6 border-2"
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Watch Demo
+              </Button>
             </div>
             
             <div className="mt-8 text-sm text-gray-600">
@@ -250,23 +298,6 @@ export default function HomePage() {
           </div>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row justify-between items-center">
-            <div className="flex items-center space-x-2 mb-4 md:mb-0">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-white" />
-              </div>
-              <span className="text-xl font-bold">Aura Engine</span>
-            </div>
-            <div className="text-gray-400 text-sm">
-              © 2025 Aura Engine. Made with ❤️ for creators everywhere.
-            </div>
-          </div>
-        </div>
-      </footer>
     </div>
   )
 }

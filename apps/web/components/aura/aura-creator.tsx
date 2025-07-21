@@ -52,7 +52,8 @@ interface AuraForm {
   }
   senses: string[]
   rules: BehaviorRule[]
-  selectedStudyId?: number
+  // FIX: Changed selectedStudyId to be a string to support UUIDs
+  selectedStudyId?: string
   selectedIndividualId?: string
 }
 
@@ -119,13 +120,14 @@ export function AuraCreator() {
     if (!auraData.vesselType) return
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
     
-    let studyId: number | undefined = undefined;
+    let studyId: string | undefined = undefined;
     let individualId: string | undefined = undefined;
 
     // If companion, generate placeholder UUIDs to satisfy validation
     if (auraData.vesselType === 'companion') {
-        studyId = Math.floor(Math.random() * 1000000); // Placeholder study ID
-        individualId = crypto.randomUUID(); // Placeholder individual ID
+        // FIX: Generate a UUID for studyId instead of a random number
+        studyId = crypto.randomUUID(); 
+        individualId = crypto.randomUUID();
     }
 
     setAuraData((prev) => ({

@@ -13,7 +13,12 @@ export function useAura(auraId: string) {
       try {
         const { data, error } = await createClient()
           .from('auras')
-          .select('*')
+          .select(`
+            *,
+            aura_senses (
+              sense:senses ( code )
+            )
+          `)
           .eq('id', auraId)
           .single()
 
@@ -23,18 +28,18 @@ export function useAura(auraId: string) {
         }
 
         setAura({
-          id:         data.id,
-          name:       data.name,
+          id: data.id,
+          name: data.name,
           vesselType: data.vessel_type as Aura['vesselType'],
-          personality:data.personality,
-          senses:     data.senses,
-          selectedStudyId:  data.selected_study_id,
+          personality: data.personality,
+          senses: data.aura_senses?.map((as: any) => as.sense.code) || [],
+          selectedStudyId: data.selected_study_id,
           selectedIndividualId: data.selected_individual_id,
-          avatar:     data.avatar,
-          rules:      [], // if you load rules separately
-          enabled:    data.enabled,
-          createdAt:  new Date(data.created_at),
-          updatedAt:  new Date(data.updated_at),
+          avatar: data.avatar,
+          rules: [], // if you load rules separately
+          enabled: data.enabled,
+          createdAt: new Date(data.created_at),
+          updatedAt: new Date(data.updated_at),
         })
       } catch (err: any) {
         setError(err)

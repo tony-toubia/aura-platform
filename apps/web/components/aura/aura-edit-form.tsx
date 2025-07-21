@@ -1,3 +1,5 @@
+// apps/web/components/aura/aura-edit-form.tsx
+
 "use client"
 
 import React, { useState } from "react"
@@ -13,8 +15,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
-// AnimalSelector is no longer needed
-// import { AnimalSelector } from "./animal-selector"
 import { RuleBuilder } from "./rule-builder"
 import {
   VESSEL_SENSE_CONFIG,
@@ -61,6 +61,11 @@ const vesselTypes = [
   }
 ]
 
+// Helper function to normalize sense IDs for consistent matching
+const normalizeSenseId = (senseId: string): string => {
+  return senseId.replace(/([A-Z])/g, "_$1").toLowerCase()
+}
+
 interface AuraEditFormProps {
   initialAura: Aura
 }
@@ -74,33 +79,40 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  const [auraData, setAuraData] = useState({
+  // initialize directly from the prop; no extra normalization
+  const [auraData, setAuraData] = useState(() => ({
     ...initialAura,
-    selectedStudyId: initialAura.selectedStudyId ? Number(initialAura.selectedStudyId) : undefined,
-  })
+    senses: initialAura.senses,
+    selectedStudyId: initialAura.selectedStudyId
+      ? Number(initialAura.selectedStudyId)
+      : undefined,
+  }))
 
   const updatePersonality = (trait: string, value: number) =>
     setAuraData((p) => ({ ...p, personality: { ...p.personality, [trait]: value } }))
 
-  const toggleSense = (senseId: string) =>
+  // simply flip the raw ID in/out of the array
+  const toggleSense = (senseId: string) => {
     setAuraData((p) => ({
       ...p,
       senses: p.senses.includes(senseId)
         ? p.senses.filter((id) => id !== senseId)
         : [...p.senses, senseId],
     }))
+  }
 
   const handleSave = async () => {
     setLoading(true)
     setError(null)
     try {
+      // Senses are already in snake_case format
       const resp = await fetch(`/api/auras/${auraData.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: auraData.name,
           personality: auraData.personality,
-          senses: auraData.senses,
+          senses: auraData.senses, // Already normalized
           selectedStudyId: auraData.selectedStudyId,
           selectedIndividualId: auraData.selectedIndividualId,
         }),
@@ -119,14 +131,17 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
   const canNextSenses = (() => {
     if (!auraData.vesselType) return false
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
-    const hasDefaults = cfg.defaultSenses.every((d) =>
-      auraData.senses.includes(d)
-    )
-    // The hasAnimal check is still valid because it confirms the initial data is present
-    const hasAnimal =
-      auraData.vesselType !== "companion" ||
-      (auraData.selectedStudyId && auraData.selectedIndividualId)
-    return hasDefaults && hasAnimal
+    
+    // Check if all default senses are present (normalized comparison)
+    const hasDefaults = cfg.defaultSenses.every((defaultSense) => {
+      const normalizedDefault = normalizeSenseId(defaultSense)
+      return auraData.senses.some(selectedSense => 
+        normalizeSenseId(selectedSense) === normalizedDefault
+      )
+    })
+    
+    // For editing, we don't require animal selection validation
+    return hasDefaults
   })()
   const canNextDetails = auraData.name.trim() !== ""
 
@@ -229,6 +244,8 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
                 </p>
               </div>
               
+              {/* Removed AnimalSelector for edit form since it's not needed */}
+              
               <SenseSelector
                 availableSenses={allowedSenses}
                 nonToggleableSenses={senseConfig.defaultSenses}
@@ -327,11 +344,8 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
             {step !== "rules" && (
               <Button
                 onClick={onNext}
-                disabled={
-                  loading ||
-                  (step === "senses" && !canNextSenses) ||
-                  (step === "details" && !canNextDetails)
-                }
+              // always allow “Continue” from senses; still require name on details
+              disabled={loading || (step === "details" && !canNextDetails)}
                 size="lg"
                 className={cn(
                     "px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",

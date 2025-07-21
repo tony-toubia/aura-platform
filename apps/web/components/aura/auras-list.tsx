@@ -1,3 +1,5 @@
+// apps/web/components/aura/auras-list.tsx
+
 'use client'
 
 import React from 'react'

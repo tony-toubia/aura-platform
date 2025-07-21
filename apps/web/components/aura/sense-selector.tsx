@@ -1,4 +1,5 @@
-// apps/web/app/(dashboard)/auras/create/sense-selector.tsx
+// apps/web/components/aura/sense-selector.tsx
+
 "use client"
 
 import React from "react"
@@ -31,6 +32,11 @@ interface SenseSelectorProps {
   selectedSenses: string[]
   /** toggle callback */
   onToggle: (senseId: string) => void
+}
+
+// Helper function to normalize sense IDs for consistent matching
+const normalizeSenseId = (senseId: string): string => {
+  return senseId.replace(/([A-Z])/g, "_$1").toLowerCase()
 }
 
 // Enhanced icon lookup with more expressive icons
@@ -76,8 +82,29 @@ export function SenseSelector({
   selectedSenses,
   onToggle,
 }: SenseSelectorProps) {
-  const requiredSenses = availableSenses.filter(s => nonToggleableSenses.includes(s.id))
-  const optionalSenses = availableSenses.filter(s => !nonToggleableSenses.includes(s.id))
+  // Normalize the nonToggleableSenses for proper matching
+  const normalizedNonToggleable = nonToggleableSenses.map(normalizeSenseId)
+  
+  const requiredSenses = availableSenses.filter(s => 
+    normalizedNonToggleable.includes(normalizeSenseId(s.id))
+  )
+  const optionalSenses = availableSenses.filter(s => 
+    !normalizedNonToggleable.includes(normalizeSenseId(s.id))
+  )
+
+  // Helper function to check if a sense is selected.
+  // We’ll accept either:
+  // a direct id match, or  a normalized‐to‐snake_case match.
+  const isSenseSelected = (senseId: string): boolean => {
+    const norm = normalizeSenseId(senseId)
+    return selectedSenses.some((sel) => {
+      // direct match?
+      if (sel === senseId) return true
+      // normalized match?
+      if (normalizeSenseId(sel) === norm) return true
+      return false
+    })
+  }
 
   return (
     <div className="space-y-8">
@@ -176,7 +203,7 @@ export function SenseSelector({
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {optionalSenses.map((sense) => {
               const Icon = senseIcons[sense.id] ?? Info
-              const isSelected = selectedSenses.includes(sense.id)
+              const isSelected = isSenseSelected(sense.id)
               const tierInfo = tierConfig[sense.tier as keyof typeof tierConfig]
               
               return (
