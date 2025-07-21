@@ -3,7 +3,7 @@
 "use client"
 
 import React from "react"
-import { AVAILABLE_SENSES } from "@/lib/constants"
+import { AVAILABLE_SENSES, type SenseId, type VesselTypeId } from "@/lib/constants"
 import {
   Cloud,
   Droplets,
@@ -27,11 +27,13 @@ interface SenseSelectorProps {
   /** only render these senses */
   availableSenses: readonly AvailableSense[]
   /** built-in senses that cannot be turned off */
-  nonToggleableSenses?: string[]
+  nonToggleableSenses?: SenseId[]
   /** currently selected IDs */
-  selectedSenses: string[]
+  selectedSenses: SenseId[]
   /** toggle callback */
-  onToggle: (senseId: string) => void
+  onToggle: (senseId: SenseId) => void
+  /** The type of vessel the aura is associated with */
+  vesselType: VesselTypeId
 }
 
 // Helper function to normalize sense IDs for consistent matching
@@ -81,6 +83,7 @@ export function SenseSelector({
   nonToggleableSenses = [],
   selectedSenses,
   onToggle,
+  vesselType, // Added prop
 }: SenseSelectorProps) {
   // Normalize the nonToggleableSenses for proper matching
   const normalizedNonToggleable = nonToggleableSenses.map(normalizeSenseId)
@@ -92,18 +95,11 @@ export function SenseSelector({
     !normalizedNonToggleable.includes(normalizeSenseId(s.id))
   )
 
-  // Helper function to check if a sense is selected.
-  // We’ll accept either:
-  // a direct id match, or  a normalized‐to‐snake_case match.
+  // Helper function to check if a sense is selected
   const isSenseSelected = (senseId: string): boolean => {
-    const norm = normalizeSenseId(senseId)
-    return selectedSenses.some((sel) => {
-      // direct match?
-      if (sel === senseId) return true
-      // normalized match?
-      if (normalizeSenseId(sel) === norm) return true
-      return false
-    })
+    const normalized = normalizeSenseId(senseId)
+    // `selectedSenses` is already normalized, so we only need to normalize the incoming ID
+    return selectedSenses.includes(normalized as SenseId)
   }
 
   return (
@@ -209,7 +205,7 @@ export function SenseSelector({
               return (
                 <button
                   key={sense.id}
-                  onClick={() => onToggle(sense.id)}
+                  onClick={() => onToggle(normalizeSenseId(sense.id) as SenseId)}
                   className={cn(
                     "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
                     isSelected

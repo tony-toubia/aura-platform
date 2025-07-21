@@ -16,11 +16,8 @@ import { Input } from "@/components/ui/input"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
 import { RuleBuilder } from "./rule-builder"
-import {
-  VESSEL_SENSE_CONFIG,
-  AVAILABLE_SENSES,
-  type VesselTypeId,
-} from "@/lib/constants"
+import { VESSEL_SENSE_CONFIG, AVAILABLE_SENSES } from "@/lib/constants"
+import type { VesselTypeId, SenseId } from "@/lib/constants"
 import { 
   AlertCircle, 
   Sparkles, 
@@ -79,24 +76,24 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
-  // initialize directly from the prop; no extra normalization
-  const [auraData, setAuraData] = useState(() => ({
+  // Normalize existing senses to ensure proper matching
+  const normalizedSenses = initialAura.senses.map(normalizeSenseId)
+  
+  const [auraData, setAuraData] = useState({
     ...initialAura,
-    senses: initialAura.senses,
-    selectedStudyId: initialAura.selectedStudyId
-      ? Number(initialAura.selectedStudyId)
-      : undefined,
-  }))
+    // Use the original senses as they come from the database
+    senses: normalizedSenses as SenseId[],
+    selectedStudyId: initialAura.selectedStudyId ? Number(initialAura.selectedStudyId) : undefined,
+  })
 
   const updatePersonality = (trait: string, value: number) =>
     setAuraData((p) => ({ ...p, personality: { ...p.personality, [trait]: value } }))
 
-  // simply flip the raw ID in/out of the array
-  const toggleSense = (senseId: string) => {
-    setAuraData((p) => ({
+  const toggleSense = (senseId: SenseId) => {
+    setAuraData(p => ({
       ...p,
       senses: p.senses.includes(senseId)
-        ? p.senses.filter((id) => id !== senseId)
+        ? p.senses.filter(id => id !== senseId)
         : [...p.senses, senseId],
     }))
   }
@@ -251,6 +248,7 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
                 nonToggleableSenses={senseConfig.defaultSenses}
                 selectedSenses={auraData.senses}
                 onToggle={toggleSense}
+                vesselType={auraData.vesselType}
               />
             </div>
           )}
@@ -344,8 +342,11 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
             {step !== "rules" && (
               <Button
                 onClick={onNext}
-              // always allow “Continue” from senses; still require name on details
-              disabled={loading || (step === "details" && !canNextDetails)}
+                disabled={
+                  loading ||
+                  (step === "senses" && !canNextSenses) ||
+                  (step === "details" && !canNextDetails)
+                }
                 size="lg"
                 className={cn(
                     "px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700",

@@ -57,7 +57,7 @@ const products: VesselProduct[] = [
     price: "$24.99",
     description:
       "Soft, huggable plush toy—select your favorite animal to bring your Companion Aura to life.",
-    features: ["Ultra-soft fabric", "Bluetooth link", "LED “smart” eyes"],
+    features: ["Ultra-soft fabric", "Bluetooth link", "LED 'smart' eyes"],
     href: "/vessels/companion-plush",
   },
   // Companion: Desk Figurine
@@ -175,7 +175,9 @@ export default function VesselsPage() {
             <h2 className={`text-2xl font-semibold ${section.text}`}>
               {section.title}
             </h2>
-            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            
+            {/* Grid with proper constraints to prevent overflow */}
+            <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 min-w-0">
               {list.map((v) => {
                 // Dynamic Plush + Figurine cards
                 if (
@@ -198,7 +200,7 @@ export default function VesselsPage() {
                     <Card
                       key={v.id}
                       className={cn(
-                        "flex flex-col h-full transition-shadow hover:shadow-xl",
+                        "flex flex-col h-full transition-shadow hover:shadow-xl min-w-0 max-w-full",
                         section.border,
                         "border-2"
                       )}
@@ -206,45 +208,55 @@ export default function VesselsPage() {
                       <CardHeader className="pb-4">
                         <div className="text-center mb-4">
                           <div className="text-6xl">{selected.icon}</div>
-                          <CardTitle className="mt-2 text-xl">
+                          <CardTitle className="mt-2 text-xl line-clamp-2">
                             {isPlush
                               ? `${selected.label} Plush Companion`
                               : `${selected.label} Figurine`}
                           </CardTitle>
                         </div>
-                        <CardDescription className="text-sm text-center">
+                        <CardDescription className="text-sm text-center line-clamp-3">
                           {v.description}
                         </CardDescription>
                       </CardHeader>
-                      <CardContent className="flex-1 flex flex-col p-6 pt-0">
-                        {/* FIX: Moved animal selector into CardContent and made it scrollable */}
-                        <div className="w-full overflow-x-auto py-4 mb-4 border-y">
-                          <div className="flex space-x-4 px-2">
+                      
+                      <CardContent className="flex-1 flex flex-col p-6 pt-0 min-w-0">
+                        {/* Completely Fixed Animal Selector - Grid Layout */}
+                        <div className="mb-4 min-w-0">
+                          <div className="text-xs text-gray-500 mb-2 text-center font-medium">
+                            Choose your animal:
+                          </div>
+                          <div className="grid grid-cols-3 gap-1.5 max-w-full">
                             {animalOptions.map((opt) => (
                               <button
                                 key={opt.id}
                                 onClick={() => setter(opt.id)}
                                 className={cn(
-                                  "flex-shrink-0 w-16 h-16 rounded-full flex items-center justify-center text-2xl transition",
+                                  "w-full aspect-square rounded-lg flex items-center justify-center text-lg transition-all duration-200",
+                                  "border-2 hover:scale-105 active:scale-95 min-w-0",
                                   opt.id === selected.id
-                                    ? "ring-4 ring-blue-300"
-                                    : "ring-1 ring-gray-200 hover:ring-blue-200"
+                                    ? "border-blue-400 bg-blue-50 shadow-md ring-2 ring-blue-200"
+                                    : "border-gray-200 hover:border-blue-300 bg-white hover:bg-blue-50"
                                 )}
+                                title={opt.label}
                               >
                                 {opt.icon}
                               </button>
                             ))}
                           </div>
                         </div>
-                        <ul className="space-y-1 mb-4">
+
+                        {/* Features List */}
+                        <ul className="space-y-1 mb-4 min-w-0">
                           {v.features.map((feat, i) => (
-                            <li key={i} className="text-sm flex items-center">
-                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2" />
-                              {feat}
+                            <li key={i} className="text-sm flex items-center min-w-0">
+                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2 flex-shrink-0" />
+                              <span className="truncate">{feat}</span>
                             </li>
                           ))}
                         </ul>
-                        <div className="mt-auto space-y-2">
+
+                        {/* Price and Buy Button */}
+                        <div className="mt-auto space-y-3 min-w-0">
                           <div className="flex items-baseline justify-between">
                             <span className="text-2xl font-bold text-purple-700">
                               {v.price}
@@ -256,7 +268,9 @@ export default function VesselsPage() {
                           <Link href={href} className="block">
                             <Button size="lg" className="w-full">
                               <ShoppingBag className="w-4 h-4 mr-2" />
-                              Buy Now
+                              <span className="truncate">
+                                Buy {selected.label} {isPlush ? "Plush" : "Figurine"}
+                              </span>
                             </Button>
                           </Link>
                         </div>
@@ -270,7 +284,7 @@ export default function VesselsPage() {
                   <Card
                     key={v.id}
                     className={cn(
-                      "flex flex-col h-full transition-shadow hover:shadow-xl",
+                      "flex flex-col h-full transition-shadow hover:shadow-xl min-w-0 max-w-full",
                       section.border,
                       "border-2"
                     )}
@@ -288,21 +302,23 @@ export default function VesselsPage() {
                           {type}
                         </span>
                       </div>
-                      <CardTitle className="text-lg">{v.name}</CardTitle>
-                      <CardDescription className="text-sm">
+                      <CardTitle className="text-lg line-clamp-2">{v.name}</CardTitle>
+                      <CardDescription className="text-sm line-clamp-3">
                         {v.description}
                       </CardDescription>
                     </CardHeader>
-                    <CardContent className="flex-1 flex flex-col">
-                      <ul className="space-y-1 mb-4">
+                    
+                    <CardContent className="flex-1 flex flex-col min-w-0">
+                      <ul className="space-y-1 mb-4 min-w-0">
                         {v.features.map((feat, i) => (
-                          <li key={i} className="text-sm flex items-center">
-                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2" />
-                            {feat}
+                          <li key={i} className="text-sm flex items-center min-w-0">
+                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2 flex-shrink-0" />
+                            <span className="truncate">{feat}</span>
                           </li>
                         ))}
                       </ul>
-                      <div className="mt-auto space-y-2">
+                      
+                      <div className="mt-auto space-y-2 min-w-0">
                         <div className="flex items-baseline justify-between">
                           <span className="text-2xl font-bold text-purple-700">
                             {v.price}
@@ -336,7 +352,7 @@ export default function VesselsPage() {
               How It Works
             </CardTitle>
             <CardDescription>
-              Each vessel type is tailored to your Aura’s world—garden,
+              Each vessel type is tailored to your Aura's world—garden,
               wildlife, or digital.
             </CardDescription>
           </CardHeader>

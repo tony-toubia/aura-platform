@@ -1,3 +1,5 @@
+// apps/web/components/aura/aura-creator.tsx
+
 "use client"
 
 import React, { useState, useEffect } from "react"
@@ -38,6 +40,14 @@ import type { BehaviorRule } from "@/types"
 
 type Step = "vessel" | "senses" | "details" | "rules"
 
+type SenseId =
+  | "weather"
+  | "news"
+  | "air_quality"
+  | "soil_moisture"
+  | "light_level"
+  | "wildlife"
+
 interface AuraForm {
   id: string
   name: string
@@ -50,7 +60,7 @@ interface AuraForm {
     empathy: number
     creativity: number
   }
-  senses: string[]
+  senses: SenseId[]
   rules: BehaviorRule[]
   // FIX: Changed selectedStudyId to be a string to support UUIDs
   selectedStudyId?: string
@@ -166,7 +176,7 @@ export function AuraCreator() {
     setError(null)
   }
 
-  const toggleSense = (senseId: string) =>
+  const toggleSense = (senseId: SenseId) =>
     setAuraData((prev) => ({
       ...prev,
       senses: prev.senses.includes(senseId)
@@ -427,6 +437,7 @@ export function AuraCreator() {
                     nonToggleableSenses={senseConfig.defaultSenses}
                     selectedSenses={auraData.senses}
                     onToggle={toggleSense}
+                    vesselType={auraData.vesselType as VesselTypeId}
                   />
                 </div>
               )}
