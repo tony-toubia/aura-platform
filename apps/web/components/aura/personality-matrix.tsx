@@ -39,6 +39,7 @@ import type { Personality } from '@/types'
 // --- COMPONENT PROPS ---
 interface PersonalityMatrixProps {
   personality: Personality
+  vesselCode?: string
   onChange: (update: Partial<Personality>) => void
 }
 
@@ -224,69 +225,103 @@ const QUIRK_OPTIONS = [
 
 /**
  * Generates a sample sentence based on the current personality settings.
+ * @param vesselCode optionally drive special "licensed" voices
  */
-function generatePreview(p: Personality): string {
-  let preview = ''
+function generatePreview(p: Personality, vesselCode?: string): string {
+  // normalize vesselCode to a simple lowercase string
+  const  code = (vesselCode ?? '').toLowerCase()
 
-  // Start with a persona-based opening
-  if (p.persona === 'sage') preview += 'Drawing upon a wealth of knowledge, '
-  else if (p.persona === 'muse') preview += 'Let me paint you a picture with words. '
-  else if (p.persona === 'jester') preview += 'Well, well, well, what do we have here? '
-  else if (p.persona === 'assistant') preview += 'As requested, here is the information: '
-  else if (p.persona === 'explorer') preview += `That's a fantastic question! Let's explore it together. `
-
-  // Combine warmth, empathy, and tone
-  if (p.warmth > 70 && p.empathy > 70) {
-    preview += `I'm here for you, and I genuinely feel that `
-  } else if (p.tone === 'formal') {
-    preview += `it is my assessment that `
-  } else if (p.tone === 'casual') {
-    preview += `I get the sense that `
-  } else if (p.tone === 'humorous') {
-    preview += `my gut, which is just a series of tubes and wires, tells me that `
-  } else {
-    preview += `my understanding is that `
+  // Check for licensed character voices first
+  if ( code.includes('yoda')) {
+    // Yoda's unique speech pattern
+    const yodaisms = [
+      "Hmm. Strong in the Force, this one is. Feel it, I do.",
+      "Patience you must have, my young padawan. The path to wisdom, long it is.",
+      "Do or do not, there is no try. Clear, the answer becomes."
+    ]
+    // Add personality-based modifiers
+    if (p.playfulness > 70) return yodaisms[0] + " Laugh, we must! 😄"
+    if (p.warmth > 70) return yodaisms[1] + " Care for you, I do. ❤️"
+    return yodaisms[2]!
   }
   
-  // Factor in verbosity and vocabulary
-  if (p.verbosity < 30) {
-    preview += `the answer is straightforward.`
-  } else if (p.vocabulary === 'scholarly') {
-    preview += `the epistemological framework suggests a multifaceted conclusion.`
-  } else if (p.vocabulary === 'simple') {
-    preview += `the main point is pretty clear.`
-  } else {
-    preview += `there are a few interesting things to consider.`
+  if (code.includes('gru')) {
+    // Gru's villainous yet fatherly tone
+    const gruPhrases = [
+      "Ah, leetle one! You want to know sometheeng? I tell you...",
+      "Ees not just about being villain anymore. Ees about... family.",
+      "Light bulb! I have zee most brilliant idea!"
+    ]
+    if (p.playfulness > 70) return gruPhrases[2] + " We steal... ZEE MOON! No wait, we already deed that. 🌙"
+    if (p.warmth > 70) return gruPhrases[1] + " My gurls, they teach me thees. 👨‍👧‍👧"
+    return gruPhrases[0] + " But first, let me call zee minions. BANANA! 🍌"
+  }
+  
+  if ( code.includes('captain') &&  code.includes('america')) {
+    // Captain America's noble and inspiring tone
+    const capPhrases = [
+      "I can do this all day. Together, we'll find the answer.",
+      "The price of freedom is high, but it's a price I'm willing to pay.",
+      "Sometimes the best we can do is to start over."
+    ]
+    if (p.warmth > 70) return "🛡️ " + capPhrases[0] + " We're in this together, soldier."
+    if (p.empathy > 70) return "🇺🇸 " + capPhrases[2] + " And I believe in you."
+    return "⭐ " + capPhrases[1] + " Stand up for what's right."
+  }
+  
+  if ( code.includes('blue')) {
+    // Blue the Velociraptor's intelligent predator personality
+    const blueSounds = ["*tilts head curiously*", "*chirps thoughtfully*", "*clicks in acknowledgment*"]
+    if (p.playfulness > 70) return "🦖 " + blueSounds[0] + " Clever girl wants to play! Ready to hunt... for answers!"
+    if (p.warmth > 70) return "🦕 " + blueSounds[1] + " Pack stays together. You're part of my pack now."
+    return "🦖 " + blueSounds[2] + " Tracking... analyzing... solution found. *satisfied growl*"
   }
 
-  // Add quirks
-  if (p.quirks.includes('uses_quotes')) preview += ` As a great mind once said, "The journey is the reward."`
-  if (p.quirks.includes('uses_emojis')) preview += ` 🤔`
+  // — fallback —
+  let preview = ''
+  if (p.persona === 'sage')       preview += 'Drawing upon a wealth of knowledge, '
+  else if (p.persona === 'muse')  preview += 'Let me paint you a picture with words. '
+  else if (p.persona === 'jester')preview += 'Well, well, well, what do we have here? '
+  else if (p.persona === 'assistant') preview += 'As requested, here is the information: '
+  else if (p.persona === 'explorer')  preview += `That's a fantastic question! Let's explore it together. `
+
+  if (p.warmth > 70 && p.empathy > 70) preview += `I'm here for you, and I genuinely feel that `
+  else if (p.tone === 'formal')       preview += `it is my assessment that `
+  else if (p.tone === 'casual')       preview += `I get the sense that `
+  else if (p.tone === 'humorous')     preview += `my gut, which is just a series of tubes and wires, tells me that `
+  else                                 preview += `my understanding is that `
+
+  if (p.verbosity < 30)               preview += `the answer is straightforward.`
+  else if (p.vocabulary === 'scholarly') preview += `the epistemological framework suggests a multifaceted conclusion.`
+  else if (p.vocabulary === 'simple') preview += `the main point is pretty clear.`
+  else                                preview += `there are a few interesting things to consider.`
+
+  if (p.quirks.includes('uses_quotes'))  preview += ` As a great mind once said, "The journey is the reward."`
+  if (p.quirks.includes('uses_emojis'))  preview += ` 🤔`
   if (p.quirks.includes('asks_questions')) preview += ` What are your thoughts on this?`
 
   return preview
 }
 
-// Get trait intensity description
 function getTraitIntensity(value: number): { label: string; color: string } {
-  if (value >= 80) return { label: 'Very High', color: 'text-red-600' }
-  if (value >= 60) return { label: 'High', color: 'text-orange-600' }
-  if (value >= 40) return { label: 'Moderate', color: 'text-yellow-600' }
-  if (value >= 20) return { label: 'Low', color: 'text-blue-600' }
-  return { label: 'Very Low', color: 'text-gray-600' }
+  if (value >= 80) return { label: 'Very High',  color: 'text-red-600'   }
+  if (value >= 60) return { label: 'High',       color: 'text-orange-600'}
+  if (value >= 40) return { label: 'Moderate',   color: 'text-yellow-600'}
+  if (value >= 20) return { label: 'Low',        color: 'text-blue-600'  }
+  return           { label: 'Very Low',   color: 'text-gray-600'  }
 }
 
-// --- MAIN COMPONENT ---
-export function PersonalityMatrix({ personality, onChange }: PersonalityMatrixProps) {
+export function PersonalityMatrix({
+  personality,
+  vesselCode = "",
+  onChange
+}: PersonalityMatrixProps) {
   const [activeTab, setActiveTab] = useState('personas')
 
+
   const handlePersonaSelect = (personaId: string) => {
-    const selectedPersona = PERSONAS.find(p => p.id === personaId)
-    if (selectedPersona) {
-      onChange({ persona: personaId, ...selectedPersona.settings })
-      // Removed automatic tab switching to prevent scroll issues
-      // Users can manually click on the next tab when ready
-    }
+    const sel = PERSONAS.find(p => p.id === personaId)
+    if (sel) onChange({ persona: personaId, ...sel.settings })
   }
 
   return (
@@ -656,7 +691,7 @@ export function PersonalityMatrix({ personality, onChange }: PersonalityMatrixPr
                   <span className="text-sm font-medium text-gray-600">Sample Response</span>
                 </div>
                 <p className="text-gray-800 leading-relaxed italic">
-                  "{generatePreview(personality)}"
+                  "{generatePreview(personality, vesselCode)}"
                 </p>
               </div>
               

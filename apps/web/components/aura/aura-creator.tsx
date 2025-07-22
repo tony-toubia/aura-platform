@@ -81,6 +81,65 @@ const vesselTypes = [
   },
 ]
 
+const LICENSED_PRESETS: Record<
+  string,
+  { persona: Personality['persona']; settings: Omit<Partial<Personality>, 'persona'> }
+> = {
+  'licensed - yoda': {
+    persona: 'sage',
+    settings: {
+      warmth: 30,
+      playfulness: 20,
+      verbosity: 70,
+      empathy: 50,
+      creativity: 40,
+      tone: 'formal',
+      vocabulary: 'scholarly',
+      quirks: ['asks_questions'],
+    },
+  },
+  'licensed - gru': {
+    persona: 'jester',
+    settings: {
+      warmth: 70,
+      playfulness: 90,
+      verbosity: 60,
+      empathy: 40,
+      creativity: 80,
+      tone: 'humorous',
+      vocabulary: 'simple',
+      quirks: ['uses_metaphors'],
+    },
+  },
+  'licensed - captain america': {
+    persona: 'assistant',     // concise, noble helper
+    settings: {
+      warmth: 40,
+      playfulness: 30,
+      verbosity: 30,
+      empathy: 60,
+      creativity: 30,
+      tone: 'formal',
+      vocabulary: 'simple',
+      quirks: ['is_terse'],
+    },
+  },
+  'licensed - blue': {
+    persona: 'explorer',      // curious, adventurous
+    settings: {
+      warmth: 80,
+      playfulness: 80,
+      verbosity: 70,
+      empathy: 60,
+      creativity: 70,
+      tone: 'casual',
+      vocabulary: 'average',
+      quirks: ['uses_emojis', 'uses_quotes'],
+    },
+  },
+}
+
+
 export function AuraCreator() {
   const router = useRouter()
   const [step, setStep] = useState<Step>("vessel")
@@ -130,15 +189,38 @@ export function AuraCreator() {
 
   // Reset senses & generate uuids for companion
   useEffect(() => {
+    // only fire if they've actually selected a product code
+    const code = auraData.vesselCode
+    if (!code) return
+
+    const preset = LICENSED_PRESETS[code]
+    if (preset) {
+      setAuraData((prev) => ({
+        ...prev,
+        personality: {
+          ...prev.personality,
+          persona: preset.persona,
+          ...preset.settings,
+        },
+      }))
+    }
+  }, [auraData.vesselCode])
+
+  useEffect(() => {
+    // only run when they've actually chosen a vessel type
     if (!auraData.vesselType) return
+
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
+
+    // if this is a companion vessel, regenerate the study/individual IDs
     let studyId: string | undefined
     let individualId: string | undefined
     if (auraData.vesselType === "companion") {
       studyId = crypto.randomUUID()
       individualId = crypto.randomUUID()
     }
-    setAuraData((prev) => ({
+
+    setAuraData(prev => ({
       ...prev,
       senses: cfg.defaultSenses,
       selectedStudyId: studyId,
@@ -146,6 +228,7 @@ export function AuraCreator() {
     }))
     setError(null)
   }, [auraData.vesselType])
+
 
   // 1️⃣ & 3️⃣ manual submit logic
   const handleManualSubmit = () => {
@@ -163,6 +246,10 @@ export function AuraCreator() {
       { code: "companion - giraffe", type: "companion" },
       { code: "companion - shark", type: "companion" },
       { code: "companion - gorilla", type: "companion" },
+      { code: "licensed - yoda", type: "terra" },
+      { code: "licensed - gru", type: "terra" },
+      { code: "licensed - captain america", type: "terra" },
+      { code: "licensed - blue", type: "terra" },
     ]
     const found = manualOptions.find((o) => o.code === val)
     if (found) {
@@ -325,6 +412,10 @@ export function AuraCreator() {
                           Companion – Elephant / Companion – Tortoise / Companion –
                           Lion / Companion – Whale / Companion – Giraffe / Companion
                           – Shark / Companion – Gorilla
+                        </li>
+                        <li>
+                          Licensed – Yoda / Licensed – Captain America / Licensed –
+                          Blue / Licensed – Gru
                         </li>
                       </ul>
                     </div>
@@ -546,6 +637,7 @@ export function AuraCreator() {
                     </div>
                     <PersonalityMatrix
                       personality={auraData.personality}
+                      vesselCode={auraData.vesselCode}
                       onChange={(update) =>
                         setAuraData((p) => ({
                           ...p,
@@ -573,6 +665,7 @@ export function AuraCreator() {
                     <RuleBuilder
                       auraId={auraData.id}
                       vesselType={auraData.vesselType as VesselTypeId}
+                      vesselCode={auraData.vesselCode}
                       availableSenses={auraData.senses}
                       existingRules={auraData.rules}
                       onAddRule={(r) =>

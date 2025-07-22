@@ -150,7 +150,7 @@ const products: VesselProduct[] = [
     id: "licensed-gru-figurine",
     type: "licensed",
     icon: "🦹",
-    name: "Gru's Villainous Vessel",
+    name: "Gru Villainous Vessel",
     price: "$44.99",
     description:
       "Former supervillain turned loving father—Gru brings mischievous charm to your desktop companion.",
