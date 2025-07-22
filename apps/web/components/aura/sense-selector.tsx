@@ -141,7 +141,7 @@ export function SenseSelector({
       {requiredSenses.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Lock className="w-5 h-5 text-purple-600" />
+            <Lock className="w-5 h-5 text-blue-600" />
             <h3 className="text-lg font-semibold">Essential Senses</h3>
             <span className="text-sm text-gray-500">(Always enabled)</span>
           </div>
@@ -156,9 +156,12 @@ export function SenseSelector({
                   tierInfo.borderColor,
                   "opacity-90"
                 )}>
-                  <div className="absolute top-3 right-3">
+                  {/* ✅ MODIFIED: Group icons in the top-right corner */}
+                  <div className="absolute top-3 right-3 flex items-center gap-2">
                     <Lock className="w-4 h-4 text-gray-500" />
+                    <CheckCircle2 className="w-5 h-5 text-green-600" />
                   </div>
+                  
                   <div className="flex items-start gap-4">
                     <div className={cn(
                       "p-3 rounded-xl bg-gradient-to-r text-white shadow-md",
@@ -167,10 +170,8 @@ export function SenseSelector({
                       <Icon className="w-6 h-6" />
                     </div>
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <h4 className="font-semibold text-gray-800">{sense.name}</h4>
-                        <CheckCircle2 className="w-4 h-4 text-green-600" />
-                      </div>
+                      {/* ✅ MODIFIED: Removed the CheckCircle2 icon from the title */}
+                      <h4 className="font-semibold text-gray-800 mb-1">{sense.name}</h4>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
                       <span className={cn(
                         "text-xs px-2 py-1 rounded-full bg-gradient-to-r",
@@ -192,7 +193,7 @@ export function SenseSelector({
       {optionalSenses.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-purple-600" />
+            <Sparkles className="w-5 h-5 text-green-600" />
             <h3 className="text-lg font-semibold">Additional Senses</h3>
             <span className="text-sm text-gray-500">(Choose what feels right)</span>
           </div>
@@ -208,13 +209,13 @@ export function SenseSelector({
                   className={cn(
                     "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
                     active
-                      ? "border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 shadow-md"
-                      : cn("border-gray-200 hover:border-purple-300 bg-white", tierInfo.bgColor)
+                      ? "border-green-400 bg-gradient-to-br from-green-50 to-blue-50 shadow-md"
+                      : cn("border-gray-200 hover:border-green-300 bg-white", tierInfo.bgColor)
                   )}
                 >
                   {active && (
                     <div className="absolute top-3 right-3">
-                      <CheckCircle2 className="w-5 h-5 text-purple-600" />
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
                     </div>
                   )}
                   <div className="flex items-start gap-4">
@@ -236,7 +237,7 @@ export function SenseSelector({
                           <Zap className="w-4 h-4 text-purple-600 animate-pulse" />
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">{sense.category}</p>
+                      <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
                       <div className="flex items-center justify-between">
                         <span className={cn(
                           "text-xs px-2 py-1 rounded-full bg-gradient-to-r font-medium",
@@ -248,8 +249,8 @@ export function SenseSelector({
                         <div className={cn(
                           "text-xs px-2 py-1 rounded-full transition-all",
                           active 
-                            ? "bg-purple-100 text-purple-700" 
-                            : "bg-gray-100 text-gray-600 group-hover:bg-purple-50 group-hover:text-purple-600"
+                            ? "bg-green-100 text-green-700" 
+                            : "bg-gray-100 text-gray-600 group-hover:bg-green-50 group-hover:text-green-600"
                         )}>
                           {active ? "Connected" : "Click to add"}
                         </div>
@@ -281,15 +282,15 @@ export function SenseSelector({
                   key={sense.id}
                   onClick={() => onToggle(sense.id as SenseId)}
                   className={cn(
-                    "group relative p-5 rounded-2xl border-2 transition-all hover:scale-105 hover:shadow-lg",
+                    "group relative p-5 rounded-2xl border-2 transition-all hover:scale-105 hover:shadow-lg text-left",
                     active
-                      ? "border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 shadow-md"
+                      ? "border-orange-400 bg-gradient-to-br from-orange-50 to-red-50 shadow-md"
                       : cn("border-gray-200 hover:border-orange-300 bg-white", tierInfo.bgColor)
                   )}
                 >
                   {active && (
                     <div className="absolute top-3 right-3">
-                      <CheckCircle2 className="w-5 h-5 text-purple-600" />
+                      <CheckCircle2 className="w-5 h-5 text-orange-600" />
                     </div>
                   )}
                   <div className="flex items-start gap-4">
@@ -311,14 +312,14 @@ export function SenseSelector({
                           <Zap className="w-4 h-4 text-purple-600 animate-pulse" />
                         )}
                       </div>
-                      <p className="text-sm text-gray-600 mb-3">{sense.category}</p>
+                      <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
                       <div className="flex items-center justify-between">
                         <span className={cn(
                           "text-xs px-2 py-1 rounded-full bg-gradient-to-r font-medium",
                           tierInfo.bgColor,
                           tierInfo.textColor
                         )}>
-                          {tierInfo.icon} premium
+                          {tierInfo.icon} {sense.tier}
                         </span>
                         <div className={cn(
                           "text-xs px-2 py-1 rounded-full transition-all",
@@ -326,7 +327,7 @@ export function SenseSelector({
                             ? "bg-orange-100 text-orange-700" 
                             : "bg-gray-100 text-gray-600 group-hover:bg-orange-50 group-hover:text-orange-600"
                         )}>
-                          {active ? "Synced" : "Click to sync"}
+                          {active ? "Connected" : "Click to add"}
                         </div>
                       </div>
                     </div>

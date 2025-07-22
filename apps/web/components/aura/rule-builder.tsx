@@ -1,6 +1,8 @@
+// apps/web/components/aura/rule-builder.tsx
+
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useMemo  } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -124,7 +126,79 @@ export function RuleBuilder({
   const isEditing = editingRule !== null
   const nameInputRef = useRef<HTMLInputElement>(null)
 
-  // preload form when editingRule changes
+  // 2. Pre-calculate template availability using useMemo
+  const availableTemplate = useMemo(() => {
+    const licensedTemplates: Record<
+      string,
+      {
+        title: string
+        sensor: string
+        operator: string
+        threshold: string
+        message: string
+        priority: string
+        cooldown: string
+      }
+    > = {
+      yoda: {
+        title: "🌿 Yoda’s Wisdom",
+        sensor: "soil_moisture.value",
+        operator: "<",
+        threshold: "25",
+        message: "Grow strong you will! Soil moisture is at {sensor.value}%",
+        priority: "8",
+        cooldown: "3600",
+      },
+      blue: {
+        title: "🦖 Raptor Alert",
+        sensor: "weather.temperature",
+        operator: ">",
+        threshold: "30",
+        message: "Clever girl! Temp {sensor.value}°C.",
+        priority: "7",
+        cooldown: "3600",
+      },
+      gru: {
+        title: "🦹 Gru’s Mischief",
+        sensor: "weather.temperature",
+        operator: ">",
+        threshold: "5",
+        message: "Minions on the move! It's {sensor.value} out!",
+        priority: "7",
+        cooldown: "1800",
+      },
+      "captain america": {
+        title: "🛡️ Shield Warning",
+        sensor: "light_level.value",
+        operator: "<=",
+        threshold: "10",
+        message: "Shield up! Light level is {sensor.value}",
+        priority: "8",
+        cooldown: "1200",
+      },
+    }
+
+    const isLicensed = (vesselCode ?? "").toLowerCase().startsWith("licensed")
+    if (!isLicensed) return null
+
+    const licenseName = (vesselCode ?? "")
+      .toLowerCase()
+      .replace("licensed -", "")
+      .trim()
+    
+    const templateData = licensedTemplates[licenseName]
+    if (!templateData) return null
+
+    const sensorKey = templateData.sensor
+    const baseKey = sensorKey.split(".")[0]
+    const isSensorAvailable =
+      availableSenses.includes(sensorKey) ||
+      availableSenses.includes(baseKey!)
+
+    return isSensorAvailable ? templateData : null
+  }, [vesselCode, availableSenses])
+
+
   useEffect(() => {
     if (editingRule) {
       setRuleName(editingRule.name)
@@ -231,318 +305,82 @@ export function RuleBuilder({
 
   return (
     <div className="space-y-8">
-      {/* — Toggle Quick-Start Templates — */}
-      <div className="flex justify-center">
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => setShowTemplates((v) => !v)}
-          className="mb-4"
-        >
-          {showTemplates ? "Hide" : "Show"} Quick-Start Templates
-        </Button>
-      </div>
+      {/* 3. Conditionally render the entire template section */}
+      {availableTemplate && (
+        <>
+          <div className="flex justify-center">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowTemplates((v) => !v)}
+              className="mb-4"
+            >
+              {showTemplates ? "Hide" : "Show"} Quick-Start Templates
+            </Button>
+          </div>
 
-      {/* — Quick-Start Templates — */}
-      {showTemplates && (
-        <Card className="border-2 border-purple-100">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50">
-            <CardTitle className="flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-purple-600" />
-              Quick-Start Templates
-            </CardTitle>
-            <CardDescription>
-              Click any template to instantly configure a rule, then customize it.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 space-y-8">
-            {/* Licensed Vessel Templates */}
-            {vesselCode?.toLowerCase().startsWith("licensed") && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
-                    <Sparkles className="w-5 h-5 text-white" />
+          {showTemplates && (
+            <Card className="border-2 border-purple-100">
+              <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50">
+                <CardTitle className="flex items-center gap-2">
+                  <Sparkles className="w-5 h-5 text-purple-600" />
+                  Quick-Start Templates
+                </CardTitle>
+                <CardDescription>
+                  Click any template to instantly configure a rule, then
+                  customize it.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 space-y-8">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 bg-gradient-to-r from-yellow-500 to-orange-600 rounded-lg flex items-center justify-center">
+                      <Sparkles className="w-5 h-5 text-white" />
+                    </div>
+                    <h4 className="text-xl font-semibold text-gray-800">
+                      Special-Edition Vessel
+                    </h4>
+                    <span className="text-sm text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full">
+                      {vesselCode}
+                    </span>
                   </div>
-                  <h4 className="text-xl font-semibold text-gray-800">
-                    Special-Edition Vessel
-                  </h4>
-                  <span className="text-sm text-yellow-700 bg-yellow-100 px-3 py-1 rounded-full">
-                    {vesselCode}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {/* Yoda’s Wisdom */}
-                  {vesselCode.toLowerCase() === "licensed - yoda" &&
-                    availableSenses.includes("soil_moisture") && (
-                      <Button
-                        variant="outline"
-                        className="h-auto p-5 flex flex-col items-start space-y-2 border-2 hover:border-yellow-400 transition-all"
-                        onClick={() => {
-                          setRuleName("Yoda’s Wisdom Alert")
-                          setSelectedSensor("soil_moisture.value")
-                          setOperator("<")
-                          setThreshold("25")
-                          setActionMessage(
-                            "Grow strong you will! Soil moisture is at {sensor.value}%"
-                          )
-                          setPriority("8")
-                          setCooldown("3600")
-                          nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-                        }}
-                      >
-                        <span className="font-semibold text-lg">🌿 Yoda’s Wisdom</span>
-                        <span className="text-sm text-muted-foreground">
-                          When soil {"<"} 25%
-                        </span>
-                        <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
-                          Click to use
-                        </span>
-                      </Button>
-                    )}
-
-                  {/* Gru’s Mischief */}
-                  {vesselCode.toLowerCase() === "licensed - gru" &&
-                    availableSenses.includes("wildlife.activity") && (
-                      <Button
-                        variant="outline"
-                        className="h-auto p-5 flex flex-col items-start space-y-2 border-2 hover:border-yellow-400 transition-all"
-                        onClick={() => {
-                          setRuleName("Gru’s Mischief Alert")
-                          setSelectedSensor("wildlife.activity")
-                          setOperator(">")
-                          setThreshold("5")
-                          setActionMessage(
-                            "Minions on the move! Activity {sensor.value} detected."
-                          )
-                          setPriority("7")
-                          setCooldown("1800")
-                          nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-                        }}
-                      >
-                        <span className="font-semibold text-lg">🦹 Gru’s Mischief</span>
-                        <span className="text-sm text-muted-foreground">
-                          When activity {">"} 5
-                        </span>
-                        <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
-                          Click to use
-                        </span>
-                      </Button>
-                    )}
-
-                  {/* Captain America */}
-                  {vesselCode.toLowerCase() === "licensed - captain america" &&
-                    availableSenses.includes("light_level.value") && (
-                      <Button
-                        variant="outline"
-                        className="h-auto p-5 flex flex-col items-start space-y-2 border-2 hover:border-yellow-400 transition-all"
-                        onClick={() => {
-                          setRuleName("Shield Activation Warning")
-                          setSelectedSensor("light_level.value")
-                          setOperator("<=")
-                          setThreshold("10")
-                          setActionMessage(
-                            "Shield up! Light level is {sensor.value}"
-                          )
-                          setPriority("8")
-                          setCooldown("1200")
-                          nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-                        }}
-                      >
-                        <span className="font-semibold text-lg">🛡️ Shield Warning</span>
-                        <span className="text-sm text-muted-foreground">
-                          When light {"<="} 10
-                        </span>
-                        <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
-                          Click to use
-                        </span>
-                      </Button>
-                    )}
-
-                  {/* Blue Raptor */}
-                  {vesselCode.toLowerCase() === "licensed - blue" &&
-                    availableSenses.includes("weather.temperature") && (
-                      <Button
-                        variant="outline"
-                        className="h-auto p-5 flex flex-col items-start space-y-2 border-2 hover:border-yellow-400 transition-all"
-                        onClick={() => {
-                          setRuleName("Raptor Alert")
-                          setSelectedSensor("weather.temperature")
-                          setOperator(">")
-                          setThreshold("30")
-                          setActionMessage(
-                            "Clever girl! Temp {sensor.value}°C."
-                          )
-                          setPriority("7")
-                          setCooldown("3600")
-                          nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-                        }}
-                      >
-                        <span className="font-semibold text-lg">🦖 Raptor Alert</span>
-                        <span className="text-sm text-muted-foreground">
-                          When temp {">"} 30°C
-                        </span>
-                        <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
-                          Click to use
-                        </span>
-                      </Button>
-                    )}
-                </div>
-              </div>
-            )}
-
-            {/* Digital Being Templates */}
-            {vesselType === "digital" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg flex items-center justify-center">
-                    <Zap className="w-5 h-5 text-white" />
-                  </div>
-                  <h4 className="text-xl font-semibold text-gray-800">
-                    Digital Being Templates
-                  </h4>
-                  <span className="text-sm text-purple-600 bg-purple-100 px-3 py-1 rounded-full">
-                    {vesselConfig.digital.name}
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {availableSenses.includes("news") && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <Button
                       variant="outline"
-                      className="h-auto p-5 flex flex-col items-start space-y-2 border-2 hover:border-purple-400 transition-all"
+                      className="h-auto p-5 flex flex-col items-start space-y-2 border-2 hover:border-yellow-400 transition-all"
                       onClick={() => {
-                        setRuleName("Breaking News Alert")
-                        setSelectedSensor("news.importance")
-                        setOperator(">")
-                        setThreshold("7")
-                        setActionMessage(
-                          "🚨 Breaking news detected with importance level {sensor.value}! Something significant is happening."
-                        )
-                        setPriority("9")
-                        setCooldown("3600")
-                        nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+                        setRuleName(`${availableTemplate.title} Alert`)
+                        setSelectedSensor(availableTemplate.sensor)
+                        setOperator(availableTemplate.operator)
+                        setThreshold(availableTemplate.threshold)
+                        setActionMessage(availableTemplate.message)
+                        setPriority(availableTemplate.priority)
+                        setCooldown(availableTemplate.cooldown)
+                        nameInputRef.current?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "center",
+                        })
                       }}
                     >
-                      <span className="font-semibold text-lg">📰 Breaking News Alert</span>
-                      <span className="text-sm text-muted-foreground">
-                        When importance {">"} 7
+                      <span className="font-semibold text-lg">
+                        {availableTemplate.title}
                       </span>
-                      <span className="text-xs text-purple-600 bg-purple-50 px-2 py-1 rounded-full">
+                      <span className="text-sm text-muted-foreground">
+                        When{" "}
+                        {availableTemplate.sensor.replace(".", " ")}{" "}
+                        {availableTemplate.operator}{" "}
+                        {availableTemplate.threshold}
+                      </span>
+                      <span className="text-xs text-yellow-700 bg-yellow-100 px-2 py-1 rounded-full">
                         Click to use
                       </span>
                     </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Terra Spirit Templates */}
-            {vesselType === "terra" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center">
-                    <Leaf className="w-5 h-5 text-white" />
                   </div>
-                  <h4 className="text-xl font-semibold text-gray-800">
-                    Terra Spirit Templates
-                  </h4>
-                  <span className="text-sm text-green-600 bg-green-100 px-3 py-1 rounded-full">
-                    Plant & Garden
-                  </span>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {availableSenses.includes("soil_moisture") && (
-                    <Button
-                      variant="outline"
-                      className="h-auto p-5 flex flex-col items-start space-y-2 border-2 hover:border-green-400 transition-all"
-                      onClick={() => {
-                        setRuleName("Low Soil Moisture Alert")
-                        setSelectedSensor("soil_moisture.value")
-                        setOperator("<")
-                        setThreshold("20")
-                        setActionMessage(
-                          "I'm thirsty! Soil moisture = {sensor.value}%"
-                        )
-                        setPriority("8")
-                        setCooldown("1800")
-                        nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-                      }}
-                    >
-                      <span className="font-semibold text-lg">💧 Low Moisture Alert</span>
-                      <span className="text-sm text-muted-foreground">
-                        When soil {"<"} 20%
-                      </span>
-                      <span className="text-xs text-green-600 bg-green-50 px-2 py-1 rounded-full">
-                        Click to use
-                      </span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Companion Spirit Templates */}
-            {vesselType === "companion" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-sky-600 rounded-lg flex items-center justify-center">
-                    <Globe className="w-5 h-5 text-white" />
-                  </div>
-                  <h4 className="text-xl font-semibold text-gray-800">
-                    Companion Spirit Templates
-                  </h4>
-                  <span className="text-sm text-blue-600 bg-blue-100 px-3 py-1 rounded-full">
-                    Wildlife & Adventure
-                  </span>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {availableSenses.includes("weather.humidity") && (
-                    <Button
-                      variant="outline"
-                      className="h-auto p-5 flex flex-col items-start space-y-2 border-2 hover:border-blue-400 transition-all"
-                      onClick={() => {
-                        setRuleName("Storm Warning")
-                        setSelectedSensor("weather.humidity")
-                        setOperator(">")
-                        setThreshold("85")
-                        setActionMessage(
-                          "Storm coming! Humidity = {sensor.value}%"
-                        )
-                        setPriority("9")
-                        setCooldown("3600")
-                        nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
-                      }}
-                    >
-                      <span className="font-semibold text-lg">⛈️ Storm Warning</span>
-                      <span className="text-sm text-muted-foreground">
-                        When humidity {">"} 85%
-                      </span>
-                      <span className="text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
-                        Click to use
-                      </span>
-                    </Button>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* No Templates Available */}
-            {(!vesselType ||
-               (vesselType === "terra" && !availableSenses.some((s) => ["soil_moisture","light_level","weather"].includes(s))) ||
-               (vesselType === "companion" && !availableSenses.some((s) => ["weather","air_quality","light_level"].includes(s)))||
-               (vesselType === "digital"  && !availableSenses.some((s) => ["news","wildlife","light_level","air_quality","weather"].includes(s)))
-            ) && (
-              <div className="text-center py-12 bg-gray-50 rounded-2xl border border-gray-200">
-                <Lightbulb className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                <h3 className="text-lg font-semibold text-gray-700 mb-2">
-                  No Templates Available
-                </h3>
-                <p className="text-gray-600 mb-4">
-                  No rule templates match your vessel type & sensors.
-                </p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+              </CardContent>
+            </Card>
+          )}
+        </>
       )}
 
       {/* — Active Rules List — */}
@@ -622,18 +460,18 @@ export function RuleBuilder({
                     {onToggleRule && (
                       <Switch
                         checked={rule.enabled}
-                        onCheckedChange={(ch) => onToggleRule(rule.id, ch)}
+                        onCheckedChange={(ch) => rule.id && onToggleRule(rule.id, ch)} // ✅ FIX
                       />
                     )}
                     {onDeleteRule && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onDeleteRule(rule.id)}
-                        className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => rule.id && onDeleteRule(rule.id)} // ✅ FIX
+                      className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                     )}
                   </div>
                 </div>
