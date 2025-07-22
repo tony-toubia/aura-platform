@@ -103,12 +103,12 @@ export function SenseSelector({
   const requiredSenses = availableSenses.filter(s =>
     normalizedRequired.includes(normalizeSenseId(s.id))
   )
-  const connectedSenses = availableSenses.filter(s =>
-    CONNECTED_SENSE_IDS.includes(s.id as SenseId)
-  )
   const optionalSenses = availableSenses.filter(s =>
     !normalizedRequired.includes(normalizeSenseId(s.id)) &&
     !CONNECTED_SENSE_IDS.includes(s.id as SenseId)
+  )
+  const connectedSenses = availableSenses.filter(s =>
+    CONNECTED_SENSE_IDS.includes(s.id as SenseId)
   )
 
   const isSelected = (id: string) =>
@@ -116,12 +116,11 @@ export function SenseSelector({
 
   return (
     <div className="space-y-8">
-      {/* Header with enhanced styling */}
+      {/* Header */}
       <div className="text-center space-y-4">
         <div className="flex justify-center">
           <div className="flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium">
-            <Eye className="w-4 h-4" />
-            Sense Configuration
+            <Eye className="w-4 h-4" /> Sense Configuration
           </div>
         </div>
         <div className="flex justify-center gap-3">
@@ -151,15 +150,12 @@ export function SenseSelector({
               const Icon = senseIcons[sense.id] ?? Info
               const tierInfo = tierConfig[sense.tier as keyof typeof tierConfig]
               return (
-                <div
-                  key={sense.id}
-                  className={cn(
-                    "relative p-5 rounded-2xl border-2 bg-gradient-to-br transition-all",
-                    tierInfo.bgColor,
-                    tierInfo.borderColor,
-                    "opacity-90"
-                  )}
-                >
+                <div key={sense.id} className={cn(
+                  "relative p-5 rounded-2xl border-2 bg-gradient-to-br",
+                  tierInfo.bgColor,
+                  tierInfo.borderColor,
+                  "opacity-90"
+                )}>
                   <div className="absolute top-3 right-3">
                     <Lock className="w-4 h-4 text-gray-500" />
                   </div>
@@ -176,15 +172,13 @@ export function SenseSelector({
                         <CheckCircle2 className="w-4 h-4 text-green-600" />
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
-                      <div className="flex items-center gap-2">
-                        <span className={cn(
-                          "text-xs px-2 py-1 rounded-full bg-gradient-to-r",
-                          tierInfo.bgColor,
-                          tierInfo.textColor
-                        )}>
-                          {tierInfo.icon} {sense.tier}
-                        </span>
-                      </div>
+                      <span className={cn(
+                        "text-xs px-2 py-1 rounded-full bg-gradient-to-r",
+                        tierInfo.bgColor,
+                        tierInfo.textColor
+                      )}>
+                        {tierInfo.icon} {sense.tier}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -212,7 +206,7 @@ export function SenseSelector({
                   key={sense.id}
                   onClick={() => onToggle(sense.id as SenseId)}
                   className={cn(
-                    "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
+                    "group relative p-5 rounded-2xl border-2 transition-all hover:scale-105 hover:shadow-lg",
                     active
                       ? "border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 shadow-md"
                       : cn("border-gray-200 hover:border-purple-300 bg-white", tierInfo.bgColor)
@@ -225,7 +219,7 @@ export function SenseSelector({
                   )}
                   <div className="flex items-start gap-4">
                     <div className={cn(
-                      "p-3 rounded-xl transition-all duration-300",
+                      "p-3 rounded-xl transition-all",
                       active
                         ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg"
                         : cn("bg-gradient-to-r text-white shadow-md group-hover:scale-110", tierInfo.color)
@@ -271,7 +265,6 @@ export function SenseSelector({
 
       {/* Connected Senses */}
       {connectedSenses.length > 0 && (
-
         <div className="space-y-4">
           <div className="flex items-center gap-2">
             <WifiCog className="w-5 h-5 text-orange-600" />
@@ -288,7 +281,7 @@ export function SenseSelector({
                   key={sense.id}
                   onClick={() => onToggle(sense.id as SenseId)}
                   className={cn(
-                    "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
+                    "group relative p-5 rounded-2xl border-2 transition-all hover:scale-105 hover:shadow-lg",
                     active
                       ? "border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 shadow-md"
                       : cn("border-gray-200 hover:border-purple-300 bg-white", tierInfo.bgColor)
@@ -333,7 +326,7 @@ export function SenseSelector({
                             ? "bg-purple-100 text-purple-700" 
                             : "bg-gray-100 text-gray-600 group-hover:bg-purple-50 group-hover:text-purple-600"
                         )}>
-                          {active ? "Connected" : "Click to add"}
+                          {active ? "Connected" : "Click to sync"}
                         </div>
                       </div>
                     </div>
@@ -345,7 +338,7 @@ export function SenseSelector({
         </div>
       )}
 
-      {/* Enhanced Status Summary */}
+      {/* Status Summary */}
       <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-pink-50 border-2 border-purple-100 rounded-2xl p-6">
         <div className="flex items-start gap-4">
           <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
@@ -353,27 +346,27 @@ export function SenseSelector({
           </div>
           <div className="flex-1">
             <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
-              <Sparkles className="w-4 h-4" />
-              Sense Configuration Summary
+              <Sparkles className="w-4 h-4" /> Sense Configuration Summary
             </h4>
             <div className="grid md:grid-cols-2 gap-4 text-sm">
               <div>
-                <span className="font-medium text-purple-800">Active Senses: </span>
+                <span className="font-medium text-purple-800">Active Senses:</span>
                 <span className="text-purple-700">{selectedSenses.length}</span>
               </div>
               <div>
-                <span className="font-medium text-purple-800">Essential: </span>
+                <span className="font-medium text-purple-800">Essential:</span>
                 <span className="text-purple-700">{requiredSenses.length}</span>
               </div>
             </div>
             <p className="text-purple-700 mt-3 leading-relaxed">
-              Each sense adds unique context to your Aura's understanding of the world. 
-              Essential senses provide core awareness, while additional senses enrich their personality and responses.
+              Each sense adds unique context to your Aura's understanding of the world. Essential senses provide core awareness, while additional senses enrich their personality and responses.
             </p>
             {selectedSenses.length > requiredSenses.length && (
               <div className="mt-3 flex items-center gap-2 text-sm text-green-700">
                 <CheckCircle2 className="w-4 h-4" />
-                <span>Your Aura has enhanced awareness through {selectedSenses.length - requiredSenses.length} additional sense{selectedSenses.length - requiredSenses.length !== 1 ? 's' : ''}!</span>
+                <span>
+                  Your Aura has enhanced awareness through {selectedSenses.length - requiredSenses.length} additional sense{selectedSenses.length - requiredSenses.length !== 1 ? 's' : ''}!
+                </span>
               </div>
             )}
           </div>
