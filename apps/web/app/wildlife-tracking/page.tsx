@@ -1,4 +1,4 @@
-// app/wildlife-tracking/page.tsx
+// app/wildlife/page.tsx
 
 "use client"
 
@@ -164,10 +164,10 @@ export default function WildlifeTrackingPage() {
   }, [isLive])
 
   return (      
-      <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
-        <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
-          {/* Header */}
-          <div className="text-center space-y-4 pt-8">
+    <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
+      <div className="max-w-7xl mx-auto p-4 sm:p-6 lg:p-8 space-y-8">
+        {/* Header */}
+        <div className="text-center space-y-4 pt-8">
             <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
               <Navigation className="w-4 h-4" />
               Wildlife Companion Tracking
@@ -259,62 +259,188 @@ export default function WildlifeTrackingPage() {
               <CardContent className="p-6">
                 {/* Journey Map Visualization */}
                 <div className="relative bg-gradient-to-br from-blue-50 to-green-50 rounded-2xl p-8 min-h-[400px]">
-                  {/* Path visualization */}
-                  <div className="absolute inset-0 p-8">
-                    <svg className="w-full h-full" viewBox="0 0 400 300">
-                      {/* Draw path */}
+                  {/* Map Background Pattern */}
+                  <div className="absolute inset-0 opacity-10">
+                    <div className="absolute inset-0" style={{
+                      backgroundImage: `repeating-linear-gradient(
+                        0deg,
+                        #e0e7ff,
+                        #e0e7ff 1px,
+                        transparent 1px,
+                        transparent 40px
+                      ),
+                      repeating-linear-gradient(
+                        90deg,
+                        #e0e7ff,
+                        #e0e7ff 1px,
+                        transparent 1px,
+                        transparent 40px
+                      )`
+                    }} />
+                  </div>
+
+                  {/* Journey Path Visualization */}
+                  <div className="relative h-[300px] mb-4">
+                    <svg className="absolute inset-0 w-full h-full" viewBox="0 0 500 300">
+                      {/* Background elements for context */}
+                      {selectedAnimal === "elephant" && (
+                        <>
+                          {/* Watering hole */}
+                          <circle cx="150" cy="100" r="30" fill="#60A5FA" opacity="0.2" />
+                          <text x="150" y="105" textAnchor="middle" fontSize="12" fill="#3B82F6">
+                            Water
+                          </text>
+                          {/* Acacia grove */}
+                          <circle cx="250" cy="150" r="25" fill="#34D399" opacity="0.2" />
+                          <text x="250" y="155" textAnchor="middle" fontSize="12" fill="#10B981">
+                            Trees
+                          </text>
+                          {/* Resting spot */}
+                          <circle cx="400" cy="200" r="20" fill="#F59E0B" opacity="0.2" />
+                          <text x="400" y="205" textAnchor="middle" fontSize="12" fill="#F59E0B">
+                            Rest
+                          </text>
+                        </>
+                      )}
+                      
+                      {selectedAnimal === "whale" && (
+                        <>
+                          {/* Feeding grounds */}
+                          <ellipse cx="100" cy="150" rx="40" ry="60" fill="#3B82F6" opacity="0.2" />
+                          <text x="100" y="155" textAnchor="middle" fontSize="12" fill="#3B82F6">
+                            Krill
+                          </text>
+                          {/* Deep dive zone */}
+                          <ellipse cx="250" cy="100" rx="30" ry="40" fill="#1E40AF" opacity="0.2" />
+                          <text x="250" y="105" textAnchor="middle" fontSize="12" fill="#1E40AF">
+                            Deep
+                          </text>
+                        </>
+                      )}
+
+                      {/* Journey path */}
                       <path
-                        d={`M ${animal.coordinates.map((c, i) => 
-                          `${50 + i * 70} ${150 - (c.lat + 2.65) * 1000}`
-                        ).join(' L ')}`}
+                        d={`M 50,200 Q 150,100 250,150 T 400,200`}
                         fill="none"
-                        stroke="url(#gradient)"
+                        stroke="url(#pathGradient)"
                         strokeWidth="3"
-                        strokeDasharray="5,5"
-                        className="animate-pulse"
+                        strokeLinecap="round"
                       />
+                      
+                      {/* Animated dashes along the path */}
+                      <path
+                        d={`M 50,200 Q 150,100 250,150 T 400,200`}
+                        fill="none"
+                        stroke="white"
+                        strokeWidth="5"
+                        strokeLinecap="round"
+                        strokeDasharray="10,20"
+                        opacity="0.6"
+                      >
+                        <animate
+                          attributeName="stroke-dashoffset"
+                          values="0;-30"
+                          dur="2s"
+                          repeatCount="indefinite"
+                        />
+                      </path>
+                      
                       <defs>
-                        <linearGradient id="gradient" x1="0%" y1="0%" x2="100%" y2="0%">
+                        <linearGradient id="pathGradient" x1="0%" y1="0%" x2="100%" y2="0%">
                           <stop offset="0%" stopColor="#3B82F6" />
-                          <stop offset="100%" stopColor="#10B981" />
+                          <stop offset="50%" stopColor="#10B981" />
+                          <stop offset="100%" stopColor="#F59E0B" />
                         </linearGradient>
                       </defs>
                       
-                      {/* Journey points */}
-                      {animal.coordinates.map((coord, i) => (
+                      {/* Journey waypoints */}
+                      {[
+                        { x: 50, y: 200, label: "Start", time: "06:00" },
+                        { x: 150, y: 100, label: "Stop 1", time: "07:30" },
+                        { x: 250, y: 150, label: "Stop 2", time: "09:00" },
+                        { x: 325, y: 125, label: "Stop 3", time: "10:30" },
+                        { x: 400, y: 200, label: "Current", time: "12:00" },
+                      ].map((point, i) => (
                         <g key={i}>
+                          {/* Waypoint circle */}
                           <circle
-                            cx={50 + i * 70}
-                            cy={150 - (coord.lat + 2.65) * 1000}
+                            cx={point.x}
+                            cy={point.y}
                             r="8"
-                            fill={i === animal.coordinates.length - 1 ? "#10B981" : "#3B82F6"}
-                            className="cursor-pointer hover:r-10 transition-all"
+                            fill={i === 4 ? "#F59E0B" : "#3B82F6"}
+                            stroke="white"
+                            strokeWidth="2"
                           />
-                          {i === animal.coordinates.length - 1 && (
-                            <circle
-                              cx={50 + i * 70}
-                              cy={150 - (coord.lat + 2.65) * 1000}
-                              r="12"
-                              fill="none"
-                              stroke="#10B981"
-                              strokeWidth="2"
-                              className="animate-ping"
-                            />
+                          
+                          {/* Current location indicator */}
+                          {i === 4 && (
+                            <>
+                              <circle
+                                cx={point.x}
+                                cy={point.y}
+                                r="8"
+                                fill="none"
+                                stroke="#F59E0B"
+                                strokeWidth="2"
+                                opacity="0.5"
+                              >
+                                <animate
+                                  attributeName="r"
+                                  values="8;20;8"
+                                  dur="2s"
+                                  repeatCount="indefinite"
+                                />
+                                <animate
+                                  attributeName="opacity"
+                                  values="0.5;0;0.5"
+                                  dur="2s"
+                                  repeatCount="indefinite"
+                                />
+                              </circle>
+                              {/* "Now" label */}
+                              <text 
+                                x={point.x} 
+                                y={point.y - 20} 
+                                textAnchor="middle" 
+                                fontSize="12" 
+                                fontWeight="bold"
+                                fill="#F59E0B"
+                              >
+                                NOW
+                              </text>
+                            </>
                           )}
+                          
+                          {/* Time labels */}
+                          <text 
+                            x={point.x} 
+                            y={point.y + 25} 
+                            textAnchor="middle" 
+                            fontSize="10" 
+                            fill="#6B7280"
+                          >
+                            {point.time}
+                          </text>
                         </g>
                       ))}
+                      
+                      {/* Distance marker */}
+                      <text x="225" y="250" textAnchor="middle" fontSize="14" fontWeight="bold" fill="#374151">
+                        Total Distance: {animal.journey.distance} km
+                      </text>
                     </svg>
                   </div>
                   
                   {/* Journey Timeline */}
-                  <div className="relative z-10 mt-[320px] space-y-3">
+                  <div className="relative space-y-3">
+                    <h4 className="font-semibold text-gray-700 mb-2">Activity Timeline</h4>
                     {animal.coordinates.map((coord, i) => (
                       <div 
                         key={i}
                         className={cn(
                           "flex items-center gap-4 p-3 rounded-lg transition-all",
                           i === animal.coordinates.length - 1 
-                            ? "bg-green-100 border-2 border-green-300" 
+                            ? "bg-orange-100 border-2 border-orange-300" 
                             : "bg-white/80 hover:bg-white"
                         )}
                       >
@@ -326,7 +452,7 @@ export default function WildlifeTrackingPage() {
                           <span className="text-sm">{coord.activity}</span>
                         </div>
                         {i === animal.coordinates.length - 1 && (
-                          <Badge className="bg-green-500">Current</Badge>
+                          <Badge className="bg-orange-500">Current</Badge>
                         )}
                       </div>
                     ))}

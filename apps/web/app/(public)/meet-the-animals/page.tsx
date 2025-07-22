@@ -38,7 +38,7 @@ const animals: Animal[] = [
     region: 'Sub-Saharan Africa',
     conservationStatus: 'Endangered',
     funFact: 'Elephants can communicate over long distances using low-frequency sounds that humans cannot hear.',
-    imageUrl: 'https://placehold.co/600x400/6366F1/FFFFFF?text=🐘',
+    imageUrl: '/images/wildlife/african-elephant.jpg',
     vessels: [
       { id: 'plush', name: 'Plush Companion', price: '$24.99', href: '/vessels/companion-plush?animal=elephant' },
       { id: 'figurine', name: 'Desktop Figurine', price: '$29.99', href: '/vessels/companion-figurine?animal=elephant' },
@@ -52,7 +52,7 @@ const animals: Animal[] = [
     region: 'East Africa',
     conservationStatus: 'Endangered',
     funFact: 'A giraffe\'s neck is too short to reach the ground. To drink, it has to awkwardly spread its front legs.',
-    imageUrl: 'https://placehold.co/600x400/EC4899/FFFFFF?text=🦒',
+    imageUrl: '/images/wildlife/masai-giraffe.jpg',
     vessels: [
       { id: 'plush', name: 'Plush Companion', price: '$24.99', href: '/vessels/companion-plush?animal=giraffe' },
       { id: 'figurine', name: 'Desktop Figurine', price: '$29.99', href: '/vessels/companion-figurine?animal=giraffe' },
@@ -66,7 +66,7 @@ const animals: Animal[] = [
     region: 'Galápagos Islands',
     conservationStatus: 'Vulnerable',
     funFact: 'These gentle giants can live for over 100 years, making them one of the longest-living vertebrates.',
-    imageUrl: 'https://placehold.co/600x400/22C55E/FFFFFF?text=🐢',
+    imageUrl: '/images/wildlife/galapagos-tortoise.jpg',
     vessels: [
       { id: 'plush', name: 'Plush Companion', price: '$24.99', href: '/vessels/companion-plush?animal=tortoise' },
       { id: 'figurine', name: 'Desktop Figurine', price: '$29.99', href: '/vessels/companion-figurine?animal=tortoise' },
@@ -80,7 +80,7 @@ const animals: Animal[] = [
     region: 'Africa & India',
     conservationStatus: 'Vulnerable',
     funFact: 'A lion\'s roar can be heard from as far as 5 miles (8 kilometers) away.',
-    imageUrl: 'https://placehold.co/600x400/F97316/FFFFFF?text=🦁',
+    imageUrl: '/images/wildlife/african-lion.jpg',
     vessels: [
       { id: 'plush', name: 'Plush Companion', price: '$24.99', href: '/vessels/companion-plush?animal=lion' },
       { id: 'figurine', name: 'Desktop Figurine', price: '$29.99', href: '/vessels/companion-figurine?animal=lion' },
@@ -94,7 +94,7 @@ const animals: Animal[] = [
     region: 'Oceans Worldwide',
     conservationStatus: 'Least Concern',
     funFact: 'Humpback whales sing complex songs that can last for hours and evolve over time.',
-    imageUrl: 'https://placehold.co/600x400/3B82F6/FFFFFF?text=🐋',
+    imageUrl: '/images/wildlife/humpback-whale.jpg',
     vessels: [
       { id: 'plush', name: 'Plush Companion', price: '$24.99', href: '/vessels/companion-plush?animal=whale' },
       { id: 'figurine', name: 'Desktop Figurine', price: '$29.99', href: '/vessels/companion-figurine?animal=whale' },
@@ -108,7 +108,7 @@ const animals: Animal[] = [
     region: 'Central Africa',
     conservationStatus: 'Endangered',
     funFact: 'Gorillas share about 98% of their DNA with humans, making them one of our closest living relatives.',
-    imageUrl: 'https://placehold.co/600x400/8B5CF6/FFFFFF?text=🦍',
+    imageUrl: '/images/wildlife/mountain-gorilla.jpg',
     vessels: [
       { id: 'plush', name: 'Plush Companion', price: '$24.99', href: '/vessels/companion-plush?animal=gorilla' },
       { id: 'figurine', name: 'Desktop Figurine', price: '$29.99', href: '/vessels/companion-figurine?animal=gorilla' },
