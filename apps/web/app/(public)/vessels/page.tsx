@@ -1,3 +1,5 @@
+// apps/web/app/(public)/vessels/page.tsx
+
 "use client"
 
 import React, { useState } from "react"
@@ -92,6 +94,17 @@ const products: VesselProduct[] = [
     features: ["Hand-painted detail", "LED-lit base", "USB-powered"],
     href: "/vessels/companion-figurine",
   },
+  {
+    id: "companion-bracelet",
+    type: "companion",
+    icon: "",
+    name: "Companion Bracelet",
+    price: "$19.99",
+    description:
+      "Wearable bracelet companion—choose an animal to carry your spirit with you.",
+    features: ["Adjustable band", "Bluetooth link", "Notification LED"],
+    href: "/vessels/companion-bracelet",
+  },
   
   // Digital - Original
   {
@@ -126,6 +139,17 @@ const products: VesselProduct[] = [
       "Modern ceramic cube with customizable LED accents—perfect minimalist home for your Digital Aura.",
     features: ["Customizable LED", "Touch interface", "USB powered"],
     href: "/vessels/digital-ceramic-cube",
+  },
+  {
+    id: "digital-bracelet",
+    type: "digital",
+    icon: "📿",
+    name: "Digital Bracelet Vessel",
+    price: "$19.99",
+    description:
+      "Stylish wearable bracelet housing your Digital Being Aura—stay connected on the go.",
+    features: ["OLED display", "Bluetooth sync", "Adjustable band"],
+    href: "/vessels/digital-bracelet",
   },
   
   // Licensed Characters
@@ -256,6 +280,7 @@ const companionOptions = animalOptions.filter(opt =>
 export default function VesselsPage() {
   const [selectedPlush, setSelectedPlush] = useState(animalOptions[0]?.id ?? "")
   const [selectedFigurine, setSelectedFigurine] = useState(animalOptions[0]?.id ?? "")
+  const [selectedBracelet, setSelectedBracelet] = useState(companionOptions[0]?.id ?? "")
   const [selectedPlantSensor, setSelectedPlantSensor] = useState(animalOptions[7]?.id ?? "") // Default to T-Rex
 
   const getAnimal = (id: string) =>
@@ -309,35 +334,38 @@ export default function VesselsPage() {
             <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-3 min-w-0">
               {list.map((v) => {
                 // Dynamic Animal Selector Cards
-                if (["companion-plush", "companion-figurine", "terra-animal-sensor"].includes(v.id)) {
+                if (["companion-plush", "companion-figurine", "companion-bracelet", "terra-animal-sensor"].includes(v.id)) {
                   const isPlush = v.id === "companion-plush"
                   const isFigurine = v.id === "companion-figurine"
+                  const isBracelet = v.id === "companion-bracelet"
                   const isPlantSensor = v.id === "terra-animal-sensor"
 
                 // <-- pick the right set *before* the JSX
                   const options = isPlantSensor
                     ? dinosaurOptions
                     : companionOptions
-                  
-                  const selected = isPlush 
-                    ? getAnimal(selectedPlush)
-                    : isFigurine 
-                    ? getAnimal(selectedFigurine)
-                    : getAnimal(selectedPlantSensor)
-                    
-                  const setter = isPlush 
-                    ? setSelectedPlush 
-                    : isFigurine 
-                    ? setSelectedFigurine
-                    : setSelectedPlantSensor
-                  
-                  if (!selected) return null;
+          const selected = isPlush
+            ? getAnimal(selectedPlush)
+            : isFigurine
+            ? getAnimal(selectedFigurine)
+            : isBracelet
+            ? getAnimal(selectedBracelet)
+            : getAnimal(selectedPlantSensor)
+          const setter = isPlush
+            ? setSelectedPlush
+            : isFigurine
+            ? setSelectedFigurine
+            : isBracelet
+            ? setSelectedBracelet
+            : setSelectedPlantSensor
 
-                  const selectedId = isPlush 
-                    ? selectedPlush 
-                    : isFigurine 
-                    ? selectedFigurine
-                    : selectedPlantSensor
+          const selectedId = isPlush
+            ? selectedPlush
+            : isFigurine
+            ? selectedFigurine
+            : isBracelet
+            ? selectedBracelet
+            : selectedPlantSensor
 
                   const href = `${v.href}?animal=${encodeURIComponent(selectedId)}`
 
@@ -358,7 +386,7 @@ export default function VesselsPage() {
                               isPlantSensor && "relative inline-block"
                             )}
                           >
-                            {selected.icon}
+                            {selected!.icon}
                             {isPlantSensor && (
                               <Leaf className="w-6 h-6 text-green-500 absolute -bottom-1 -right-1" />
                             )}
@@ -376,10 +404,12 @@ export default function VesselsPage() {
 
                         <CardTitle className="mt-2 text-xl line-clamp-2">
                           {isPlush
-                            ? `${selected.label} Plush`
+                            ? `${selected!.label} Plush`
                             : isFigurine
-                            ? `${selected.label} Figurine`
-                            : `${selected.label} Plant Guardian`}
+                            ? `${selected!.label} Figurine`
+                            : isBracelet
+                            ? `${selected!.label} Bracelet`
+                            : `${selected!.label} Plant Guardian`}
                         </CardTitle>
 
                         <CardDescription className="text-sm text-center line-clamp-3">
@@ -401,7 +431,7 @@ export default function VesselsPage() {
                                 className={cn(
                                   "w-full aspect-square rounded-lg flex items-center justify-center text-lg transition-all duration-200",
                                   "border-2 hover:scale-105 active:scale-95 min-w-0 relative",
-                                  opt.id === selected.id
+                                  opt.id === selected!.id
                                     ? cn(
                                         "shadow-md ring-2",
                                         isPlantSensor
@@ -418,7 +448,7 @@ export default function VesselsPage() {
                                 title={opt.label}
                               >
                                 {opt.icon}
-                                {isPlantSensor && opt.id === selected.id && (
+                                {isPlantSensor && opt.id === selected!.id && (
                                   <Leaf className="w-3 h-3 text-green-500 absolute top-1 right-1" />
                                 )}
                               </button>
@@ -442,40 +472,26 @@ export default function VesselsPage() {
                         </ul>
 
                         {/* Price and Button */}
-                        <div className="mt-auto space-y-3 min-w-0">
-                          <div className="flex items-baseline justify-between">
-                            <span
-                              className={cn(
-                                "text-2xl font-bold",
-                                isPlantSensor ? "text-green-700" : section.text
-                              )}
-                            >
-                              {v.price}
-                            </span>
-                            <span className="text-xs text-gray-500">+ shipping</span>
-                          </div>
-                          <Link href={href} className="block">
-                            <Button
-                              size="lg"
-                              className={cn(
-                                "w-full bg-gradient-to-r text-white",
-                                isPlantSensor
-                                  ? "from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                                  : "from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                              )}
-                            >
-                              <ShoppingBag className="w-4 h-4 mr-2" />
-                              <span className="truncate">
-                                Buy {selected.label}{" "}
-                                {isPlantSensor ? "Guardian" : isPlush ? "Plush" : "Figurine"}
-                              </span>
-                            </Button>
-                          </Link>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                }
+                <div className="mt-auto space-y-3 min-w-0">
+                  <div className="flex items-baseline justify-between">
+                    <span className={cn("text-2xl font-bold", isPlantSensor ? "text-green-700" : section.text)}>
+                      {v.price}
+                    </span>
+                    <span className="text-xs text-gray-500">+ shipping</span>
+                  </div>
+                  <Link href={href} className="block">
+                    <Button size="lg" className={cn("w-full bg-gradient-to-r text-white", isPlantSensor ? "from-green-600 to-emerald-600" : "from-purple-600 to-blue-600") }>
+                      <ShoppingBag className="w-4 h-4 mr-2" />
+                      <span className="truncate">
+                        Buy {selected!.label} {isPlantSensor ? "Guardian" : isPlush ? "Plush" : isFigurine ? "Figurine" : isBracelet ? "Bracelet" : ""}
+                      </span>
+                    </Button>
+                  </Link>
+                </div>
+              </CardContent>
+            </Card>
+          )
+        }
 
                 // Licensed Character Cards
                 if (v.isLicensed) {

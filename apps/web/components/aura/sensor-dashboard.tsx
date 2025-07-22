@@ -1,3 +1,5 @@
+// apps/web/components/aura/sensor-dashboard.tsx
+
 "use client"
 
 import React from 'react'

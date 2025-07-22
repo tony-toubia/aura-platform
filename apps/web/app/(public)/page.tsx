@@ -193,7 +193,7 @@ export default function HomePage() {
                 <h3 className="text-2xl font-semibold mb-4">Choose Your Vessel</h3>
                 <p className="text-gray-600 mb-4">
                   Start with a digital companion or select a physical vessel - from smart plant pots 
-                  to wildlife trackers to glowing orbs.
+                  to wildlife trackers to glowing orbs and your favorite characters.
                 </p>
                 <Link href="/vessels">
                   <Button variant="outline" size="sm">

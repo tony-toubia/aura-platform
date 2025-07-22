@@ -79,9 +79,13 @@ export const AVAILABLE_SENSES = [
   { id: "weather",       name: "Weather",          category: "Environmental", tier: "free"    },
   { id: "news",          name: "News Feed",        category: "Knowledge",     tier: "free"    },
   { id: "air_quality",   name: "Air Quality",      category: "Environmental", tier: "free"    },
+  { id: "location",      name: "Location",         category: "Personal",     tier: "premium"    },
+  { id: "fitness",       name: "Fitness",          category: "Personal",     tier: "premium"    },
+  { id: "sleep",         name: "Sleep",            category: "Personal",     tier: "premium"    },
+  { id: "calendar",      name: "Calendar",         category: "Personal",     tier: "premium"    },
   { id: "soil_moisture", name: "Soil Moisture",    category: "Sensors",       tier: "vessel"  },
   { id: "light_level",   name: "Light Level",      category: "Sensors",       tier: "vessel"  },
-  { id: "wildlife",      name: "Wildlife Tracking",category: "Nature",        tier: "premium" },
+  { id: "wildlife",      name: "Wildlife Tracking",category: "Nature",        tier: "vessel"  },
 ] as const
 
 export type SenseId = typeof AVAILABLE_SENSES[number]["id"]

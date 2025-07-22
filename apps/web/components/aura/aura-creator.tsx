@@ -32,6 +32,10 @@ type SenseId =
   | "weather"
   | "news"
   | "air_quality"
+  | "location"
+  | "fitness"
+  | "sleep"
+  | "calendar"
   | "soil_moisture"
   | "light_level"
   | "wildlife"
@@ -47,6 +51,13 @@ interface AuraForm {
   selectedStudyId?: string
   selectedIndividualId?: string
 }
+
+const CONNECTED_SENSE_IDS: readonly SenseId[] = [
+  "location",
+  "fitness",
+  "sleep",
+  "calendar",
+]
 
 const vesselTypes = [
   {
@@ -329,9 +340,12 @@ export function AuraCreator() {
   const senseConfig = auraData.vesselType
     ? VESSEL_SENSE_CONFIG[auraData.vesselType]
     : { defaultSenses: [], optionalSenses: [] }
-  const allowedSenses = AVAILABLE_SENSES.filter((s) =>
-    [...senseConfig.defaultSenses, ...senseConfig.optionalSenses].includes(s.id)
-  )
+const allowedSenses = AVAILABLE_SENSES.filter(
+  (s) =>
+    senseConfig.defaultSenses.includes(s.id as SenseId) ||
+    senseConfig.optionalSenses.includes(s.id as SenseId) ||
+    CONNECTED_SENSE_IDS.includes(s.id as SenseId)
+)
 
   const onNext = () => {
     step === "senses"
