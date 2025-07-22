@@ -1,5 +1,5 @@
 import React from "react";
-import { Header } from "@/components/layout/header"; // Import the new smart header
+import Header from "@/components/layout/header";
 
 interface DashboardLayoutProps {
   children: React.ReactNode;
