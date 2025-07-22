@@ -631,35 +631,34 @@ export function PersonalityMatrix({
                     value={opt.id} 
                     aria-label={opt.name}
                     className={cn(
-                      'flex flex-col items-center gap-3 p-4 h-auto rounded-2xl border-2 transition-all duration-300 hover:scale-105 data-[state=on]:scale-105',
+                      'flex flex-col items-center justify-center rounded-3xl border-2 p-6 h-auto transition-all duration-300 hover:scale-105 data-[state=on]:scale-105 hover:shadow-lg',
                       isSelected
                         ? 'border-purple-400 bg-gradient-to-r from-purple-50 to-blue-50 shadow-md data-[state=on]:bg-gradient-to-r data-[state=on]:from-purple-50 data-[state=on]:to-blue-50'
                         : 'border-gray-200 hover:border-purple-300 bg-white'
                     )}
                   >
                     <div className={cn(
-                      'w-10 h-10 rounded-xl flex items-center justify-center transition-all',
+                      'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all',
                       isSelected
                         ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-md'
                         : 'bg-gray-100 text-gray-600'
                     )}>
-                      <span className="text-xl">{opt.emoji}</span>
+                      <span className="text-2xl">{opt.emoji}</span>
                     </div>
                     
-                    <div className="text-center">
-                      <div className={cn(
-                        'font-medium text-sm',
-                        isSelected ? 'text-purple-700' : 'text-gray-700'
-                      )}>
-                        {opt.name}
-                      </div>
-                      <div className="text-xs text-gray-500 mt-1 leading-relaxed">
-                        {opt.description}
-                      </div>
-                    </div>
+                    {/* MODIFIED: Restructured text elements to match */}
+                    <span className={cn(
+                      'font-semibold text-sm mb-1',
+                      isSelected ? 'text-purple-700' : 'text-gray-700'
+                    )}>
+                      {opt.name}
+                    </span>
+                    <span className="text-xs text-gray-500 text-center leading-relaxed">
+                      {opt.description}
+                    </span>
                     
                     {isSelected && (
-                      <CheckCircle2 className="w-4 h-4 text-purple-600" />
+                      <CheckCircle2 className="w-4 h-4 text-purple-600 mt-2" />
                     )}
                   </ToggleGroupItem>
                 )
