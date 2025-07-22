@@ -206,7 +206,7 @@ export function SenseSelector({
                   key={sense.id}
                   onClick={() => onToggle(sense.id as SenseId)}
                   className={cn(
-                    "group relative p-5 rounded-2xl border-2 transition-all hover:scale-105 hover:shadow-lg",
+                    "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
                     active
                       ? "border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 shadow-md"
                       : cn("border-gray-200 hover:border-purple-300 bg-white", tierInfo.bgColor)
@@ -219,7 +219,7 @@ export function SenseSelector({
                   )}
                   <div className="flex items-start gap-4">
                     <div className={cn(
-                      "p-3 rounded-xl transition-all",
+                      "p-3 rounded-xl transition-all duration-300",
                       active
                         ? "bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg"
                         : cn("bg-gradient-to-r text-white shadow-md group-hover:scale-110", tierInfo.color)
@@ -275,7 +275,7 @@ export function SenseSelector({
             {connectedSenses.map(sense => {
               const Icon = senseIcons[sense.id] ?? Info
               const active = isSelected(sense.id)
-              const tierInfo = tierConfig[sense.tier as keyof typeof tierConfig]
+              const tierInfo = tierConfig.premium
               return (
                 <button
                   key={sense.id}
@@ -284,7 +284,7 @@ export function SenseSelector({
                     "group relative p-5 rounded-2xl border-2 transition-all hover:scale-105 hover:shadow-lg",
                     active
                       ? "border-purple-400 bg-gradient-to-br from-purple-50 to-blue-50 shadow-md"
-                      : cn("border-gray-200 hover:border-purple-300 bg-white", tierInfo.bgColor)
+                      : cn("border-gray-200 hover:border-orange-300 bg-white", tierInfo.bgColor)
                   )}
                 >
                   {active && (
@@ -318,15 +318,15 @@ export function SenseSelector({
                           tierInfo.bgColor,
                           tierInfo.textColor
                         )}>
-                          {tierInfo.icon} {sense.tier}
+                          {tierInfo.icon} premium
                         </span>
                         <div className={cn(
                           "text-xs px-2 py-1 rounded-full transition-all",
                           active 
-                            ? "bg-purple-100 text-purple-700" 
-                            : "bg-gray-100 text-gray-600 group-hover:bg-purple-50 group-hover:text-purple-600"
+                            ? "bg-orange-100 text-orange-700" 
+                            : "bg-gray-100 text-gray-600 group-hover:bg-orange-50 group-hover:text-orange-600"
                         )}>
-                          {active ? "Connected" : "Click to sync"}
+                          {active ? "Synced" : "Click to sync"}
                         </div>
                       </div>
                     </div>
