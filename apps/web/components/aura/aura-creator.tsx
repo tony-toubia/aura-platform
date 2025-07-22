@@ -243,9 +243,9 @@ export function AuraCreator() {
 
   // 1️⃣ & 3️⃣ manual submit logic
   const handleManualSubmit = () => {
-    const raw = manualInput.trim()
-    const val = raw.toLowerCase()
-    const manualOptions: { code: string; type: VesselTypeId }[] = [
+   const raw = manualInput.trim()
+   const val = raw.toLowerCase()
+   const manualOptions: { code: string; type: VesselTypeId }[] = [
       { code: "terra", type: "terra" },
       { code: "terra - sensor", type: "terra" },
       { code: "terra - pot", type: "terra" },
@@ -263,22 +263,22 @@ export function AuraCreator() {
       { code: "licensed - blue", type: "terra" },
     ]
     const found = manualOptions.find((o) => o.code === val)
-    if (found) {
-      setAuraData((prev) => ({
-        ...prev,
-        vesselType: found.type,
-        vesselCode: raw,
-      }))
-      setStep("senses")
-      setError(null)
-    } else {
-      setError(
-        `Vessel not found. Please enter one of: ${manualOptions
-          .map((o) => `"${o.code}"`)
-          .join(", ")}.`
-      )
+      if (found) {
+        setAuraData((prev) => ({
+          ...prev,
+          vesselType: found.type,
+          vesselCode: val, // ✅ FIX: Use the lowercased 'val' instead of 'raw'
+        }))
+        setStep("senses")
+        setError(null)
+        } else {
+        setError(
+          `Vessel not found. Please enter one of: ${manualOptions
+            .map((o) => `"${o.code}"`)
+            .join(", ")}.`
+        )
+      }
     }
-  }
 
   // digital or QR selection
   const handleVesselSelect = (vesselType: VesselTypeId) => {
