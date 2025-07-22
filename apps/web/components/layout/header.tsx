@@ -3,17 +3,9 @@ import { createServerSupabase } from '@/lib/supabase/server.server'
 import { Button } from '@/components/ui/button'
 import { MobileNav } from '@/components/mobile-nav'
 import { Sparkles } from 'lucide-react'
-import { redirect } from 'next/navigation'
+import { signOut } from '@/app/actions/auth'  // pull in the server action
 
-// Server action for signing out, co-located for simplicity
-async function signOut() {
-  'use server'
-  const supabase = await createServerSupabase()
-  await supabase.auth.signOut()
-  redirect('/login')
-}
-
-export async function Header() {
+export default async function Header() {
   const supabase = await createServerSupabase()
   const { data: { user } } = await supabase.auth.getUser()
 
@@ -26,9 +18,8 @@ export async function Header() {
     { href: '/dashboard', label: 'Dashboard' },
     { href: '/auras', label: 'Auras' },
     { href: '/vessels', label: 'Vessel Shop' },
-    // ✨ FIX: Corrected typo from "lable" to "label"
     { href: '/meet-the-animals', label: 'Meet the Animals' },
-//    { href: '/analytics', label: 'Analytics' },
+    { href: '/wildlife-tracking', label: 'Wildlife Tracking' },
     { href: '/subscription', label: 'Subscription' },
   ]
 
@@ -99,5 +90,5 @@ export async function Header() {
         </div>
       </div>
     </header>
-  )
+)
 }

@@ -1,4 +1,4 @@
-import { Header } from "@/components/layout/header"; // Import the new smart header
+import Header from "@/components/layout/header";
 import { Footer } from "@/components/layout/footer";
 
 interface PublicLayoutProps {

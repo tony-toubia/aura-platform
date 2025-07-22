@@ -1,3 +1,5 @@
+// apps/web/app/(dashboard)/dashboard/page.tsx
+
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import { redirect } from 'next/navigation'
 import React from 'react' // Import React for type definitions

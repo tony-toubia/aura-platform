@@ -304,7 +304,7 @@ export function RuleBuilder({
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 sm:px-0">
       {/* 3. Conditionally render the entire template section */}
       {availableTemplate && (
         <>
@@ -482,14 +482,14 @@ export function RuleBuilder({
       )}
 
       {/* — Create / Edit Rule Form — */}
-      <Card className="border-2 border-purple-100">
+      <Card className="border-2 border-purple-100 sm:gap-2">
         <CardHeader
           className={cn(
             "bg-gradient-to-r",
             isEditing ? "from-blue-50 to-purple-50" : "from-purple-50 to-blue-50"
           )}
         >
-          <CardTitle className="flex items-center gap-2">
+          <CardTitle className="flex items-center gap-2 sm:gap-4">
             {isEditing ? (
               <>
                 <Edit2 className="w-5 h-5 text-blue-600" /> Edit Rule
@@ -579,7 +579,7 @@ export function RuleBuilder({
               className="text-lg py-6 border-2 border-purple-200 focus:border-purple-400"
             />
             <p className="text-xs text-purple-600 bg-purple-50 p-2 rounded flex items-center gap-2">
-              <Lightbulb className="w-3 h-3" /> Use <code>{"{sensor.value}"}</code> to include the actual reading
+              <Lightbulb className="w-3 h-3" /> <code>Use {"{sensor.value}"} to include the actual reading</code>
             </p>
           </div>
           {/* Advanced Settings */}

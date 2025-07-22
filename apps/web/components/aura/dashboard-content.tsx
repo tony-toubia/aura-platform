@@ -63,6 +63,8 @@ const subscriptionConfig = {
   }
 }
 
+// apps/web/components/dashboard/dashboard-content.tsx
+
 export function DashboardContent({ stats }: DashboardContentProps) {
   const subConfig = subscriptionConfig[stats.subscription as keyof typeof subscriptionConfig] || subscriptionConfig.free
 
@@ -82,10 +84,12 @@ export function DashboardContent({ stats }: DashboardContentProps) {
         </p>
       </div>
 
-      {/* Enhanced Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mb-12">
+      {/* ✅ MODIFIED: Use a single, unified 12-column grid for all cards */}
+      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
+        {/* --- TOP ROW (3 CARDS) --- */}
+        
         {/* Auras Card */}
-        <Card className="border-2 border-purple-100 hover:border-purple-300 transition-colors shadow-lg hover:shadow-xl group">
+        <Card className="border-2 border-purple-100 hover:border-purple-300 transition-colors shadow-lg hover:shadow-xl group md:col-span-6 lg:col-span-4">
           <CardHeader className="text-center pb-2">
             <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg">
               <Brain className="w-8 h-8 text-white" />
@@ -95,7 +99,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
           </CardHeader>
           <CardContent className="text-center pt-4">
             <div className="space-y-3">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 min-h-[40px] flex items-center justify-center">
                 {stats.auras === 0 
                   ? "Ready to create your first magical companion?"
                   : stats.auras === 1
@@ -110,20 +114,18 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                     View Auras
                   </Link>
                 </Button>
-                {stats.auras > 0 && (
-                  <Button asChild variant="outline" className="border-2 border-purple-200 hover:border-purple-400">
-                    <Link href="/auras/create">
-                      <Plus className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                )}
+                <Button asChild variant="outline" className="border-2 border-purple-200 hover:border-purple-400">
+                  <Link href="/auras/create">
+                    <Plus className="w-4 h-4" />
+                  </Link>
+                </Button>
               </div>
             </div>
           </CardContent>
         </Card>
 
         {/* Conversations Card */}
-        <Card className="border-2 border-blue-100 hover:border-blue-300 transition-colors shadow-lg hover:shadow-xl group">
+        <Card className="border-2 border-blue-100 hover:border-blue-300 transition-colors shadow-lg hover:shadow-xl group md:col-span-6 lg:col-span-4">
           <CardHeader className="text-center pb-2">
             <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-sky-500 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform shadow-lg">
               <MessageCircle className="w-8 h-8 text-white" />
@@ -133,7 +135,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
           </CardHeader>
           <CardContent className="text-center pt-4">
             <div className="space-y-3">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 min-h-[40px] flex items-center justify-center">
                 {stats.conversations === 0 
                   ? "Start your first magical conversation"
                   : stats.conversations === 1
@@ -148,13 +150,11 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                     View Chats
                   </Link>
                 </Button>
-                {stats.auras > 0 && (
-                  <Button asChild variant="outline" className="border-2 border-blue-200 hover:border-blue-400">
-                    <Link href="/auras">
-                      <Heart className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                )}
+                <Button asChild variant="outline" className="border-2 border-blue-200 hover:border-blue-400">
+                  <Link href="/auras">
+                    <Heart className="w-4 h-4" />
+                  </Link>
+                </Button>
               </div>
             </div>
           </CardContent>
@@ -162,7 +162,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
 
         {/* Subscription Card */}
         <Card className={cn(
-          "border-2 hover:border-opacity-70 transition-colors shadow-lg hover:shadow-xl group",
+          "border-2 hover:border-opacity-70 transition-colors shadow-lg hover:shadow-xl group md:col-span-12 lg:col-span-4", // Spans full width on medium, 1/3 on large
           `border-${subConfig.color.split('-')[1]}-200`
         )}>
           <CardHeader className="text-center pb-2">
@@ -200,14 +200,13 @@ export function DashboardContent({ stats }: DashboardContentProps) {
             </div>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Quick Actions Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
-        {/* Create Your First Aura */}
-        {stats.auras === 0 && (
-          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50">
-            <CardContent className="p-8 text-center">
+        {/* --- MIDDLE ROW (2 CARDS) --- */}
+
+        {/* ✅ MODIFIED: Conditionally swap this card's content instead of adding a new one */}
+        {stats.auras === 0 ? (
+          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50 md:col-span-6">
+            <CardContent className="p-8 text-center flex flex-col justify-center items-center h-full">
               <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
                 <Sparkles className="w-10 h-10 text-white" />
               </div>
@@ -223,20 +222,16 @@ export function DashboardContent({ stats }: DashboardContentProps) {
               </Button>
             </CardContent>
           </Card>
-        )}
-
-        {/* Recent Activity */}
-        <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-sky-50">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-blue-600" />
-              Recent Activity
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {stats.auras > 0 ? (
-                <>
+        ) : (
+          <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-sky-50 md:col-span-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-blue-600" />
+                Recent Activity
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
                   <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-100">
                     <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
                       <Brain className="w-4 h-4 text-white" />
@@ -260,28 +255,20 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                       <div className="text-lg font-bold text-blue-600">{stats.conversations}</div>
                     </div>
                   )}
-                </>
-              ) : (
-                <div className="text-center py-8">
-                  <Calendar className="w-12 h-12 text-blue-400 mx-auto mb-4" />
-                  <p className="text-gray-600">No activity yet</p>
-                  <p className="text-sm text-gray-500">Create your first Aura to get started!</p>
-                </div>
-              )}
-              
-              <Button asChild variant="outline" className="w-full border-2 border-blue-200 hover:border-blue-400">
-                <Link href="/analytics">
-                  <TrendingUp className="w-4 h-4 mr-2" />
-                  View Analytics
-                </Link>
-              </Button>
-            </div>
-          </CardContent>
-        </Card>
+                <Button asChild variant="outline" className="w-full border-2 border-blue-200 hover:border-blue-400">
+                  <Link href="/analytics">
+                    <TrendingUp className="w-4 h-4 mr-2" />
+                    View Analytics
+                  </Link>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Explore Vessels */}
-        <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50">
-          <CardContent className="p-8 text-center">
+        <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 md:col-span-6">
+          <CardContent className="p-8 text-center flex flex-col justify-center items-center h-full">
             <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
               <ShoppingBag className="w-10 h-10 text-white" />
             </div>
@@ -297,43 +284,33 @@ export function DashboardContent({ stats }: DashboardContentProps) {
             </Button>
           </CardContent>
         </Card>
-      </div>
 
-      {/* Enhanced Footer CTA */}
-      <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 rounded-3xl p-8 text-white text-center">
-        <div className="max-w-3xl mx-auto">
-          <h2 className="text-3xl font-bold mb-4">Ready for More Magic?</h2>
-          <p className="text-xl mb-8 opacity-90">
-            Your journey with AI companions is just beginning. Explore new possibilities!
-          </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Button 
-              asChild 
-              size="lg" 
-              className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8"
-            >
-              <Link href="/auras/create">
-                <Sparkles className="w-5 h-5 mr-2" />
-                Create Another Aura
-              </Link>
-            </Button>
-            
-            <Button 
-              asChild 
-              size="lg" 
-              variant="outline" 
-              className="border-2 border-white text-white hover:bg-white hover:text-purple-600 px-8"
-            >
-              <Link href="/vessels">
-                <Star className="w-5 h-5 mr-2" />
-                Explore Vessels
-              </Link>
-            </Button>
-          </div>
-          
-          <div className="mt-6 text-sm opacity-75">
-            ✨ Join thousands creating magical AI relationships
+        {/* --- BOTTOM ROW (1 CARD) --- */}
+        
+        {/* Enhanced Footer CTA */}
+        <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 rounded-3xl p-8 text-white text-center md:col-span-12">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-3xl font-bold mb-4">Ready for More Magic?</h2>
+            <p className="text-xl mb-8 opacity-90">
+              Your journey with AI companions is just beginning. Explore new possibilities!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <Button asChild size="lg" className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8">
+                <Link href="/auras/create">
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Create Another Aura
+                </Link>
+              </Button>
+              <Button asChild size="lg" variant="outline" className="border-2 border-white text-white hover:bg-white hover:text-purple-600 px-8">
+                <Link href="/vessels">
+                  <Star className="w-5 h-5 mr-2" />
+                  Explore Vessels
+                </Link>
+              </Button>
+            </div>
+            <div className="mt-6 text-sm opacity-75">
+              ✨ Join thousands creating magical AI relationships
+            </div>
           </div>
         </div>
       </div>

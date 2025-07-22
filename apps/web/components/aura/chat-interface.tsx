@@ -292,11 +292,17 @@ export function ChatInterface({
             </div>
             <div>
               <h3 className="text-xl font-bold">{aura.name}</h3>
-              <div className="flex items-center space-x-2 text-white/80">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="text-sm">Online &amp; Sensing</span>
+              
+              <div className="flex flex-col items-start text-white/80">
+                {/* This inner div keeps the dot and text in a row */}
+                <div className="flex items-center space-x-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-sm">Online &amp; Sensing</span>
+                </div>
+
+                {/* This div now renders below the text */}
                 {!showSenseStatus && (
-                  <div className="flex items-center space-x-1 ml-3">
+                  <div className="flex items-center space-x-2 mt-2">
                     {aura.senses.map((id) => {
                       const key = id as keyof typeof senseIcons
                       const Icon = senseIcons[key]
