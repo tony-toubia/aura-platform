@@ -2,6 +2,7 @@
 
 "use client"
 
+import { PLANT_DATABASE } from "@/lib/plant-database"
 import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
@@ -241,12 +242,12 @@ export function AuraCreator() {
       { code: "licensed - captain america", type: "terra" },
       { code: "licensed - blue", type: "terra" },
     ]
-    const found = manualOptions.find((o) => o.code === val)
+    const found = manualOptions.find(o => o.code.toLowerCase() === val)
     if (found) {
       setAuraData((prev) => ({
         ...prev,
         vesselType: found.type,
-        vesselCode: raw,
+        vesselCode: found.code,
       }))
       // If Terra vessel, go to plant selection, otherwise senses
       setStep(found.type === "terra" ? "plant" : "senses")
@@ -567,19 +568,58 @@ export function AuraCreator() {
                       selectedVessel.borderColor.replace("hover:", "")
                     )}
                   >
-                    <div className="flex items-center gap-3">
+                    <div className="flex items-start gap-3">
                       <div className="text-2xl">{selectedVessel.icon}</div>
-                      <div>
-                        <h3 className="font-semibold">
+                      <div className="flex-1 space-y-1">
+                        <h3 className="font-semibold flex items-baseline">
                           {selectedVessel.name}
-                          {auraData.vesselCode &&
-                          selectedVessel.id !== "digital"
-                            ? ` (${auraData.vesselCode})`
-                            : ""}
+                          {auraData.vesselCode && selectedVessel.id !== "digital" && (
+                            <span className="ml-2 text-sm text-gray-500">
+                              (
+                              {auraData.vesselCode.startsWith("licensed - ")
+                                ? // turn “licensed - yoda” → “Licensed: Yoda”
+                                  `Licensed: ${
+                                    auraData.vesselCode
+                                      .replace("licensed - ", "")
+                                      .replace(/\b\w/g, (l) => l.toUpperCase())
+                                  }`
+                                : auraData.vesselCode}
+                              )
+                            </span>
+                          )}
                         </h3>
                         <p className="text-sm text-gray-600">
                           {selectedVessel.description}
                         </p>
+
+                        {/* Terra: show the chosen plant */}
+                        {auraData.vesselType === "terra" && auraData.plantType && (
+                          <p className="text-sm">
+                            <span className="font-medium">Plant:</span>{" "}
+                            {PLANT_DATABASE[auraData.plantType]?.name ?? auraData.plantType}
+                          </p>
+                        )}
+
+                        {/* Companion: show study & individual IDs */}
+                        {auraData.vesselType === "companion" && (
+                          <>
+                            <p className="text-sm">
+                              <span className="font-medium">Study ID:</span>{" "}
+                              {auraData.selectedStudyId}
+                            </p>
+                            <p className="text-sm">
+                              <span className="font-medium">Individual ID:</span>{" "}
+                              {auraData.selectedIndividualId}
+                            </p>
+                          </>
+                        )}
+
+                        {/* Digital: little note */}
+                        {auraData.vesselType === "digital" && (
+                          <p className="text-sm italic text-gray-500">
+                            Pure digital vessel – no hardware required.
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
