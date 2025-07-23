@@ -10,10 +10,12 @@ import { Input } from "@/components/ui/input"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
 import { RuleBuilder } from "./rule-builder"
+import { PlantSelector } from "./plant-selector"
 import {
   VESSEL_SENSE_CONFIG,
   AVAILABLE_SENSES,
   type VesselTypeId,
+  type SenseId,
 } from "@/lib/constants"
 import {
   AlertCircle,
@@ -23,41 +25,26 @@ import {
   CheckCircle,
   QrCode,
   Scan,
+  Leaf,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Personality } from "@/types"
 
-type Step = "vessel" | "senses" | "details" | "rules"
-type SenseId =
-  | "weather"
-  | "news"
-  | "air_quality"
-  | "location"
-  | "fitness"
-  | "sleep"
-  | "calendar"
-  | "soil_moisture"
-  | "light_level"
-  | "wildlife"
+type Step = "vessel" | "plant" | "senses" | "details" | "rules"
+
 
 interface AuraForm {
   id: string
   name: string
   vesselType: VesselTypeId | ""
   vesselCode: string
+  plantType?: string
   personality: Personality
   senses: SenseId[]
   rules: BehaviorRule[]
   selectedStudyId?: string
   selectedIndividualId?: string
 }
-
-const CONNECTED_SENSE_IDS: readonly SenseId[] = [
-  "location",
-  "fitness",
-  "sleep",
-  "calendar",
-]
 
 const vesselTypes = [
   {
@@ -123,7 +110,7 @@ const LICENSED_PRESETS: Record<
     },
   },
   'licensed - captain america': {
-    persona: 'assistant',     // concise, noble helper
+    persona: 'assistant',
     settings: {
       warmth: 40,
       playfulness: 30,
@@ -136,7 +123,7 @@ const LICENSED_PRESETS: Record<
     },
   },
   'licensed - blue': {
-    persona: 'explorer',      // curious, adventurous
+    persona: 'explorer',
     settings: {
       warmth: 80,
       playfulness: 80,
@@ -149,7 +136,6 @@ const LICENSED_PRESETS: Record<
     },
   },
 }
-
 
 export function AuraCreator() {
   const router = useRouter()
@@ -170,6 +156,7 @@ export function AuraCreator() {
     name: "",
     vesselType: "",
     vesselCode: "",
+    plantType: undefined,
     personality: {
       warmth: 50,
       playfulness: 50,
@@ -190,17 +177,13 @@ export function AuraCreator() {
   // Scroll to top when step changes
   useEffect(() => {
     if (containerRef.current) {
-      // Scroll the container element into view
       containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      
-      // Also scroll the window to top if needed
       window.scrollTo({ top: 0, behavior: 'smooth' })
     }
   }, [step])
 
   // Reset senses & generate uuids for companion
   useEffect(() => {
-    // only fire if they've actually selected a product code
     const code = auraData.vesselCode
     if (!code) return
 
@@ -218,12 +201,10 @@ export function AuraCreator() {
   }, [auraData.vesselCode])
 
   useEffect(() => {
-    // only run when they've actually chosen a vessel type
     if (!auraData.vesselType) return
 
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
 
-    // if this is a companion vessel, regenerate the study/individual IDs
     let studyId: string | undefined
     let individualId: string | undefined
     if (auraData.vesselType === "companion") {
@@ -231,21 +212,19 @@ export function AuraCreator() {
       individualId = crypto.randomUUID()
     }
 
-    setAuraData(prev => ({
-      ...prev,
-      senses: cfg.defaultSenses,
-      selectedStudyId: studyId,
-      selectedIndividualId: individualId,
-    }))
+      setAuraData(prev => ({
+        ...prev,
+        senses: cfg.defaultSenses,
+        selectedStudyId: studyId,
+        selectedIndividualId: individualId,
+      }))
     setError(null)
-  }, [auraData.vesselType])
+    }, [auraData.vesselType])
 
-
-  // 1️⃣ & 3️⃣ manual submit logic
   const handleManualSubmit = () => {
-   const raw = manualInput.trim()
-   const val = raw.toLowerCase()
-   const manualOptions: { code: string; type: VesselTypeId }[] = [
+    const raw = manualInput.trim()
+    const val = raw.toLowerCase()
+    const manualOptions: { code: string; type: VesselTypeId }[] = [
       { code: "terra", type: "terra" },
       { code: "terra - sensor", type: "terra" },
       { code: "terra - pot", type: "terra" },
@@ -263,31 +242,32 @@ export function AuraCreator() {
       { code: "licensed - blue", type: "terra" },
     ]
     const found = manualOptions.find((o) => o.code === val)
-      if (found) {
-        setAuraData((prev) => ({
-          ...prev,
-          vesselType: found.type,
-          vesselCode: val, // ✅ FIX: Use the lowercased 'val' instead of 'raw'
-        }))
-        setStep("senses")
-        setError(null)
-        } else {
-        setError(
-          `Vessel not found. Please enter one of: ${manualOptions
-            .map((o) => `"${o.code}"`)
-            .join(", ")}.`
-        )
-      }
+    if (found) {
+      setAuraData((prev) => ({
+        ...prev,
+        vesselType: found.type,
+        vesselCode: raw,
+      }))
+      // If Terra vessel, go to plant selection, otherwise senses
+      setStep(found.type === "terra" ? "plant" : "senses")
+      setError(null)
+    } else {
+      setError(
+        `Vessel not found. Please enter one of: ${manualOptions
+          .map((o) => `"${o.code}"`)
+          .join(", ")}.`
+      )
     }
+  }
 
-  // digital or QR selection
   const handleVesselSelect = (vesselType: VesselTypeId) => {
     setAuraData((prev) => ({
       ...prev,
       vesselType,
       vesselCode: vesselType === "digital" ? "" : vesselType,
     }))
-    setStep("senses")
+    // If Terra vessel, go to plant selection, otherwise senses
+    setStep(vesselType === "terra" ? "plant" : "senses")
     setError(null)
   }
 
@@ -313,6 +293,7 @@ export function AuraCreator() {
           name: auraData.name,
           vesselType: auraData.vesselType,
           vesselCode: auraData.vesselCode || undefined,
+          plantType: auraData.plantType || undefined,
           personality: auraData.personality,
           senses: senseCodes,
           selectedStudyId: auraData.selectedStudyId,
@@ -330,6 +311,7 @@ export function AuraCreator() {
     }
   }
 
+  const canNextPlant = auraData.vesselType === "terra" && auraData.plantType
   const canNextSenses = (() => {
     if (!auraData.vesselType) return false
     const cfg = VESSEL_SENSE_CONFIG[auraData.vesselType]
@@ -340,26 +322,38 @@ export function AuraCreator() {
   const senseConfig = auraData.vesselType
     ? VESSEL_SENSE_CONFIG[auraData.vesselType]
     : { defaultSenses: [], optionalSenses: [] }
-const allowedSenses = AVAILABLE_SENSES.filter(
-  (s) =>
-    senseConfig.defaultSenses.includes(s.id as SenseId) ||
-    senseConfig.optionalSenses.includes(s.id as SenseId) ||
-    CONNECTED_SENSE_IDS.includes(s.id as SenseId)
-)
+  
+  // Get allowed senses, including connected senses for all vessel types
+  const allowedSenses = AVAILABLE_SENSES.filter((s) => {
+    const isDefault = senseConfig.defaultSenses.includes(s.id)
+    const isOptional = senseConfig.optionalSenses.includes(s.id)
+    const isConnected = ["sleep", "fitness", "calendar", "location"].includes(s.id)
+    return isDefault || isOptional || isConnected
+  })
 
   const onNext = () => {
-    step === "senses"
-      ? setStep("details")
-      : step === "details" && handleCreate()
+    if (step === "plant") {
+      setStep("senses")
+    } else if (step === "senses") {
+      setStep("details")
+    } else if (step === "details") {
+      handleCreate()
+    }
   }
+
   const onBack = () => {
-    if (step === "senses") setStep("vessel")
+    if (step === "plant") setStep("vessel")
+    else if (step === "senses") {
+      setStep(auraData.vesselType === "terra" ? "plant" : "vessel")
+    }
     else if (step === "details") setStep("senses")
     else if (step === "rules") setStep("details")
   }
 
   const selectedVessel = vesselTypes.find((v) => v.id === auraData.vesselType)
-  const steps: Step[] = ["vessel", "senses", "details", "rules"]
+  const steps: Step[] = auraData.vesselType === "terra" 
+    ? ["vessel", "plant", "senses", "details", "rules"]
+    : ["vessel", "senses", "details", "rules"]
   const meetButtonText =
     auraData.name.length > 12 ? "Meet Your Aura" : `Meet ${auraData.name}`
 
@@ -543,6 +537,7 @@ const allowedSenses = AVAILABLE_SENSES.filter(
                         >
                           {{
                             vessel: "Choose Vessel",
+                            plant: "Select Plant",
                             senses: "Connect Senses",
                             details: "Define Personality",
                             rules: "Set Behaviors",
@@ -587,6 +582,18 @@ const allowedSenses = AVAILABLE_SENSES.filter(
                         </p>
                       </div>
                     </div>
+                  </div>
+                )}
+
+                {/* Plant Selection Step (Terra only) */}
+                {step === "plant" && auraData.vesselType === "terra" && (
+                  <div className="space-y-8">
+                    <PlantSelector
+                      selectedPlant={auraData.plantType}
+                      onSelectPlant={(plantId) => 
+                        setAuraData(prev => ({ ...prev, plantType: plantId }))
+                      }
+                    />
                   </div>
                 )}
 
@@ -745,6 +752,7 @@ const allowedSenses = AVAILABLE_SENSES.filter(
                       onClick={onNext}
                       disabled={
                         loading ||
+                        (step === "plant" && !canNextPlant) ||
                         (step === "senses" && !canNextSenses) ||
                         (step === "details" && !canNextDetails)
                       }

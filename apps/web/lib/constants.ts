@@ -77,18 +77,18 @@ export const PERSONALITY_TRAITS = [
 // ————————————————
 export const AVAILABLE_SENSES = [
   // Environmental senses
-  { id: "weather",       name: "Weather",          category: "Environmental", tier: "free"    },
-  { id: "news",          name: "News Feed",        category: "Knowledge",     tier: "free"    },
-  { id: "air_quality",   name: "Air Quality",      category: "Environmental", tier: "free"    },
-  { id: "soil_moisture", name: "Soil Moisture",    category: "Sensors",       tier: "vessel"  },
-  { id: "light_level",   name: "Light Level",      category: "Sensors",       tier: "vessel"  },
-  { id: "wildlife",      name: "Wildlife Tracking",category: "Nature",        tier: "premium" },
+  { id: "weather",       name: "Weather",          category: "Environmental", tier: "Free"    },
+  { id: "news",          name: "News Feed",        category: "Knowledge",     tier: "Free"    },
+  { id: "air_quality",   name: "Air Quality",      category: "Environmental", tier: "Free"    },
+  { id: "soil_moisture", name: "Soil Moisture",    category: "Sensors",       tier: "Vessel"  },
+  { id: "light_level",   name: "Light Level",      category: "Sensors",       tier: "Vessel"  },
+  { id: "wildlife",      name: "Wildlife Tracking",category: "Nature",        tier: "Premium" },
   
-  // Personal senses (new)
-  { id: "sleep",         name: "Sleep Tracking",   category: "Personal",      tier: "personal" },
-  { id: "fitness",       name: "Fitness Data",     category: "Personal",      tier: "personal" },
-  { id: "calendar",      name: "Calendar Events",  category: "Digital",       tier: "personal" },
-  { id: "location",      name: "Location Context", category: "Personal",      tier: "personal" },
+  // Personal senses (about the user)
+  { id: "sleep",         name: "Your Sleep",       category: "Personal Health",      tier: "Premium" },
+  { id: "fitness",       name: "Your Fitness",     category: "Personal Health",      tier: "Premium" },
+  { id: "calendar",      name: "Your Calendar",    category: "Personal Activity",    tier: "Premium" },
+  { id: "location",      name: "Your Location",    category: "Personal Activity",    tier: "Premium" },
 ] as const
 
 export type SenseId = typeof AVAILABLE_SENSES[number]["id"]
@@ -113,18 +113,18 @@ export const VESSEL_SENSE_CONFIG: Record<
   },
   terra: {
     defaultSenses: ["soil_moisture", "light_level"],
-    optionalSenses: ["weather", "news", "air_quality"],
+    optionalSenses: ["weather", "news", "air_quality", "sleep", "fitness", "calendar", "location"],
   },
   companion: {
     defaultSenses: ["wildlife"],
-    optionalSenses: ["weather", "news", "air_quality"],
+    optionalSenses: ["weather", "news", "air_quality", "sleep", "fitness", "calendar", "location"],
   },
   memory: {
     defaultSenses: [],      
-    optionalSenses: ["calendar", "location"], // Memory vessels could access personal data
+    optionalSenses: ["sleep", "fitness", "calendar", "location"], // Memory vessels could access personal data
   },
   sage: {
     defaultSenses: [],      
-    optionalSenses: ["news", "calendar"], // Sage vessels focus on knowledge
+    optionalSenses: ["news", "calendar", "sleep", "fitness", "location"], // Sage vessels focus on knowledge and personal insights
   },
 }
