@@ -313,7 +313,7 @@ export function SenseSelector({
                 >
                   {active && (
                     <div className="absolute top-3 right-3">
-                      <CheckCircle2 className="w-5 h-5 text-orange-600" />
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
                     </div>
                   )}
                   <div className="flex items-start gap-4">
