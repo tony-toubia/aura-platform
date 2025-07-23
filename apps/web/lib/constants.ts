@@ -1,4 +1,4 @@
-// lib/constants.ts
+// apps/web/lib/constants.ts
 
 // ————————————————
 // 1) Vessel types
@@ -76,16 +76,19 @@ export const PERSONALITY_TRAITS = [
 // 3) All possible senses
 // ————————————————
 export const AVAILABLE_SENSES = [
+  // Environmental senses
   { id: "weather",       name: "Weather",          category: "Environmental", tier: "free"    },
   { id: "news",          name: "News Feed",        category: "Knowledge",     tier: "free"    },
   { id: "air_quality",   name: "Air Quality",      category: "Environmental", tier: "free"    },
-  { id: "location",      name: "Location",         category: "Personal",     tier: "premium"    },
-  { id: "fitness",       name: "Fitness",          category: "Personal",     tier: "premium"    },
-  { id: "sleep",         name: "Sleep",            category: "Personal",     tier: "premium"    },
-  { id: "calendar",      name: "Calendar",         category: "Personal",     tier: "premium"    },
   { id: "soil_moisture", name: "Soil Moisture",    category: "Sensors",       tier: "vessel"  },
   { id: "light_level",   name: "Light Level",      category: "Sensors",       tier: "vessel"  },
-  { id: "wildlife",      name: "Wildlife Tracking",category: "Nature",        tier: "vessel"  },
+  { id: "wildlife",      name: "Wildlife Tracking",category: "Nature",        tier: "premium" },
+  
+  // Personal senses (new)
+  { id: "sleep",         name: "Sleep Tracking",   category: "Personal",      tier: "personal" },
+  { id: "fitness",       name: "Fitness Data",     category: "Personal",      tier: "personal" },
+  { id: "calendar",      name: "Calendar Events",  category: "Digital",       tier: "personal" },
+  { id: "location",      name: "Location Context", category: "Personal",      tier: "personal" },
 ] as const
 
 export type SenseId = typeof AVAILABLE_SENSES[number]["id"]
@@ -106,7 +109,7 @@ export const VESSEL_SENSE_CONFIG: Record<
 > = {
   digital: {
     defaultSenses: [],
-    optionalSenses: ["weather", "news", "air_quality"],
+    optionalSenses: ["weather", "news", "air_quality", "sleep", "fitness", "calendar", "location"],
   },
   terra: {
     defaultSenses: ["soil_moisture", "light_level"],
@@ -117,11 +120,11 @@ export const VESSEL_SENSE_CONFIG: Record<
     optionalSenses: ["weather", "news", "air_quality"],
   },
   memory: {
-    defaultSenses: [],      // if/when Memory goes live, configure here
-    optionalSenses: [],
+    defaultSenses: [],      
+    optionalSenses: ["calendar", "location"], // Memory vessels could access personal data
   },
   sage: {
-    defaultSenses: [],      // same for Sage
-    optionalSenses: [],
+    defaultSenses: [],      
+    optionalSenses: ["news", "calendar"], // Sage vessels focus on knowledge
   },
 }
