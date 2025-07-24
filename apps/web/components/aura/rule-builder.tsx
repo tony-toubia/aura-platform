@@ -6,7 +6,6 @@ import React, { useState, useEffect, useRef, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Slider } from "@/components/ui/slider"
 import {
   Card,
   CardContent,
@@ -21,23 +20,14 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Switch } from "@/components/ui/switch"
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
 import {
-  Trash2,
   Plus,
   Edit2,
-  Zap,
-  Leaf,
-  Globe,
   Settings,
   Sparkles,
-  Brain,
   MessageCircle,
-  CheckCircle2,
-  Timer,
   AlertTriangle,
+  Timer,
   Lightbulb,
   Save,
   X,
@@ -45,240 +35,18 @@ import {
   Info
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import type { BehaviorRule, SensorMetadata, RuleTrigger } from "@/types"
+import { RuleCard } from "@/components/rules/rule-card"
+import { SensorValueInput } from "@/components/rules/sensor-value-input"
+import { 
+  OPERATOR_LABELS, 
+  QUICK_TEMPLATES, 
+  DEFAULT_COOLDOWN, 
+  DEFAULT_PRIORITY,
+  getPriorityConfig 
+} from "@/lib/constants/rules"
 import { SENSOR_CONFIGS, getSensorConfig, getOperatorsForSensor } from "@/types"
-
-interface RuleBuilderProps {
-  auraId: string
-  vesselType?: string
-  vesselCode?: string
-  availableSenses: string[]
-  existingRules?: BehaviorRule[]
-  editingRule?: BehaviorRule | null
-  onEditRule?: (rule: BehaviorRule | null) => void
-  onSaveEditedRule?: (rule: BehaviorRule) => void
-  onAddRule: (rule: BehaviorRule) => void
-  onDeleteRule?: (ruleId: string) => void
-  onToggleRule?: (ruleId: string, enabled: boolean) => void
-}
-
-// Operator labels
-const OPERATOR_LABELS: Record<string, string> = {
-  "<": "Less than",
-  "<=": "Less than or equal",
-  ">": "Greater than",
-  ">=": "Greater than or equal",
-  "==": "Equals",
-  "!=": "Not equals",
-  "contains": "Contains",
-  "between": "Between"
-}
-
-// Value input component that adapts to sensor type
-const SensorValueInput: React.FC<{
-  sensor: SensorMetadata
-  operator: string
-  value: any
-  onChange: (value: any) => void
-}> = ({ sensor, operator, value, onChange }) => {
-  switch (sensor.type) {
-    case 'numeric':
-    case 'duration':
-      if (operator === 'between') {
-        const [min = sensor.range?.min || 0, max = sensor.range?.max || 100] = value || []
-        return (
-          <div className="space-y-3">
-            <div className="flex items-center gap-3">
-              <Input
-                type="number"
-                value={min}
-                onChange={(e) => onChange([parseFloat(e.target.value), max])}
-                className="w-24"
-                placeholder="Min"
-              />
-              <span className="text-gray-500">to</span>
-              <Input
-                type="number"
-                value={max}
-                onChange={(e) => onChange([min, parseFloat(e.target.value)])}
-                className="w-24"
-                placeholder="Max"
-              />
-              <span className="text-sm text-gray-600">{sensor.unit}</span>
-            </div>
-            {sensor.range && (
-              <div className="space-y-2">
-                <Slider
-                  value={[min, max]}
-                  onValueChange={onChange}
-                  min={sensor.range.min}
-                  max={sensor.range.max}
-                  step={1}
-                  className="w-full"
-                />
-                <div className="flex justify-between text-xs text-gray-500">
-                  <span>{sensor.range.min} {sensor.unit}</span>
-                  <span>{sensor.range.max} {sensor.unit}</span>
-                </div>
-              </div>
-            )}
-          </div>
-        )
-      }
-      
-      return (
-        <div className="space-y-3">
-          <div className="flex items-center gap-3">
-            <Input
-              type="number"
-              value={value || ''}
-              onChange={(e) => onChange(parseFloat(e.target.value))}
-              placeholder={`e.g., ${sensor.range ? Math.round((sensor.range.min + sensor.range.max) / 2) : 50}`}
-              className="flex-1"
-            />
-            {sensor.unit && <span className="text-sm text-gray-600">{sensor.unit}</span>}
-          </div>
-          {sensor.range && (
-            <div className="space-y-2">
-              <Slider
-                value={[value || sensor.range.min]}
-                onValueChange={([v]) => onChange(v)}
-                min={sensor.range.min}
-                max={sensor.range.max}
-                step={1}
-                className="w-full"
-              />
-              <div className="flex justify-between text-xs text-gray-500">
-                <span>{sensor.range.min}</span>
-                <span className="font-medium text-purple-600">{value || sensor.range.min}</span>
-                <span>{sensor.range.max}</span>
-              </div>
-            </div>
-          )}
-        </div>
-      )
-
-    case 'enum':
-      return (
-        <RadioGroup value={value || ''} onValueChange={onChange}>
-          <div className="grid grid-cols-2 gap-3">
-            {sensor.enumValues?.map((option) => (
-              <Label
-                key={option.value}
-                htmlFor={option.value}
-                className={cn(
-                  "flex items-center gap-3 p-3 rounded-lg border-2 cursor-pointer transition-all",
-                  value === option.value
-                    ? "border-purple-400 bg-purple-50"
-                    : "border-gray-200 hover:border-purple-300"
-                )}
-              >
-                <RadioGroupItem value={option.value} id={option.value} />
-                <span className="font-medium">{option.label}</span>
-              </Label>
-            ))}
-          </div>
-        </RadioGroup>
-      )
-
-    case 'boolean':
-      return (
-        <RadioGroup value={String(value || false)} onValueChange={(v) => onChange(v === 'true')}>
-          <div className="flex gap-4">
-            <Label className="flex items-center gap-2">
-              <RadioGroupItem value="true" />
-              <span>True</span>
-            </Label>
-            <Label className="flex items-center gap-2">
-              <RadioGroupItem value="false" />
-              <span>False</span>
-            </Label>
-          </div>
-        </RadioGroup>
-      )
-
-    case 'text':
-      return (
-        <Input
-          type="text"
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter text to match"
-          className="w-full"
-        />
-      )
-
-    default:
-      return (
-        <Input
-          value={value || ''}
-          onChange={(e) => onChange(e.target.value)}
-          placeholder="Enter value"
-          className="w-full"
-        />
-      )
-  }
-}
-
-// Quick templates for common rules
-const QUICK_TEMPLATES = {
-  sleep: [
-    {
-      name: "Poor Sleep Alert",
-      sensor: "sleep.quality",
-      operator: "==",
-      value: "poor",
-      message: "I didn't sleep well last night 😴 Only got {sleep.duration} hours of sleep.",
-      priority: "6"
-    },
-    {
-      name: "Great Sleep Celebration",
-      sensor: "sleep.quality",
-      operator: "==",
-      value: "excellent",
-      message: "I feel amazing today! 🌟 Had {sleep.duration} hours of quality sleep!",
-      priority: "4"
-    }
-  ],
-  fitness: [
-    {
-      name: "Step Goal Achieved",
-      sensor: "fitness.steps",
-      operator: ">=",
-      value: 10000,
-      message: "Yes! Hit my step goal with {fitness.steps} steps today! 🎯",
-      priority: "5"
-    },
-    {
-      name: "High Heart Rate Warning",
-      sensor: "fitness.heartRate",
-      operator: ">",
-      value: 160,
-      message: "Whoa, my heart is racing at {fitness.heartRate} bpm! Time to slow down? 💓",
-      priority: "8"
-    }
-  ],
-  calendar: [
-    {
-      name: "Meeting Reminder",
-      sensor: "calendar.timeUntilNext",
-      operator: "<=",
-      value: 15,
-      message: "Heads up! Your {calendar.nextEvent} starts in {calendar.timeUntilNext} minutes! ⏰",
-      priority: "7"
-    }
-  ],
-  location: [
-    {
-      name: "Arrived at Gym",
-      sensor: "location.place",
-      operator: "==",
-      value: "gym",
-      message: "Time to crush this workout! 💪 Let's do this!",
-      priority: "5"
-    }
-  ]
-}
+import type { BehaviorRule, SensorMetadata, RuleTrigger } from "@/types"
+import type { RuleBuilderProps } from "@/types/rules"
 
 export function RuleBuilder({
   auraId,
@@ -302,8 +70,8 @@ export function RuleBuilder({
   const [operator, setOperator] = useState<string>("==")
   const [sensorValue, setSensorValue] = useState<any>(null)
   const [actionMessage, setActionMessage] = useState("")
-  const [priority, setPriority] = useState("5")
-  const [cooldown, setCooldown] = useState("300")
+  const [priority, setPriority] = useState(String(DEFAULT_PRIORITY))
+  const [cooldown, setCooldown] = useState(String(DEFAULT_COOLDOWN))
 
   const isEditing = editingRule !== null
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -312,11 +80,11 @@ export function RuleBuilder({
   const selectedSensorConfig = selectedSensor ? getSensorConfig(selectedSensor) : null
   const availableOperators = selectedSensor ? getOperatorsForSensor(selectedSensor) : []
 
-  // ✅ FIX: Added a type guard to ensure `baseKey` is not undefined.
+  // Get available sensor configs
   const availableSensorConfigs = useMemo(() => {
     return Object.values(SENSOR_CONFIGS).filter(sensor => {
       const baseKey = sensor.id.split('.')[0]
-      if (!baseKey) return false; // Ensure baseKey is a valid string
+      if (!baseKey) return false
       return availableSenses.includes(sensor.id) || availableSenses.includes(baseKey)
     })
   }, [availableSenses])
@@ -328,10 +96,24 @@ export function RuleBuilder({
       if (!grouped[sensor.category]) {
         grouped[sensor.category] = []
       }
-      grouped[sensor.category]!.push(sensor) // Using non-null assertion as we just initialized it
+      grouped[sensor.category]!.push(sensor)
     })
     return grouped
   }, [availableSensorConfigs])
+
+  // Get relevant templates
+  const relevantTemplates = useMemo(() => {
+    const templates: any[] = []
+    Object.entries(QUICK_TEMPLATES).forEach(([category, categoryTemplates]) => {
+      categoryTemplates.forEach(template => {
+        const sensorBase = template.sensor.split('.')[0]
+        if (sensorBase && (availableSenses.includes(template.sensor) || availableSenses.includes(sensorBase))) {
+          templates.push({ ...template, category })
+        }
+      })
+    })
+    return templates
+  }, [availableSenses])
 
   // Reset operator when sensor changes
   useEffect(() => {
@@ -350,8 +132,8 @@ export function RuleBuilder({
       setOperator(editingRule.trigger.operator || "==")
       setSensorValue(editingRule.trigger.value ?? null)
       setActionMessage(editingRule.action.message || "")
-      setPriority(String(editingRule.priority ?? 5))
-      setCooldown(String(editingRule.trigger.cooldown ?? 300))
+      setPriority(String(editingRule.priority ?? DEFAULT_PRIORITY))
+      setCooldown(String(editingRule.trigger.cooldown ?? DEFAULT_COOLDOWN))
       setTimeout(() => {
         nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
         nameInputRef.current?.focus()
@@ -365,8 +147,8 @@ export function RuleBuilder({
     setOperator("==")
     setSensorValue(null)
     setActionMessage("")
-    setPriority("5")
-    setCooldown("300")
+    setPriority(String(DEFAULT_PRIORITY))
+    setCooldown(String(DEFAULT_COOLDOWN))
     onEditRule?.(null)
   }
 
@@ -429,40 +211,11 @@ export function RuleBuilder({
     setSensorValue(template.value)
     setActionMessage(template.message)
     setPriority(template.priority)
-    setCooldown(template.cooldown || "300")
+    setCooldown(template.cooldown || String(DEFAULT_COOLDOWN))
     nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
   }
 
-  const getPriorityColor = (p: number) => {
-    if (p >= 8) return "text-red-600 bg-red-50"
-    if (p >= 6) return "text-orange-600 bg-orange-50"
-    if (p >= 4) return "text-yellow-600 bg-yellow-50"
-    return "text-blue-600 bg-blue-50"
-  }
-
-  const getPriorityLabel = (p: number) => {
-    if (p >= 8) return "Urgent"
-    if (p >= 6) return "High"
-    if (p >= 4) return "Medium"
-    return "Low"
-  }
-
-  // ✅ FIX: Added a type guard to ensure `sensorBase` is not undefined.
-  const relevantTemplates = useMemo(() => {
-    const templates: any[] = []
-    Object.entries(QUICK_TEMPLATES).forEach(([category, categoryTemplates]) => {
-      categoryTemplates.forEach(template => {
-        const sensorBase = template.sensor.split('.')[0]
-        if (sensorBase && (availableSenses.includes(template.sensor) || availableSenses.includes(sensorBase))) {
-          templates.push({ ...template, category })
-        }
-      })
-    })
-    return templates
-  }, [availableSenses])
-
   return (
-    // ... The rest of the component JSX remains the same
     <div className="space-y-8">
       {/* Quick Templates */}
       {relevantTemplates.length > 0 && (
@@ -518,7 +271,6 @@ export function RuleBuilder({
         </>
       )}
 
-
       {/* Active Rules List */}
       {existingRules.length > 0 && (
         <Card className="border-2 border-purple-100">
@@ -532,94 +284,15 @@ export function RuleBuilder({
             </CardDescription>
           </CardHeader>
           <CardContent className="p-6 space-y-4">
-            {existingRules.map((rule) => {
-              const sensorConfig = getSensorConfig(rule.trigger.sensor || '')
-              return (
-                <div
-                  key={rule.id}
-                  className="group relative p-5 rounded-2xl border-2 border-gray-200 hover:border-purple-300 bg-gradient-to-r from-white to-gray-50 hover:from-purple-50 hover:to-blue-50 transition-all duration-300"
-                >
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-start gap-4 flex-1">
-                      <div className="text-3xl p-2 bg-white rounded-xl shadow-sm group-hover:scale-110 transition-transform">
-                        {sensorConfig?.icon || '📊'}
-                      </div>
-                      <div className="flex-1 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <h4 className="font-semibold text-lg text-gray-800">{rule.name}</h4>
-                          <div className="flex items-center gap-2">
-                            {rule.enabled ? (
-                              <span className="text-xs bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium flex items-center gap-1">
-                                <CheckCircle2 className="w-3 h-3" /> Active
-                              </span>
-                            ) : (
-                              <span className="text-xs bg-gray-100 text-gray-700 px-3 py-1 rounded-full font-medium">
-                                Inactive
-                              </span>
-                            )}
-                            <span className={cn(
-                              "text-xs px-2 py-1 rounded-full font-medium",
-                              getPriorityColor(rule.priority || 5)
-                            )}>
-                              {getPriorityLabel(rule.priority || 5)}
-                            </span>
-                          </div>
-                        </div>
-                        <div className="bg-white/70 p-3 rounded-lg border border-gray-200">
-                          <p className="text-sm text-gray-700 mb-1">
-                            <span className="font-medium">IF</span>{" "}
-                            {sensorConfig?.name || rule.trigger.sensor}{" "}
-                            {OPERATOR_LABELS[rule.trigger.operator || '==']}{" "}
-                            <span className="font-semibold text-purple-600">
-                              {sensorConfig?.type === 'enum' && sensorConfig.enumValues
-                                ? sensorConfig.enumValues.find(e => e.value === rule.trigger.value)?.label || rule.trigger.value
-                                : rule.trigger.value}
-                              {sensorConfig?.unit ? ` ${sensorConfig.unit}` : ''}
-                            </span>
-                          </p>
-                          <p className="text-sm text-gray-700">
-                            <span className="font-medium">THEN:</span>{" "}
-                            <span className="italic">"{rule.action.message}"</span>
-                          </p>
-                          {rule.trigger.cooldown && (
-                            <p className="text-xs text-gray-500 mt-2 flex items-center gap-1">
-                              <Timer className="w-3 h-3" />
-                              Cooldown: {Math.floor(rule.trigger.cooldown / 60)}m {rule.trigger.cooldown % 60}s
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => onEditRule?.(rule)}
-                        className="opacity-0 group-hover:opacity-100 p-2"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </Button>
-                      {onToggleRule && (
-                        <Switch
-                          checked={rule.enabled}
-                          onCheckedChange={(ch) => rule.id && onToggleRule(rule.id, ch)}
-                        />
-                      )}
-                      {onDeleteRule && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => rule.id && onDeleteRule(rule.id)}
-                          className="opacity-0 group-hover:opacity-100 text-red-600 hover:text-red-700 hover:bg-red-50 p-2"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            {existingRules.map((rule) => (
+              <RuleCard
+                key={rule.id}
+                rule={rule}
+                onEdit={onEditRule}
+                onToggle={onToggleRule}
+                onDelete={onDeleteRule}
+              />
+            ))}
           </CardContent>
         </Card>
       )}
@@ -778,16 +451,19 @@ export function RuleBuilder({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {[1,2,3,4,5,6,7,8,9,10].map((p) => (
-                    <SelectItem key={p} value={p.toString()}>
-                      <div className="flex items-center gap-2">
-                        <span className={cn("text-xs px-2 py-0.5 rounded", getPriorityColor(p))}>
-                          {getPriorityLabel(p)}
-                        </span>
-                        <span>Priority {p}</span>
-                      </div>
-                    </SelectItem>
-                  ))}
+                  {[1,2,3,4,5,6,7,8,9,10].map((p) => {
+                    const config = getPriorityConfig(p)
+                    return (
+                      <SelectItem key={p} value={p.toString()}>
+                        <div className="flex items-center gap-2">
+                          <span className={cn("text-xs px-2 py-0.5 rounded", config.color, config.bgColor)}>
+                            {config.label}
+                          </span>
+                          <span>Priority {p}</span>
+                        </div>
+                      </SelectItem>
+                    )
+                  })}
                 </SelectContent>
               </Select>
             </div>

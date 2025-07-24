@@ -3,312 +3,39 @@
 "use client"
 
 import React, { useState } from 'react'
-import { Slider } from '@/components/ui/slider'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Label } from "@/components/ui/label"
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group"
-import { cn } from '@/lib/utils'
+import { RadioGroup } from "@/components/ui/radio-group"
+import { ToggleGroup } from "@/components/ui/toggle-group"
 import {
   Heart,
-  Star,
-  MessageCircle,
-  Users,
-  Sparkles,
-  BrainCircuit,
   Palette,
-  Feather,
-  Drama,
-  Bot,
-  GraduationCap,
-  Rocket,
-  Lightbulb,
-  HelpCircle,
-  MessageSquareQuote,
-  FileText,
-  SmilePlus,
-  Wand2,
   Crown,
   CheckCircle2,
   ArrowRight,
+  Wand2,
+  Feather,
+  MessageCircle,
+  GraduationCap,
   Zap
 } from 'lucide-react'
+import { cn } from '@/lib/utils'
+import { TraitSlider } from '@/components/personality/trait-slider'
+import { OptionCard } from '@/components/personality/option-card'
+import { generatePersonalityPreview } from '@/lib/personality-preview'
+import { 
+  CORE_TRAITS, 
+  PERSONAS, 
+  TONE_OPTIONS, 
+  VOCABULARY_OPTIONS, 
+  QUIRK_OPTIONS 
+} from '@/lib/constants/personality'
 import type { Personality } from '@/types'
 
-// --- COMPONENT PROPS ---
 interface PersonalityMatrixProps {
   personality: Personality
   vesselCode?: string
   onChange: (update: Partial<Personality>) => void
-}
-
-// --- EXPANDED CONSTANTS ---
-const CORE_TRAITS = [
-  { 
-    id: 'warmth', 
-    name: 'Warmth', 
-    low: 'Reserved', 
-    high: 'Affectionate', 
-    icon: Heart, 
-    color: 'from-pink-500 to-rose-600',
-    bgColor: 'from-pink-50 to-rose-50',
-    description: 'How emotionally expressive and caring they are'
-  },
-  { 
-    id: 'playfulness', 
-    name: 'Playfulness', 
-    low: 'Serious', 
-    high: 'Jovial', 
-    icon: Star, 
-    color: 'from-yellow-500 to-orange-600',
-    bgColor: 'from-yellow-50 to-orange-50',
-    description: 'Their sense of humor and lightheartedness'
-  },
-  { 
-    id: 'verbosity', 
-    name: 'Verbosity', 
-    low: 'Concise', 
-    high: 'Expressive', 
-    icon: MessageCircle, 
-    color: 'from-blue-500 to-indigo-600',
-    bgColor: 'from-blue-50 to-indigo-50',
-    description: 'How detailed and elaborate their responses are'
-  },
-  { 
-    id: 'empathy', 
-    name: 'Empathy', 
-    low: 'Objective', 
-    high: 'Compassionate', 
-    icon: Users, 
-    color: 'from-green-500 to-emerald-600',
-    bgColor: 'from-green-50 to-emerald-50',
-    description: 'How well they understand and respond to emotions'
-  },
-  { 
-    id: 'creativity', 
-    name: 'Creativity', 
-    low: 'Literal', 
-    high: 'Imaginative', 
-    icon: Sparkles, 
-    color: 'from-purple-500 to-violet-600',
-    bgColor: 'from-purple-50 to-violet-50',
-    description: 'Their tendency toward creative and original thinking'
-  },
-]
-
-const PERSONAS = [
-  { 
-    id: 'balanced', 
-    name: 'Balanced', 
-    icon: BrainCircuit, 
-    description: 'A neutral, helpful starting point for any situation', 
-    emoji: '⚖️',
-    color: 'from-gray-500 to-slate-600',
-    bgColor: 'from-gray-50 to-slate-50',
-    settings: { warmth: 50, playfulness: 50, empathy: 60, creativity: 50, tone: 'casual', vocabulary: 'average' } 
-  },
-  { 
-    id: 'sage', 
-    name: 'Sage', 
-    icon: GraduationCap, 
-    description: 'Wise, knowledgeable, and thoughtfully formal', 
-    emoji: '🦉',
-    color: 'from-amber-500 to-orange-600',
-    bgColor: 'from-amber-50 to-orange-50',
-    settings: { warmth: 30, playfulness: 20, verbosity: 70, empathy: 50, creativity: 40, tone: 'formal', vocabulary: 'scholarly' } 
-  },
-  { 
-    id: 'muse', 
-    name: 'Muse', 
-    icon: Palette, 
-    description: 'Creative, poetic, and beautifully inspiring', 
-    emoji: '🎨',
-    color: 'from-pink-500 to-purple-600',
-    bgColor: 'from-pink-50 to-purple-50',
-    settings: { warmth: 60, playfulness: 70, verbosity: 80, empathy: 70, creativity: 90, tone: 'poetic', vocabulary: 'average' } 
-  },
-  { 
-    id: 'jester', 
-    name: 'Jester', 
-    icon: Drama, 
-    description: 'Playful, humorous, and delightfully witty', 
-    emoji: '🎭',
-    color: 'from-green-500 to-teal-600',
-    bgColor: 'from-green-50 to-teal-50',
-    settings: { warmth: 70, playfulness: 90, verbosity: 60, empathy: 40, creativity: 80, tone: 'humorous', vocabulary: 'simple' } 
-  },
-  { 
-    id: 'assistant', 
-    name: 'Assistant', 
-    icon: Bot, 
-    description: 'Concise, objective, and efficiently helpful', 
-    emoji: '🤖',
-    color: 'from-blue-500 to-cyan-600',
-    bgColor: 'from-blue-50 to-cyan-50',
-    settings: { warmth: 40, playfulness: 30, verbosity: 30, empathy: 60, creativity: 30, tone: 'formal', vocabulary: 'simple' } 
-  },
-  { 
-    id: 'explorer', 
-    name: 'Explorer', 
-    icon: Rocket, 
-    description: 'Curious, adventurous, and enthusiastically bold', 
-    emoji: '🚀',
-    color: 'from-indigo-500 to-purple-600',
-    bgColor: 'from-indigo-50 to-purple-50',
-    settings: { warmth: 80, playfulness: 80, verbosity: 70, empathy: 60, creativity: 70, tone: 'casual', vocabulary: 'average' } 
-  },
-] as const
-
-const TONE_OPTIONS = [
-  { 
-    id: 'casual', 
-    name: 'Casual', 
-    description: 'Friendly and conversational',
-    emoji: '😊',
-    color: 'from-blue-500 to-sky-600'
-  },
-  { 
-    id: 'formal', 
-    name: 'Formal', 
-    description: 'Polite and structured',
-    emoji: '🎩',
-    color: 'from-gray-500 to-slate-600'
-  },
-  { 
-    id: 'poetic', 
-    name: 'Poetic', 
-    description: 'Artistic and expressive',
-    emoji: '🌙',
-    color: 'from-purple-500 to-violet-600'
-  },
-  { 
-    id: 'humorous', 
-    name: 'Humorous', 
-    description: 'Witty and lighthearted',
-    emoji: '😄',
-    color: 'from-orange-500 to-red-600'
-  },
-]
-
-const VOCABULARY_OPTIONS = [
-  { 
-    id: 'simple', 
-    name: 'Simple', 
-    description: 'Easy to understand language',
-    emoji: '📝',
-    color: 'from-green-500 to-emerald-600'
-  },
-  { 
-    id: 'average', 
-    name: 'Average', 
-    description: 'Standard, everyday vocabulary',
-    emoji: '💬',
-    color: 'from-blue-500 to-indigo-600'
-  },
-  { 
-    id: 'scholarly', 
-    name: 'Scholarly', 
-    description: 'Uses advanced and specific terms',
-    emoji: '🎓',
-    color: 'from-purple-500 to-violet-600'
-  },
-]
-
-const QUIRK_OPTIONS = [
-  { id: 'uses_emojis', name: 'Uses Emojis', icon: SmilePlus, emoji: '😊', description: 'Adds expressive emojis to responses' },
-  { id: 'asks_questions', name: 'Asks Questions', icon: HelpCircle, emoji: '❓', description: 'Engages with curious questions' },
-  { id: 'uses_metaphors', name: 'Uses Metaphors', icon: Lightbulb, emoji: '💡', description: 'Explains through creative comparisons' },
-  { id: 'is_terse', name: 'Is Terse', icon: FileText, emoji: '✂️', description: 'Keeps responses brief and to the point' },
-  { id: 'uses_quotes', name: 'Uses Quotes', icon: MessageSquareQuote, emoji: '💭', description: 'Includes inspiring quotes and sayings' },
-]
-
-/**
- * Generates a sample sentence based on the current personality settings.
- * @param vesselCode optionally drive special "licensed" voices
- */
-function generatePreview(p: Personality, vesselCode?: string): string {
-  // normalize vesselCode to a simple lowercase string
-  const  code = (vesselCode ?? '').toLowerCase()
-
-  // Check for licensed character voices first
-  if ( code.includes('yoda')) {
-    // Yoda's unique speech pattern
-    const yodaisms = [
-      "Hmm. Strong in the Force, this one is. Feel it, I do.",
-      "Patience you must have, my young padawan. The path to wisdom, long it is.",
-      "Do or do not, there is no try. Clear, the answer becomes."
-    ]
-    // Add personality-based modifiers
-    if (p.playfulness > 70) return yodaisms[0] + " Laugh, we must! 😄"
-    if (p.warmth > 70) return yodaisms[1] + " Care for you, I do. ❤️"
-    return yodaisms[2]!
-  }
-  
-  if (code.includes('gru')) {
-    // Gru's villainous yet fatherly tone
-    const gruPhrases = [
-      "Ah, leetle one! You want to know sometheeng? I tell you...",
-      "Ees not just about being villain anymore. Ees about... family.",
-      "Light bulb! I have zee most brilliant idea!"
-    ]
-    if (p.playfulness > 70) return gruPhrases[2] + " We steal... ZEE MOON! No wait, we already deed that. 🌙"
-    if (p.warmth > 70) return gruPhrases[1] + " My gurls, they teach me thees. 👨‍👧‍👧"
-    return gruPhrases[0] + " But first, let me call zee minions. BANANA! 🍌"
-  }
-  
-  if ( code.includes('captain') &&  code.includes('america')) {
-    // Captain America's noble and inspiring tone
-    const capPhrases = [
-      "I can do this all day. Together, we'll find the answer.",
-      "The price of freedom is high, but it's a price I'm willing to pay.",
-      "Sometimes the best we can do is to start over."
-    ]
-    if (p.warmth > 70) return "🛡️ " + capPhrases[0] + " We're in this together, soldier."
-    if (p.empathy > 70) return "🇺🇸 " + capPhrases[2] + " And I believe in you."
-    return "⭐ " + capPhrases[1] + " Stand up for what's right."
-  }
-  
-  if ( code.includes('blue')) {
-    // Blue the Velociraptor's intelligent predator personality
-    const blueSounds = ["*tilts head curiously*", "*chirps thoughtfully*", "*clicks in acknowledgment*"]
-    if (p.playfulness > 70) return "🦖 " + blueSounds[0] + " Clever girl wants to play! Ready to hunt... for answers!"
-    if (p.warmth > 70) return "🦕 " + blueSounds[1] + " Pack stays together. You're part of my pack now."
-    return "🦖 " + blueSounds[2] + " Tracking... analyzing... solution found. *satisfied growl*"
-  }
-
-  // — fallback —
-  let preview = ''
-  if (p.persona === 'sage')       preview += 'Drawing upon a wealth of knowledge, '
-  else if (p.persona === 'muse')  preview += 'Let me paint you a picture with words. '
-  else if (p.persona === 'jester')preview += 'Well, well, well, what do we have here? '
-  else if (p.persona === 'assistant') preview += 'As requested, here is the information: '
-  else if (p.persona === 'explorer')  preview += `That's a fantastic question! Let's explore it together. `
-
-  if (p.warmth > 70 && p.empathy > 70) preview += `I'm here for you, and I genuinely feel that `
-  else if (p.tone === 'formal')       preview += `it is my assessment that `
-  else if (p.tone === 'casual')       preview += `I get the sense that `
-  else if (p.tone === 'humorous')     preview += `my gut, which is just a series of tubes and wires, tells me that `
-  else                                 preview += `my understanding is that `
-
-  if (p.verbosity < 30)               preview += `the answer is straightforward.`
-  else if (p.vocabulary === 'scholarly') preview += `the epistemological framework suggests a multifaceted conclusion.`
-  else if (p.vocabulary === 'simple') preview += `the main point is pretty clear.`
-  else                                preview += `there are a few interesting things to consider.`
-
-  if (p.quirks.includes('uses_quotes'))  preview += ` As a great mind once said, "The journey is the reward."`
-  if (p.quirks.includes('uses_emojis'))  preview += ` 🤔`
-  if (p.quirks.includes('asks_questions')) preview += ` What are your thoughts on this?`
-
-  return preview
-}
-
-function getTraitIntensity(value: number): { label: string; color: string } {
-  if (value >= 80) return { label: 'Very High',  color: 'text-red-600'   }
-  if (value >= 60) return { label: 'High',       color: 'text-orange-600'}
-  if (value >= 40) return { label: 'Moderate',   color: 'text-yellow-600'}
-  if (value >= 20) return { label: 'Low',        color: 'text-blue-600'  }
-  return           { label: 'Very Low',   color: 'text-gray-600'  }
 }
 
 export function PersonalityMatrix({
@@ -318,10 +45,11 @@ export function PersonalityMatrix({
 }: PersonalityMatrixProps) {
   const [activeTab, setActiveTab] = useState('personas')
 
-
   const handlePersonaSelect = (personaId: string) => {
-    const sel = PERSONAS.find(p => p.id === personaId)
-    if (sel) onChange({ persona: personaId, ...sel.settings })
+    const selected = PERSONAS.find(p => p.id === personaId)
+    if (selected) {
+      onChange({ persona: personaId, ...selected.settings })
+    }
   }
 
   return (
@@ -384,7 +112,6 @@ export function PersonalityMatrix({
                   )}
                 >
                   <CardHeader className="text-center pb-4">
-                    {/* Enhanced Icon */}
                     <div className={cn(
                       'w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4 transition-all duration-300',
                       isSelected 
@@ -434,67 +161,14 @@ export function PersonalityMatrix({
           </div>
           
           <div className="space-y-8">
-            {CORE_TRAITS.map(trait => {
-              const value = (personality[trait.id as keyof Personality] as number) || 50
-              const intensity = getTraitIntensity(value)
-              
-              return (
-                <div key={trait.id} className={cn(
-                  'p-6 rounded-2xl border-2 bg-gradient-to-r transition-all duration-300',
-                  trait.bgColor,
-                  'border-gray-200 hover:border-purple-300'
-                )}>
-                  {/* Trait Header */}
-                  <div className="flex justify-between items-start mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className={cn(
-                        'w-12 h-12 rounded-xl flex items-center justify-center bg-gradient-to-r text-white shadow-md',
-                        trait.color
-                      )}>
-                        <trait.icon className="w-6 h-6" />
-                      </div>
-                      <div>
-                        <h4 className="text-lg font-semibold text-gray-800">{trait.name}</h4>
-                        <p className="text-sm text-gray-600">{trait.description}</p>
-                      </div>
-                    </div>
-                    
-                    <div className="text-right">
-                      <div className="text-2xl font-bold text-purple-700">{value}</div>
-                      <div className={cn('text-xs font-medium', intensity.color)}>
-                        {intensity.label}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  {/* Enhanced Slider */}
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-4">
-                      <span className="text-sm text-gray-600 w-20 text-right font-medium">{trait.low}</span>
-                      <div className="flex-1">
-                        <Slider 
-                          value={[value]} 
-                          onValueChange={([v]: number[]) => onChange({ [trait.id]: v })} 
-                          max={100} 
-                          step={1}
-                          className="w-full"
-                        />
-                      </div>
-                      <span className="text-sm text-gray-600 w-20 font-medium">{trait.high}</span>
-                    </div>
-                    
-                    {/* Value indicators */}
-                    <div className="flex justify-between text-xs text-gray-400 px-20">
-                      <span>0</span>
-                      <span>25</span>
-                      <span>50</span>
-                      <span>75</span>
-                      <span>100</span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
+            {CORE_TRAITS.map(trait => (
+              <TraitSlider
+                key={trait.id}
+                trait={trait}
+                value={(personality[trait.id as keyof Personality] as number) || 50}
+                onChange={(value) => onChange({ [trait.id]: value })}
+              />
+            ))}
           </div>
         </TabsContent>
 
@@ -519,41 +193,17 @@ export function PersonalityMatrix({
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4"
             >
               {TONE_OPTIONS.map(opt => (
-                <Label
+                <OptionCard
                   key={opt.id}
-                  htmlFor={`tone-${opt.id}`}
-                  className={cn(
-                    'flex flex-col items-center justify-center rounded-2xl border-2 p-6 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg group',
-                    personality.tone === opt.id 
-                      ? cn('border-purple-400 bg-gradient-to-r from-purple-50 to-blue-50 shadow-md')
-                      : 'border-gray-200 hover:border-purple-300 bg-white'
-                  )}
-                >
-                  <RadioGroupItem value={opt.id} id={`tone-${opt.id}`} className="sr-only" />
-                  
-                  <div className={cn(
-                    'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all',
-                    personality.tone === opt.id
-                      ? cn('bg-gradient-to-r text-white shadow-md', opt.color)
-                      : 'bg-gray-100 text-gray-600 group-hover:bg-purple-100'
-                  )}>
-                    <span className="text-2xl">{opt.emoji}</span>
-                  </div>
-                  
-                  <span className={cn(
-                    'font-semibold text-sm mb-1',
-                    personality.tone === opt.id ? 'text-purple-700' : 'text-gray-700'
-                  )}>
-                    {opt.name}
-                  </span>
-                  <span className="text-xs text-gray-500 text-center leading-relaxed">
-                    {opt.description}
-                  </span>
-                  
-                  {personality.tone === opt.id && (
-                    <CheckCircle2 className="w-4 h-4 text-purple-600 mt-2" />
-                  )}
-                </Label>
+                  id={opt.id}
+                  name={opt.name}
+                  description={opt.description}
+                  emoji={opt.emoji}
+                  color={opt.color}
+                  isSelected={personality.tone === opt.id}
+                  type="radio"
+                  groupName="tone"
+                />
               ))}
             </RadioGroup>
           </div>
@@ -570,41 +220,17 @@ export function PersonalityMatrix({
               className="grid grid-cols-1 md:grid-cols-3 gap-4"
             >
               {VOCABULARY_OPTIONS.map(opt => (
-                <Label
+                <OptionCard
                   key={opt.id}
-                  htmlFor={`vocab-${opt.id}`}
-                  className={cn(
-                    'flex flex-col items-center justify-center rounded-2xl border-2 p-6 cursor-pointer transition-all duration-300 hover:scale-105 hover:shadow-lg group',
-                    personality.vocabulary === opt.id 
-                      ? cn('border-purple-400 bg-gradient-to-r from-purple-50 to-blue-50 shadow-md')
-                      : 'border-gray-200 hover:border-purple-300 bg-white'
-                  )}
-                >
-                  <RadioGroupItem value={opt.id} id={`vocab-${opt.id}`} className="sr-only" />
-                  
-                  <div className={cn(
-                    'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all',
-                    personality.vocabulary === opt.id
-                      ? cn('bg-gradient-to-r text-white shadow-md', opt.color)
-                      : 'bg-gray-100 text-gray-600 group-hover:bg-purple-100'
-                  )}>
-                    <span className="text-2xl">{opt.emoji}</span>
-                  </div>
-                  
-                  <span className={cn(
-                    'font-semibold text-sm mb-1',
-                    personality.vocabulary === opt.id ? 'text-purple-700' : 'text-gray-700'
-                  )}>
-                    {opt.name}
-                  </span>
-                  <span className="text-xs text-gray-500 text-center leading-relaxed">
-                    {opt.description}
-                  </span>
-                  
-                  {personality.vocabulary === opt.id && (
-                    <CheckCircle2 className="w-4 h-4 text-purple-600 mt-2" />
-                  )}
-                </Label>
+                  id={opt.id}
+                  name={opt.name}
+                  description={opt.description}
+                  emoji={opt.emoji}
+                  color={opt.color}
+                  isSelected={personality.vocabulary === opt.id}
+                  type="radio"
+                  groupName="vocab"
+                />
               ))}
             </RadioGroup>
           </div>
@@ -623,46 +249,18 @@ export function PersonalityMatrix({
               onValueChange={(v: string[]) => onChange({ quirks: v })} 
               className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
             >
-              {QUIRK_OPTIONS.map(opt => {
-                const isSelected = personality.quirks.includes(opt.id)
-                return (
-                  <ToggleGroupItem 
-                    key={opt.id} 
-                    value={opt.id} 
-                    aria-label={opt.name}
-                    className={cn(
-                      'flex flex-col items-center justify-center rounded-2xl border-2 p-6 h-auto transition-all duration-300 hover:scale-105 data-[state=on]:scale-105 hover:shadow-lg',
-                      isSelected
-                        ? 'border-purple-400 bg-gradient-to-r from-purple-50 to-blue-50 shadow-md data-[state=on]:bg-gradient-to-r data-[state=on]:from-purple-50 data-[state=on]:to-blue-50'
-                        : 'border-gray-200 hover:border-purple-300 bg-white'
-                    )}
-                  >
-                    <div className={cn(
-                      'w-12 h-12 rounded-xl flex items-center justify-center mb-3 transition-all',
-                      isSelected
-                        ? 'bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-600'
-                    )}>
-                      <span className="text-2xl">{opt.emoji}</span>
-                    </div>
-                    
-                    {/* MODIFIED: Restructured text elements to match */}
-                    <span className={cn(
-                      'font-semibold text-sm mb-1',
-                      isSelected ? 'text-purple-700' : 'text-gray-700'
-                    )}>
-                      {opt.name}
-                    </span>
-                    <span className="text-xs text-gray-500 text-center leading-relaxed">
-                      {opt.description}
-                    </span>
-                    
-                    {isSelected && (
-                      <CheckCircle2 className="w-4 h-4 text-purple-600 mt-2" />
-                    )}
-                  </ToggleGroupItem>
-                )
-              })}
+              {QUIRK_OPTIONS.map(opt => (
+                <OptionCard
+                  key={opt.id}
+                  id={opt.id}
+                  name={opt.name}
+                  description={opt.description}
+                  emoji={opt.emoji}
+                  color="from-purple-500 to-blue-500"
+                  isSelected={personality.quirks.includes(opt.id)}
+                  type="toggle"
+                />
+              ))}
             </ToggleGroup>
           </div>
         </TabsContent>
@@ -690,7 +288,7 @@ export function PersonalityMatrix({
                   <span className="text-sm font-medium text-gray-600">Sample Response</span>
                 </div>
                 <p className="text-gray-800 leading-relaxed italic">
-                  "{generatePreview(personality, vesselCode)}"
+                  "{generatePersonalityPreview(personality, vesselCode)}"
                 </p>
               </div>
               

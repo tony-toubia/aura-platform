@@ -271,61 +271,41 @@ export function AuraCreator() {
                     </p>
                   </div>
 
-                  <div className="max-w-md mx-auto space-y-4">
-                    <div className="relative">
-                      <Input
-                        value={manualInput}
-                        onChange={(e) => {
-                          setManualInput(e.target.value)
-                          setError(null)
-                        }}
-                        placeholder={
-                          !isInputFocused && !manualInput
-                            ? "Scan QR code or manually enter the ID on your vessel or packaging"
-                            : ""
-                        }
-                        onFocus={() => setIsInputFocused(true)}
-                        onBlur={() => setIsInputFocused(false)}
-                        className="text-center text-lg py-6 border-2 border-purple-200 focus:border-purple-400"
-                      />
-                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                        <Scan className="w-5 h-5 text-gray-400" />
-                      </div>
+                <div className="max-w-md mx-auto space-y-4">
+                  <div className="relative">
+                    {/* turn the input into a searchable dropdown */}
+                    <Input
+                      list="vessel-options"
+                      value={manualInput}
+                      onChange={(e) => { setManualInput(e.target.value); setError(null) }}
+                      placeholder="Start typing or paste your vessel ID…"
+                      className="text-center text-lg py-6 border-2 border-purple-200 focus:border-purple-400"
+                    />
+                    <datalist id="vessel-options">
+                      {MANUAL_VESSEL_OPTIONS.map((o) => (
+                        <option key={o.code} value={o.code} label={`${o.code} (${o.type})`} />
+                      ))}
+                    </datalist>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                      <Scan className="w-5 h-5 text-gray-400" />
                     </div>
-
-                    {/* Simulation note */}
-                    <div className="mt-2 p-3 bg-yellow-50 border border-yellow-200 rounded text-sm text-yellow-800">
-                      To simulate ID entry/QR scanning, manually input any of the
-                      following vessel types:
-                      <ul className="list-disc list-inside mt-1 space-y-1">
-                        <li>Terra – Sensor / Terra – Pot</li>
-                        <li>
-                          Companion – Elephant / Companion – Tortoise / Companion –
-                          Lion / Companion – Whale / Companion – Giraffe / Companion
-                          – Shark / Companion – Gorilla
-                        </li>
-                        <li>
-                          Licensed – Yoda / Licensed – Captain America / Licensed –
-                          Blue / Licensed – Gru
-                        </li>
-                      </ul>
-                    </div>
-
-                    {error && (
-                      <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
-                        {error}
-                      </div>
-                    )}
-
-                    <Button
-                      onClick={handleManualSubmit}
-                      disabled={!manualInput.trim()}
-                      size="lg"
-                      className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                    >
-                      Connect Vessel
-                    </Button>
                   </div>
+
+                  {error && (
+                    <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
+                      {error}
+                    </div>
+                  )}
+
+                  <Button
+                    onClick={handleManualSubmit}
+                    disabled={!manualInput.trim()}
+                    size="lg"
+                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  >
+                    Connect Vessel
+                  </Button>
+                </div>
                 </div>
 
                 {/* Divider */}

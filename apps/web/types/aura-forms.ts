@@ -25,7 +25,6 @@ export interface ManualVesselOption {
 }
 
 export const MANUAL_VESSEL_OPTIONS: ManualVesselOption[] = [
-  { code: "terra", type: "terra" },
   { code: "terra - sensor", type: "terra" },
   { code: "terra - pot", type: "terra" },
   { code: "companion", type: "companion" },
