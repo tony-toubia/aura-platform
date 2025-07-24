@@ -2,7 +2,6 @@
 
 "use client"
 
-import { PLANT_DATABASE } from "@/lib/plant-database"
 import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
@@ -12,12 +11,16 @@ import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
 import { RuleBuilder } from "./rule-builder"
 import { PlantSelector } from "./plant-selector"
+import { PLANT_DATABASE } from "@/lib/plant-database"
 import {
   VESSEL_SENSE_CONFIG,
   AVAILABLE_SENSES,
   type VesselTypeId,
   type SenseId,
 } from "@/lib/constants"
+import { VESSEL_TYPE_CONFIG } from "@/lib/vessel-config"
+import { LICENSED_PRESETS } from "@/lib/licensed-presets"
+import { MANUAL_VESSEL_OPTIONS, type AuraFormData, type AuraFormStep } from "@/types/aura-forms"
 import {
   AlertCircle,
   Sparkles,
@@ -26,121 +29,13 @@ import {
   CheckCircle,
   QrCode,
   Scan,
-  Leaf,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Personality } from "@/types"
 
-type Step = "vessel" | "plant" | "senses" | "details" | "rules"
-
-
-interface AuraForm {
-  id: string
-  name: string
-  vesselType: VesselTypeId | ""
-  vesselCode: string
-  plantType?: string
-  personality: Personality
-  senses: SenseId[]
-  rules: BehaviorRule[]
-  selectedStudyId?: string
-  selectedIndividualId?: string
-}
-
-const vesselTypes = [
-  {
-    id: "terra",
-    name: "Terra Spirit",
-    description: "Plant & garden companions that share their growth journey",
-    icon: "🌱",
-    color: "from-green-500 to-emerald-600",
-    bgColor: "from-green-50 to-emerald-50",
-    borderColor: "border-green-200 hover:border-green-400",
-    example: "\"I love this morning sunshine! My leaves are so happy! ☀️\"",
-  },
-  {
-    id: "companion",
-    name: "Companion Spirit",
-    description: "Wildlife trackers that experience adventures in the wild",
-    icon: "🦋",
-    color: "from-blue-500 to-sky-600",
-    bgColor: "from-blue-50 to-sky-50",
-    borderColor: "border-blue-200 hover:border-blue-400",
-    example: "\"The migration is starting! I can feel the change in the air! 🌬️\"",
-  },
-  {
-    id: "digital",
-    name: "Digital Being",
-    description: "Pure consciousness exploring the world through data streams",
-    icon: "✨",
-    color: "from-purple-500 to-violet-600",
-    bgColor: "from-purple-50 to-violet-50",
-    borderColor: "border-purple-200 hover:border-purple-400",
-    example: "\"I've been reading about space exploration! Want to chat about it? 🚀\"",
-  },
-]
-
-const LICENSED_PRESETS: Record<
-  string,
-  { persona: Personality['persona']; settings: Omit<Partial<Personality>, 'persona'> }
-> = {
-  'licensed - yoda': {
-    persona: 'sage',
-    settings: {
-      warmth: 30,
-      playfulness: 20,
-      verbosity: 70,
-      empathy: 50,
-      creativity: 40,
-      tone: 'formal',
-      vocabulary: 'scholarly',
-      quirks: ['asks_questions'],
-    },
-  },
-  'licensed - gru': {
-    persona: 'jester',
-    settings: {
-      warmth: 70,
-      playfulness: 90,
-      verbosity: 60,
-      empathy: 40,
-      creativity: 80,
-      tone: 'humorous',
-      vocabulary: 'simple',
-      quirks: ['uses_metaphors'],
-    },
-  },
-  'licensed - captain america': {
-    persona: 'assistant',
-    settings: {
-      warmth: 40,
-      playfulness: 30,
-      verbosity: 30,
-      empathy: 60,
-      creativity: 30,
-      tone: 'formal',
-      vocabulary: 'simple',
-      quirks: ['is_terse'],
-    },
-  },
-  'licensed - blue': {
-    persona: 'explorer',
-    settings: {
-      warmth: 80,
-      playfulness: 80,
-      verbosity: 70,
-      empathy: 60,
-      creativity: 70,
-      tone: 'casual',
-      vocabulary: 'average',
-      quirks: ['uses_emojis', 'uses_quotes'],
-    },
-  },
-}
-
 export function AuraCreator() {
   const router = useRouter()
-  const [step, setStep] = useState<Step>("vessel")
+  const [step, setStep] = useState<AuraFormStep>("vessel")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -152,7 +47,7 @@ export function AuraCreator() {
   const [manualInput, setManualInput] = useState("")
   const [isInputFocused, setIsInputFocused] = useState(false)
 
-  const [auraData, setAuraData] = useState<AuraForm>({
+  const [auraData, setAuraData] = useState<AuraFormData>({
     id: "",
     name: "",
     vesselType: "",
@@ -183,7 +78,7 @@ export function AuraCreator() {
     }
   }, [step])
 
-  // Reset senses & generate uuids for companion
+  // Apply licensed presets
   useEffect(() => {
     const code = auraData.vesselCode
     if (!code) return
@@ -201,6 +96,7 @@ export function AuraCreator() {
     }
   }, [auraData.vesselCode])
 
+  // Initialize senses and IDs based on vessel type
   useEffect(() => {
     if (!auraData.vesselType) return
 
@@ -213,36 +109,20 @@ export function AuraCreator() {
       individualId = crypto.randomUUID()
     }
 
-      setAuraData(prev => ({
-        ...prev,
-        senses: cfg.defaultSenses,
-        selectedStudyId: studyId,
-        selectedIndividualId: individualId,
-      }))
+    setAuraData(prev => ({
+      ...prev,
+      senses: cfg.defaultSenses,
+      selectedStudyId: studyId,
+      selectedIndividualId: individualId,
+    }))
     setError(null)
-    }, [auraData.vesselType])
+  }, [auraData.vesselType])
 
   const handleManualSubmit = () => {
     const raw = manualInput.trim()
     const val = raw.toLowerCase()
-    const manualOptions: { code: string; type: VesselTypeId }[] = [
-      { code: "terra", type: "terra" },
-      { code: "terra - sensor", type: "terra" },
-      { code: "terra - pot", type: "terra" },
-      { code: "companion", type: "companion" },
-      { code: "companion - elephant", type: "companion" },
-      { code: "companion - tortoise", type: "companion" },
-      { code: "companion - lion", type: "companion" },
-      { code: "companion - whale", type: "companion" },
-      { code: "companion - giraffe", type: "companion" },
-      { code: "companion - shark", type: "companion" },
-      { code: "companion - gorilla", type: "companion" },
-      { code: "licensed - yoda", type: "terra" },
-      { code: "licensed - gru", type: "terra" },
-      { code: "licensed - captain america", type: "terra" },
-      { code: "licensed - blue", type: "terra" },
-    ]
-    const found = manualOptions.find(o => o.code.toLowerCase() === val)
+    const found = MANUAL_VESSEL_OPTIONS.find(o => o.code.toLowerCase() === val)
+    
     if (found) {
       setAuraData((prev) => ({
         ...prev,
@@ -254,7 +134,7 @@ export function AuraCreator() {
       setError(null)
     } else {
       setError(
-        `Vessel not found. Please enter one of: ${manualOptions
+        `Vessel not found. Please enter one of: ${MANUAL_VESSEL_OPTIONS
           .map((o) => `"${o.code}"`)
           .join(", ")}.`
       )
@@ -351,8 +231,10 @@ export function AuraCreator() {
     else if (step === "rules") setStep("details")
   }
 
-  const selectedVessel = vesselTypes.find((v) => v.id === auraData.vesselType)
-  const steps: Step[] = auraData.vesselType === "terra" 
+  const selectedVessel = auraData.vesselType ? VESSEL_TYPE_CONFIG[auraData.vesselType] : null
+  const digitalVessel = VESSEL_TYPE_CONFIG.digital
+  
+  const steps: AuraFormStep[] = auraData.vesselType === "terra" 
     ? ["vessel", "plant", "senses", "details", "rules"]
     : ["vessel", "senses", "details", "rules"]
   const meetButtonText =
@@ -468,25 +350,28 @@ export function AuraCreator() {
                   <div className="max-w-md mx-auto">
                     <button
                       onClick={() => handleVesselSelect("digital")}
-                      className="group relative w-full p-8 rounded-2xl border-3 transition-all duration-300 text-center hover:scale-105 hover:shadow-xl border-purple-200 hover:border-purple-400 bg-gradient-to-br from-purple-50 to-violet-50"
+                      className={cn(
+                        "group relative w-full p-8 rounded-2xl border-3 transition-all duration-300 text-center hover:scale-105 hover:shadow-xl",
+                        digitalVessel.borderColor,
+                        "bg-gradient-to-br",
+                        digitalVessel.bgColor
+                      )}
                     >
                       <div className="space-y-4">
                         <div className="flex items-center justify-center">
-                          <div className="text-6xl mb-2">✨</div>
+                          <div className="text-6xl mb-2">{digitalVessel.icon}</div>
                         </div>
 
                         <div>
                           <h4 className="text-2xl font-bold mb-3 text-purple-800">
-                            Digital Being
+                            {digitalVessel.name}
                           </h4>
                           <p className="text-gray-600 text-sm mb-4">
-                            Pure consciousness exploring the world through data
-                            streams, news, and environmental awareness
+                            {digitalVessel.description}
                           </p>
                           <div className="bg-white/70 p-4 rounded-lg border border-white/50">
                             <p className="text-sm italic text-gray-700">
-                              "I've been reading about space exploration! Want to
-                              chat about it? 🚀"
+                              {digitalVessel.example}
                             </p>
                           </div>
                         </div>
@@ -577,8 +462,7 @@ export function AuraCreator() {
                             <span className="ml-2 text-sm text-gray-500">
                               (
                               {auraData.vesselCode.startsWith("licensed - ")
-                                ? // turn “licensed - yoda” → “Licensed: Yoda”
-                                  `Licensed: ${
+                                ? `Licensed: ${
                                     auraData.vesselCode
                                       .replace("licensed - ", "")
                                       .replace(/\b\w/g, (l) => l.toUpperCase())
@@ -645,12 +529,7 @@ export function AuraCreator() {
                         Connect Your Aura's Senses
                       </h2>
                       <p className="text-gray-600">
-                        Choose how your {selectedVessel?.name}
-                        {auraData.vesselCode &&
-                        selectedVessel?.id !== "digital"
-                          ? ` (${auraData.vesselCode})`
-                          : ""}{" "}
-                        will perceive and understand the world
+                        Choose how your {selectedVessel?.name} will perceive and understand the world
                       </p>
                     </div>
 
@@ -672,13 +551,8 @@ export function AuraCreator() {
                         Shape Their Personality
                       </h2>
                       <p className="text-gray-600">
-                        Give your {selectedVessel?.name}
-                        {auraData.vesselCode &&
-                        selectedVessel?.id !== "digital"
-                          ? ` (${auraData.vesselCode})`
-                          : ""}{" "}
-                        a unique character that will shine through every
-                        interaction
+                        Give your {selectedVessel?.name} a unique character that will
+                        shine through every interaction
                       </p>
                     </div>
 

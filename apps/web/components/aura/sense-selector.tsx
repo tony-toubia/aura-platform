@@ -4,6 +4,7 @@
 
 import React from "react"
 import { AVAILABLE_SENSES, type SenseId, type VesselTypeId } from "@/lib/constants"
+import { TIER_CONFIG } from "@/lib/ui-constants"
 import {
   Cloud,
   Droplets,
@@ -17,7 +18,7 @@ import {
   Zap,
   Eye,
   CheckCircle2,
-  WifiCog,
+  WifiOff,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -57,33 +58,6 @@ const senseIcons: Record<string, React.ComponentType<any>> = {
   calendar: Info,
 }
 
-const tierConfig = {
-  Free: {
-    color: "from-blue-500 to-sky-600",
-    bgColor: "from-blue-50 to-sky-50",
-    textColor: "text-blue-700",
-    borderColor: "border-blue-200",
-    icon: "✨",
-    description: "Available to everyone"
-  },
-  Vessel: {
-    color: "from-green-500 to-emerald-600",
-    bgColor: "from-green-50 to-emerald-50",
-    textColor: "text-green-700",
-    borderColor: "border-green-200",
-    icon: "🔮",
-    description: "Requires physical vessel"
-  },
-  Premium: {
-    color: "from-orange-500 to-red-600",
-    bgColor: "from-orange-50 to-red-50",
-    textColor: "text-orange-700",
-    borderColor: "border-orange-200",
-    icon: "💎",
-    description: "Premium subscription"
-  }
-}
-
 // IDs for connected/synced senses
 const CONNECTED_SENSE_IDS: readonly SenseId[] = [
   'location',
@@ -114,6 +88,16 @@ export function SenseSelector({
   const isSelected = (id: string) =>
     selectedSenses.includes(normalizeSenseId(id) as SenseId)
 
+  // Map tier names to our config - handle both casing
+  const getTierConfig = (tier: string) => {
+    const normalizedTier = tier.toLowerCase()
+    if (normalizedTier === 'free') return TIER_CONFIG.free
+    if (normalizedTier === 'vessel') return TIER_CONFIG.vessel
+    if (normalizedTier === 'premium') return TIER_CONFIG.premium
+    if (normalizedTier === 'personal') return TIER_CONFIG.personal
+    return TIER_CONFIG.free // default
+  }
+
   return (
     <div className="space-y-8">
       {/* Header */}
@@ -124,7 +108,7 @@ export function SenseSelector({
           </div>
         </div>
         <div className="flex justify-center gap-3">
-          {Object.entries(tierConfig).map(([tier, config]) => (
+          {Object.entries(TIER_CONFIG).slice(0, 3).map(([tier, config]) => (
             <div key={tier} className={cn(
               "flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium bg-gradient-to-r",
               config.bgColor,
@@ -141,21 +125,14 @@ export function SenseSelector({
       {requiredSenses.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Lock className="w-5 h-5 text-green-600" />
+            <Lock className="w-5 h-5 text-blue-600" />
             <h3 className="text-lg font-semibold">Essential Senses</h3>
             <span className="text-sm text-gray-500">(Always enabled)</span>
           </div>
-
-          {/*<div className="p-4 bg-green-50 rounded-lg border border-green-200 mb-4">
-            <p className="text-sm text-green-800">
-              <strong>Vital sensors, built into your vessel</strong> - sensing conditions and creating life-like context.
-            </p>
-          </div>*/}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {requiredSenses.map(sense => {
               const Icon = senseIcons[sense.id] ?? Info
-              const tierInfo = tierConfig[sense.tier as keyof typeof tierConfig]
+              const tierInfo = getTierConfig(sense.tier)
               return (
                 <div key={sense.id} className={cn(
                   "relative p-5 rounded-2xl border-2 bg-gradient-to-br",
@@ -163,7 +140,7 @@ export function SenseSelector({
                   tierInfo.borderColor,
                   "opacity-90"
                 )}>
-                  {/* ✅ MODIFIED: Group icons in the top-right corner */}
+                  {/* Group icons in the top-right corner */}
                   <div className="absolute top-3 right-3 flex items-center gap-2">
                     <Lock className="w-4 h-4 text-gray-500" />
                     <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -177,7 +154,6 @@ export function SenseSelector({
                       <Icon className="w-6 h-6" />
                     </div>
                     <div className="flex-1">
-                      {/* ✅ MODIFIED: Removed the CheckCircle2 icon from the title */}
                       <h4 className="font-semibold text-gray-800 mb-1">{sense.name}</h4>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
                       <span className={cn(
@@ -200,22 +176,15 @@ export function SenseSelector({
       {optionalSenses.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-blue-600" />
+            <Sparkles className="w-5 h-5 text-green-600" />
             <h3 className="text-lg font-semibold">Additional Senses</h3>
             <span className="text-sm text-gray-500">(Choose what feels right)</span>
           </div>
-
-          {/* <div className="p-4 bg-blue-50 rounded-lg border border-blue-200 mb-4">
-            <p className="text-sm text-blue-800">
-              <strong>Enriched cultural context</strong> - makes your Aura aware of what matters to you, creating more relevant conversations.
-            </p>
-          </div> */}
-
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {optionalSenses.map(sense => {
               const Icon = senseIcons[sense.id] ?? Info
               const active = isSelected(sense.id)
-              const tierInfo = tierConfig[sense.tier as keyof typeof tierConfig]
+              const tierInfo = getTierConfig(sense.tier)
               return (
                 <button
                   key={sense.id}
@@ -223,8 +192,8 @@ export function SenseSelector({
                   className={cn(
                     "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
                     active
-                      ? "border-blue-400 bg-gradient-to-br from-blue-50 to-blue-50 shadow-md"
-                      : cn("border-gray-200 hover:border-blue-300 bg-white", tierInfo.bgColor)
+                      ? "border-green-400 bg-gradient-to-br from-green-50 to-blue-50 shadow-md"
+                      : cn("border-gray-200 hover:border-green-300 bg-white", tierInfo.bgColor)
                   )}
                 >
                   {active && (
@@ -263,8 +232,8 @@ export function SenseSelector({
                         <div className={cn(
                           "text-xs px-2 py-1 rounded-full transition-all",
                           active 
-                            ? "bg-blue-100 text-blue-700" 
-                            : "bg-gray-100 text-gray-600 group-hover:bg-blue-50 group-hover:text-blue-600"
+                            ? "bg-green-100 text-green-700" 
+                            : "bg-gray-100 text-gray-600 group-hover:bg-green-50 group-hover:text-green-600"
                         )}>
                           {active ? "Connected" : "Click to add"}
                         </div>
@@ -278,28 +247,28 @@ export function SenseSelector({
         </div>
       )}
 
-{/* Connected Senses */}
+      {/* Connected Senses */}
       {connectedSenses.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <WifiCog className="w-5 h-5 text-orange-600" />
+            <WifiOff className="w-5 h-5 text-orange-600" />
             <h3 className="text-lg font-semibold">Personal Connected Senses</h3>
             <span className="text-sm text-gray-500">(About you, not your vessel)</span>
           </div>
           
-          {/* <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 mb-4">
+          <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 mb-4">
             <p className="text-sm text-orange-800">
               <strong>These sensors share data about YOU with your Aura</strong> - your sleep patterns, fitness activities, 
               calendar events, and location. This helps your Aura understand your daily life and provide more 
               personalized, context-aware responses.
             </p>
-          </div> */}
+          </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {connectedSenses.map(sense => {
               const Icon = senseIcons[sense.id] ?? Info
               const active = isSelected(sense.id)
-              const tierInfo = tierConfig.Premium
+              const tierInfo = getTierConfig(sense.tier)
               return (
                 <button
                   key={sense.id}
@@ -313,7 +282,7 @@ export function SenseSelector({
                 >
                   {active && (
                     <div className="absolute top-3 right-3">
-                      <CheckCircle2 className="w-5 h-5 text-green-600" />
+                      <CheckCircle2 className="w-5 h-5 text-orange-600" />
                     </div>
                   )}
                   <div className="flex items-start gap-4">
@@ -350,7 +319,7 @@ export function SenseSelector({
                             ? "bg-orange-100 text-orange-700" 
                             : "bg-gray-100 text-gray-600 group-hover:bg-orange-50 group-hover:text-orange-600"
                         )}>
-                          {active ? "Connected" : "Click to add"}
+                          {active ? "Connected" : "Click to sync"}
                         </div>
                       </div>
                     </div>

@@ -278,10 +278,10 @@ const companionOptions = animalOptions.filter(opt =>
 )
 
 export default function VesselsPage() {
-  const [selectedPlush, setSelectedPlush] = useState(animalOptions[0]?.id ?? "")
-  const [selectedFigurine, setSelectedFigurine] = useState(animalOptions[0]?.id ?? "")
-  const [selectedBracelet, setSelectedBracelet] = useState(companionOptions[0]?.id ?? "")
-  const [selectedPlantSensor, setSelectedPlantSensor] = useState(animalOptions[7]?.id ?? "") // Default to T-Rex
+  const [selectedPlush, setSelectedPlush] = useState("elephant")
+  const [selectedFigurine, setSelectedFigurine] = useState("lion")
+  const [selectedBracelet, setSelectedBracelet] = useState("whale")
+  const [selectedPlantSensor, setSelectedPlantSensor] = useState("trex")
 
   const getAnimal = (id: string) =>
     animalOptions.find((a) => a.id === id) ?? animalOptions[0]
@@ -373,36 +373,21 @@ export default function VesselsPage() {
                     <Card
                       key={v.id}
                       className={cn(
-                        "flex flex-col h-full transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] min-w-0 max-w-full",
+                        "relative",
+                        "flex flex-col items-center text-center h-full transition-all duration-300",
+                        "hover:shadow-2xl hover:scale-[1.02]",
                         section.border,
-                        "border-2 group"
+                        "border-2 bg-white group overflow-hidden"
                       )}
                     >
-                      <CardHeader className="pb-4">
-                        <div className="flex items-center justify-between mb-3">
-                          <div
-                            className={cn(
-                              "text-6xl transition-transform duration-300 group-hover:scale-110",
-                              isPlantSensor && "relative inline-block"
-                            )}
-                          >
-                            {selected!.icon}
-                            {isPlantSensor && (
-                              <Leaf className="w-6 h-6 text-green-500 absolute -bottom-1 -right-1" />
-                            )}
-                          </div>
-                          <span
-                            className={cn(
-                              "px-2 py-1 rounded-full text-xs font-medium",
-                              section.bg,
-                              section.text
-                            )}
-                          >
-                            {v.type}
-                          </span>
+                      <CardHeader className="flex flex-col items-center pb-4">
+                        <div className="relative text-6xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                          {selected!.icon}
+                          {isPlantSensor && (
+                            <Leaf className="w-6 h-6 text-green-500 absolute -bottom-1 -right-1" />
+                          )}
                         </div>
-
-                        <CardTitle className="mt-2 text-xl line-clamp-2">
+                        <CardTitle className="text-xl">
                           {isPlush
                             ? `${selected!.label} Plush`
                             : isFigurine
@@ -411,13 +396,12 @@ export default function VesselsPage() {
                             ? `${selected!.label} Bracelet`
                             : `${selected!.label} Plant Guardian`}
                         </CardTitle>
-
-                        <CardDescription className="text-sm text-center line-clamp-3">
+                        <CardDescription className="text-sm mt-2">
                           {v.description}
                         </CardDescription>
                       </CardHeader>
 
-                      <CardContent className="flex-1 flex flex-col p-6 pt-0 min-w-0">
+                      <CardContent className="flex-1 flex flex-col items-center justify-between w-full px-6">
                         {/* Animal Selector */}
                         <div className="mb-4 min-w-0">
                           <div className="text-xs text-gray-500 mb-2 text-center font-medium">
@@ -457,13 +441,13 @@ export default function VesselsPage() {
                         </div>
 
                         {/* Features */}
-                        <ul className="space-y-1 mb-4 min-w-0">
+                        <ul className="space-y-1 mb-4 w-full">
                           {v.features.map((feat, i) => (
-                            <li key={i} className="text-sm flex items-center min-w-0">
+                            <li key={i} className="text-sm flex items-center">
                               <span
                                 className={cn(
                                   "w-1.5 h-1.5 rounded-full mr-2 flex-shrink-0",
-                                  isPlantSensor ? "bg-green-500" : "bg-purple-500"
+                                  isPlantSensor ? "bg-green-500" : "bg-blue-500"
                                 )}
                               />
                               <span className="truncate">{feat}</span>
@@ -471,20 +455,119 @@ export default function VesselsPage() {
                           ))}
                         </ul>
 
-                        {/* Price and Button */}
-                <div className="mt-auto space-y-3 min-w-0">
+                        {/* Price + Button */}
+                        <div className="mt-auto w-full space-y-3">
+                          <div className="flex items-baseline justify-between">
+                            <span
+                              className={cn(
+                                "text-2xl font-bold",
+                                isPlantSensor ? "text-green-700" : section.text
+                              )}
+                            >
+                              {v.price}
+                            </span>
+                            <span className="text-xs text-gray-500">+ shipping</span>
+                          </div>
+                          <Link href={href} className="block w-full">
+                            <Button
+                              size="lg"
+                              className={cn(
+                                "w-full text-white bg-gradient-to-r",
+                                isPlantSensor
+                                  ? "from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                                  : section.gradient
+                              )}
+                            >
+                              <ShoppingBag className="w-4 h-4 mr-2" />
+                              <span className="truncate">
+                                Buy {selected!.label}{" "}
+                                {isPlantSensor
+                                  ? "Guardian"
+                                  : isPlush
+                                  ? "Plush"
+                                  : isFigurine
+                                  ? "Figurine"
+                                  : "Bracelet"}
+                              </span>
+                            </Button>
+                          </Link>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )}
+
+        // Licensed Character Cards
+        if (v.isLicensed) {
+          return (
+            <Card
+              key={v.id}
+              className={cn(
+                "flex flex-col items-center text-center h-full transition-all duration-300",
+                "hover:shadow-2xl hover:scale-[1.02]",
+                "border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50",
+                "group relative overflow-hidden"
+              )}
+            >
+              {/* license badge */}
+              <div className="absolute top-3 right-3 z-10">
+                <Badge
+                  variant="secondary"
+                  className="bg-yellow-100 text-yellow-800 border-yellow-300"
+                >
+                  {v.licenseTag}
+                </Badge>
+              </div>
+
+              <CardHeader className="flex flex-col items-center pb-4">
+                {/* icon */}
+                <div className="text-6xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                  {v.icon}
+                </div>
+                {/* title & desc */}
+                <CardTitle className="text-xl">{v.name}</CardTitle>
+                <CardDescription className="text-sm mt-2">
+                  {v.description}
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="flex-1 flex flex-col items-center justify-between">
+                {/* personality preset */}
+                {v.personalityPreset && (
+                  <div className="mb-4 p-3 bg-white/80 rounded-lg border border-yellow-200 w-full">
+                    <div className="text-xs font-medium text-yellow-700 mb-1">
+                      Preset: {v.personalityPreset.name}
+                    </div>
+                    <div className="text-xs text-gray-600">
+                      {v.personalityPreset.description}
+                    </div>
+                  </div>
+                )}
+
+                {/* features */}
+                <ul className="space-y-1 mb-4 w-full">
+                  {v.features.map((feat, i) => (
+                    <li key={i} className="text-sm flex items-center">
+                      <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-2 flex-shrink-0" />
+                      <span className="truncate">{feat}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* price & button */}
+                <div className="mt-auto w-full space-y-3">
                   <div className="flex items-baseline justify-between">
-                    <span className={cn("text-2xl font-bold", isPlantSensor ? "text-green-700" : section.text)}>
+                    <span className="text-2xl font-bold text-orange-700">
                       {v.price}
                     </span>
-                    <span className="text-xs text-gray-500">+ shipping</span>
+                    <span className="text-xs text-gray-500">Limited Edition</span>
                   </div>
-                  <Link href={href} className="block">
-                    <Button size="lg" className={cn("w-full bg-gradient-to-r text-white", isPlantSensor ? "from-green-600 to-emerald-600" : "from-purple-600 to-blue-600") }>
-                      <ShoppingBag className="w-4 h-4 mr-2" />
-                      <span className="truncate">
-                        Buy {selected!.label} {isPlantSensor ? "Guardian" : isPlush ? "Plush" : isFigurine ? "Figurine" : isBracelet ? "Bracelet" : ""}
-                      </span>
+                  <Link href={v.href} className="block w-full">
+                    <Button
+                      size="lg"
+                      className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
+                    >
+                      <Award className="w-4 h-4 mr-2" />
+                      Get {v.name.split(" ")[0]}
                     </Button>
                   </Link>
                 </div>
@@ -493,150 +576,58 @@ export default function VesselsPage() {
           )
         }
 
-                // Licensed Character Cards
-                if (v.isLicensed) {
-                  return (
-                    <Card
-                      key={v.id}
-                      className={cn(
-                        "flex flex-col h-full transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] min-w-0 max-w-full",
-                        "border-2 border-yellow-300 bg-gradient-to-br from-yellow-50 to-orange-50",
-                        "group relative overflow-hidden"
-                      )}
-                    >
-                      {/* License Badge */}
-                      <div className="absolute top-3 right-3 z-10">
-                        <Badge variant="secondary" className="bg-yellow-100 text-yellow-800 border-yellow-300">
-                          {v.licenseTag}
-                        </Badge>
-                      </div>
-                      
-                      <CardHeader className="pb-2">
-                        <div className="flex items-center justify-center mb-3">
-                          <div className="text-5xl transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-                            {v.icon}
-                          </div>
-                        </div>
-                        <CardTitle className="text-xl text-center line-clamp-2">{v.name}</CardTitle>
-                        <CardDescription className="text-sm text-center line-clamp-3 mt-2">
-                          {v.description}
-                        </CardDescription>
-                      </CardHeader>
-                      
-                      <CardContent className="flex-1 flex flex-col min-w-0">
-                        {/* Personality Preset */}
-                        {v.personalityPreset && (
-                          <div className="mb-4 p-3 bg-white/80 rounded-lg border border-yellow-200">
-                            <div className="text-xs font-medium text-yellow-700 mb-1">
-                              Preset Personality: {v.personalityPreset.name}
-                            </div>
-                            <div className="text-xs text-gray-600">
-                              {v.personalityPreset.description}
-                            </div>
-                          </div>
-                        )}
-                        
-                        {/* Features */}
-                        <ul className="space-y-1 mb-4 min-w-0">
-                          {v.features.map((feat, i) => (
-                            <li key={i} className="text-sm flex items-center min-w-0">
-                              <span className="w-1.5 h-1.5 bg-yellow-500 rounded-full mr-2 flex-shrink-0" />
-                              <span className="truncate">{feat}</span>
-                            </li>
-                          ))}
-                        </ul>
-                        
-                        {/* Price and Button */}
-                        <div className="mt-auto space-y-3 min-w-0">
-                          <div className="flex items-baseline justify-between">
-                            <span className="text-2xl font-bold text-orange-700">
-                              {v.price}
-                            </span>
-                            <span className="text-xs text-gray-500">
-                              Limited Edition
-                            </span>
-                          </div>
-                          <Link href={v.href} className="block">
-                            <Button 
-                              size="lg" 
-                              className="w-full bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white"
-                            >
-                              <Award className="w-4 h-4 mr-2" />
-                              Get {v.name.split(' ')[0]}
-                            </Button>
-                          </Link>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                }
+        // Default vessel card
+        return (
+          <Card
+            key={v.id}
+            className={cn(
+              "flex flex-col items-center text-center h-full transition-all duration-300",
+              "hover:shadow-2xl hover:scale-[1.02]",
+              section.border,
+              "border-2 bg-white group overflow-hidden"
+            )}
+          >
+            <CardHeader className="flex flex-col items-center pb-4">
+              <div className="text-6xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+                {v.icon}
+              </div>
+              <CardTitle className="text-xl">{v.name}</CardTitle>
+              <CardDescription className="text-sm mt-2">
+                {v.description}
+              </CardDescription>
+            </CardHeader>
 
-                // Default vessel card
-                return (
-                  <Card
-                    key={v.id}
-                    className={cn(
-                      "flex flex-col h-full transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] min-w-0 max-w-full",
-                      section.border,
-                      "border-2 group"
-                    )}
+            <CardContent className="flex-1 flex flex-col items-center justify-between w-full px-6">
+              <ul className="space-y-1 mb-4 w-full">
+                {v.features.map((feat, i) => (
+                  <li key={i} className="text-sm flex items-center">
+                    <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2 flex-shrink-0" />
+                    <span className="truncate">{feat}</span>
+                  </li>
+                ))}
+              </ul>
+
+              <div className="mt-auto w-full space-y-3">
+                <div className="flex items-baseline justify-between">
+                  <span className={cn("text-2xl font-bold", section.text)}>
+                    {v.price}
+                  </span>
+                  <span className="text-xs text-gray-500">+ shipping</span>
+                </div>
+                <Link href={v.href} className="block w-full">
+                  <Button
+                    size="lg"
+                    className={cn("w-full text-white bg-gradient-to-r", section.gradient)}
                   >
-                    <CardHeader className="pb-2">
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="text-4xl transition-transform duration-300 group-hover:scale-110">
-                          {v.icon}
-                        </div>
-                        <span
-                          className={cn(
-                            "px-2 py-1 rounded-full text-xs font-medium",
-                            section.bg,
-                            section.text
-                          )}
-                        >
-                          {type}
-                        </span>
-                      </div>
-                      <CardTitle className="text-lg line-clamp-2">{v.name}</CardTitle>
-                      <CardDescription className="text-sm line-clamp-3">
-                        {v.description}
-                      </CardDescription>
-                    </CardHeader>
-                    
-                    <CardContent className="flex-1 flex flex-col min-w-0">
-                      <ul className="space-y-1 mb-4 min-w-0">
-                        {v.features.map((feat, i) => (
-                          <li key={i} className="text-sm flex items-center min-w-0">
-                            <span className="w-1.5 h-1.5 bg-purple-500 rounded-full mr-2 flex-shrink-0" />
-                            <span className="truncate">{feat}</span>
-                          </li>
-                        ))}
-                      </ul>
-                      
-                      <div className="mt-auto space-y-2 min-w-0">
-                        <div className="flex items-baseline justify-between">
-                          <span className={cn("text-2xl font-bold", section.text)}>
-                            {v.price}
-                          </span>
-                          <span className="text-xs text-gray-500">
-                            + shipping
-                          </span>
-                        </div>
-                        <Link href={v.href} className="block">
-                          <Button 
-                            size="lg" 
-                            className={cn(
-                              "w-full bg-gradient-to-r text-white",
-                              section.gradient
-                            )}
-                          >
-                            <ShoppingBag className="w-4 h-4 mr-2" />
-                            Buy Now
-                          </Button>
-                        </Link>
-                      </div>
-                    </CardContent>
-                  </Card>
-                )
+                    <ShoppingBag className="w-4 h-4 mr-2" />
+                    Buy Now
+                  </Button>
+                </Link>
+              </div>
+            </CardContent>
+          </Card>
+        )
+
               })}
             </div>
           </section>

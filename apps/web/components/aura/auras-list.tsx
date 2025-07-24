@@ -6,7 +6,8 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
-import { AuraCard } from '@/components/aura/aura-card'
+import { EmptyState } from '@/components/ui/empty-state'
+import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
 import { 
   Plus, 
   Brain, 
@@ -26,39 +27,6 @@ import type { Aura } from '@/types'
 
 interface AurasListProps {
   initialAuras: Aura[]
-}
-
-const vesselTypeConfig = {
-  digital: {
-    icon: '✨',
-    color: 'from-purple-500 to-violet-600',
-    bgColor: 'from-purple-50 to-violet-50',
-    name: 'Digital Being'
-  },
-  terra: {
-    icon: '🌱',
-    color: 'from-green-500 to-emerald-600',
-    bgColor: 'from-green-50 to-emerald-50',
-    name: 'Terra Spirit'
-  },
-  companion: {
-    icon: '🦋',
-    color: 'from-blue-500 to-sky-600',
-    bgColor: 'from-blue-50 to-sky-50',
-    name: 'Companion Spirit'
-  },
-  memory: {
-    icon: '💭',
-    color: 'from-indigo-500 to-purple-600',
-    bgColor: 'from-indigo-50 to-purple-50',
-    name: 'Memory Keeper'
-  },
-  sage: {
-    icon: '🦉',
-    color: 'from-amber-500 to-orange-600',
-    bgColor: 'from-amber-50 to-orange-50',
-    name: 'Sage Wisdom'
-  }
 }
 
 export function AurasList({ initialAuras }: AurasListProps) {
@@ -124,65 +92,38 @@ export function AurasList({ initialAuras }: AurasListProps) {
 
       {/* Content */}
       {initialAuras.length === 0 ? (
-        <div className="text-center py-16">
-          <div className="max-w-md mx-auto">
-            <div className="w-24 h-24 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
-              <Brain className="w-12 h-12 text-white" />
-            </div>
-            <h3 className="text-2xl font-bold text-gray-800 mb-4">
-              Ready to Create Magic?
-            </h3>
-            <p className="text-lg text-gray-600 mb-8 leading-relaxed">
-              You haven't created any Auras yet. Start your journey by bringing your first AI personality to life!
-            </p>
-            
-            <div className="space-y-4">
-              <Button 
-                onClick={() => router.push('/auras/create')}
-                size="lg"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg px-8 py-6 text-lg"
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
-                Create Your First Aura
-              </Button>
-              
-              <div className="text-sm text-gray-500">
-                ✨ Start with a digital being or connect a physical vessel
-              </div>
-            </div>
-
-            {/* Feature Preview */}
-            <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-green-500 to-emerald-600 rounded-lg flex items-center justify-center mb-3">
-                  <span className="text-white text-lg">🌱</span>
+        <EmptyState
+          icon={Brain}
+          iconGradient="from-purple-500 to-blue-500"
+          title="Ready to Create Magic?"
+          description="You haven't created any Auras yet. Start your journey by bringing your first AI personality to life!"
+          primaryAction={{
+            label: "Create Your First Aura",
+            onClick: () => router.push('/auras/create'),
+            icon: Sparkles
+          }}
+          secondaryText="✨ Start with a digital being or connect a physical vessel"
+        >
+          {/* Feature Preview */}
+          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
+            {Object.entries(VESSEL_TYPE_CONFIG).slice(0, 3).map(([key, config]) => (
+              <div key={key} className="bg-white border border-gray-200 rounded-xl p-4">
+                <div className={cn(
+                  "w-8 h-8 bg-gradient-to-r rounded-lg flex items-center justify-center mb-3",
+                  config.color
+                )}>
+                  <span className="text-white text-lg">{config.icon}</span>
                 </div>
-                <h4 className="font-semibold mb-1">Terra Spirits</h4>
-                <p className="text-sm text-gray-600">Plant companions that share their growth journey</p>
+                <h4 className="font-semibold mb-1">{config.name}</h4>
+                <p className="text-sm text-gray-600">{config.description}</p>
               </div>
-              
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-sky-600 rounded-lg flex items-center justify-center mb-3">
-                  <span className="text-white text-lg">🦋</span>
-                </div>
-                <h4 className="font-semibold mb-1">Companion Spirits</h4>
-                <p className="text-sm text-gray-600">Wildlife trackers experiencing adventures</p>
-              </div>
-              
-              <div className="bg-white border border-gray-200 rounded-xl p-4">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-violet-600 rounded-lg flex items-center justify-center mb-3">
-                  <span className="text-white text-lg">✨</span>
-                </div>
-                <h4 className="font-semibold mb-1">Digital Beings</h4>
-                <p className="text-sm text-gray-600">Pure consciousness exploring through data</p>
-              </div>
-            </div>
+            ))}
           </div>
-        </div>
+        </EmptyState>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {initialAuras.map((aura) => {
-            const config = vesselTypeConfig[aura.vesselType as keyof typeof vesselTypeConfig]
+            const config = VESSEL_TYPE_CONFIG[aura.vesselType]
             
             return (
               <div 

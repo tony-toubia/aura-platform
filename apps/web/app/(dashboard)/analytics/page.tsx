@@ -1,4 +1,4 @@
-// apps/web/app/(dashboard)/analytics/page.tsx
+// app/analytics/page.tsx
 
 "use client"
 
@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { StatCard } from "@/components/ui/stat-card"
 import {
   BarChart,
   Bar,
@@ -31,144 +32,51 @@ import {
   Radar,
 } from "recharts"
 import {
-  TrendingUp,
-  TrendingDown,
   Activity,
   Heart,
   MessageCircle,
   Sparkles,
   Sun,
-  Moon,
-  Cloud,
   Droplets,
   ThermometerSun,
   Zap,
   Calendar,
   Clock,
-  Users,
   BarChart3,
   PieChart as PieChartIcon,
   LineChart as LineChartIcon,
-  Filter,
   Download,
   Share2,
   Info,
   Leaf,
-  Globe,
   Star,
   Award,
   Target,
   Brain,
-  CheckCircle2,
   AlertCircle,
+  CheckCircle2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import type { TimeRange, AnalyticsTab } from "@/types/analytics"
+import {
+  generateTimeSeriesData,
+  AURA_ACTIVITY_DATA,
+  SENSOR_USAGE_DATA,
+  PERSONALITY_TRAITS_DATA,
+  RULE_PERFORMANCE_DATA,
+  WEEKLY_ENGAGEMENT_DATA,
+  MILESTONES,
+} from "@/lib/mock-data/analytics"
 
-// Mock data for different time periods
-const generateTimeSeriesData = (days: number) => {
-  const data = []
-  const now = new Date()
-  for (let i = days - 1; i >= 0; i--) {
-    const date = new Date(now)
-    date.setDate(date.getDate() - i)
-    data.push({
-      date: date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
-      messages: Math.floor(Math.random() * 20) + 10,
-      engagement: Math.floor(Math.random() * 100) + 50,
-      sensorActivity: Math.floor(Math.random() * 50) + 20,
-      rules: Math.floor(Math.random() * 15) + 5,
-    })
-  }
-  return data
-}
-
-const auraActivityData = [
-  { hour: '12am', Terra: 2, Companion: 1, Digital: 5 },
-  { hour: '6am', Terra: 8, Companion: 3, Digital: 12 },
-  { hour: '9am', Terra: 15, Companion: 8, Digital: 20 },
-  { hour: '12pm', Terra: 12, Companion: 15, Digital: 18 },
-  { hour: '3pm', Terra: 10, Companion: 12, Digital: 15 },
-  { hour: '6pm', Terra: 18, Companion: 10, Digital: 25 },
-  { hour: '9pm', Terra: 5, Companion: 6, Digital: 20 },
-]
-
-const sensorUsageData = [
-  { name: 'Temperature', value: 35, color: '#FF6B6B' },
-  { name: 'Soil Moisture', value: 28, color: '#4ECDC4' },
-  { name: 'Light Level', value: 22, color: '#FFD93D' },
-  { name: 'Weather', value: 15, color: '#6C5CE7' },
-]
-
-const personalityTraitsData = [
-  { trait: 'Warmth', A: 75, B: 65, fullMark: 100 },
-  { trait: 'Playfulness', A: 80, B: 70, fullMark: 100 },
-  { trait: 'Verbosity', A: 60, B: 85, fullMark: 100 },
-  { trait: 'Empathy', A: 85, B: 75, fullMark: 100 },
-  { trait: 'Creativity', A: 70, B: 80, fullMark: 100 },
-]
-
-const rulePerformanceData = [
-  { name: 'Morning Greeting', triggers: 287, success: 95 },
-  { name: 'Low Moisture Alert', triggers: 156, success: 88 },
-  { name: 'Good Night Message', triggers: 245, success: 92 },
-  { name: 'Weather Update', triggers: 189, success: 78 },
-  { name: 'Step Goal Reminder', triggers: 134, success: 85 },
-]
-
-const weeklyEngagementData = [
-  { day: 'Mon', morning: 45, afternoon: 78, evening: 92 },
-  { day: 'Tue', morning: 52, afternoon: 85, evening: 88 },
-  { day: 'Wed', morning: 48, afternoon: 72, evening: 95 },
-  { day: 'Thu', morning: 58, afternoon: 88, evening: 90 },
-  { day: 'Fri', morning: 62, afternoon: 92, evening: 85 },
-  { day: 'Sat', morning: 40, afternoon: 65, evening: 78 },
-  { day: 'Sun', morning: 38, afternoon: 60, evening: 82 },
-]
-
-const milestones = [
-  { id: 1, title: "First Hello", date: "2 weeks ago", icon: "👋", achieved: true },
-  { id: 2, title: "100 Messages", date: "1 week ago", icon: "💬", achieved: true },
-  { id: 3, title: "Plant Thriving", date: "3 days ago", icon: "🌱", achieved: true },
-  { id: 4, title: "500 Messages", date: "Coming soon", icon: "🎯", achieved: false },
-  { id: 5, title: "Aura Master", date: "Level up!", icon: "🏆", achieved: false },
-]
-
-export default function AnalyticsPage() {
-  const [timeRange, setTimeRange] = useState("7d")
-  const [selectedTab, setSelectedTab] = useState("overview")
+const AnalyticsPage = () => {
+  const [timeRange, setTimeRange] = useState<TimeRange>("7d")
+  const [selectedTab, setSelectedTab] = useState<AnalyticsTab>("overview")
   const [timeSeriesData, setTimeSeriesData] = useState(generateTimeSeriesData(7))
 
   useEffect(() => {
     const days = timeRange === "24h" ? 1 : timeRange === "7d" ? 7 : timeRange === "30d" ? 30 : 90
     setTimeSeriesData(generateTimeSeriesData(days))
   }, [timeRange])
-
-  const StatCard = ({ title, value, change, icon: Icon, color, trend }: any) => (
-    <Card className="relative overflow-hidden">
-      <CardHeader className="pb-2">
-        <CardTitle className="text-sm font-medium text-gray-600 flex items-center justify-between">
-          {title}
-          <Icon className={cn("w-4 h-4", color)} />
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <div className="text-2xl font-bold">{value}</div>
-        {change && (
-          <div className={cn(
-            "flex items-center gap-1 text-sm mt-1",
-            trend === "up" ? "text-green-600" : "text-red-600"
-          )}>
-            {trend === "up" ? <TrendingUp className="w-4 h-4" /> : <TrendingDown className="w-4 h-4" />}
-            <span>{change}% from last period</span>
-          </div>
-        )}
-      </CardContent>
-      <div className={cn(
-        "absolute top-0 right-0 w-20 h-20 rounded-full opacity-10 transform translate-x-8 -translate-y-8",
-        color.replace("text-", "bg-")
-      )} />
-    </Card>
-  )
 
   return (
     <main className="min-h-screen bg-gradient-to-b from-white to-gray-50">
@@ -186,7 +94,11 @@ export default function AnalyticsPage() {
             </div>
             
             <div className="flex items-center gap-3">
-              <Select value={timeRange} onValueChange={setTimeRange}>
+            <Select
+              value={timeRange}
+              onValueChange={(value: string) => {
+                setTimeRange(value as TimeRange)
+              }}>
                 <SelectTrigger className="w-32">
                   <SelectValue />
                 </SelectTrigger>
@@ -224,7 +136,11 @@ export default function AnalyticsPage() {
         </div>
 
         {/* Tabs */}
-        <Tabs value={selectedTab} onValueChange={setSelectedTab}>
+        <Tabs
+          value={selectedTab}
+          onValueChange={(value: string) => {
+            setSelectedTab(value as AnalyticsTab)
+          }}>
           <TabsList className="grid grid-cols-4 w-full max-w-2xl mx-auto">
             <TabsTrigger value="overview" className="flex items-center gap-2">
               <BarChart3 className="w-4 h-4" />
@@ -346,7 +262,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent className="pt-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
-                  {milestones.map((milestone) => (
+                  {MILESTONES.map((milestone) => (
                     <div
                       key={milestone.id}
                       className={cn(
@@ -383,7 +299,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={auraActivityData}>
+                  <BarChart data={AURA_ACTIVITY_DATA}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                     <XAxis dataKey="hour" stroke="#6B7280" />
                     <YAxis stroke="#6B7280" />
@@ -416,7 +332,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
-                  <BarChart data={weeklyEngagementData}>
+                  <BarChart data={WEEKLY_ENGAGEMENT_DATA}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
                     <XAxis dataKey="day" stroke="#6B7280" />
                     <YAxis stroke="#6B7280" />
@@ -446,7 +362,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-4">
-                  {rulePerformanceData.map((rule, idx) => (
+                  {RULE_PERFORMANCE_DATA.map((rule, idx) => (
                     <div key={idx} className="space-y-2">
                       <div className="flex items-center justify-between">
                         <span className="font-medium">{rule.name}</span>
@@ -486,7 +402,7 @@ export default function AnalyticsPage() {
                   <ResponsiveContainer width="100%" height={300}>
                     <PieChart>
                       <Pie
-                        data={sensorUsageData}
+                        data={SENSOR_USAGE_DATA}
                         cx="50%"
                         cy="50%"
                         outerRadius={100}
@@ -494,7 +410,7 @@ export default function AnalyticsPage() {
                         dataKey="value"
                         label
                       >
-                        {sensorUsageData.map((entry, index) => (
+                        {SENSOR_USAGE_DATA.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={entry.color} />
                         ))}
                       </Pie>
@@ -502,7 +418,7 @@ export default function AnalyticsPage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div className="grid grid-cols-2 gap-4 mt-4">
-                    {sensorUsageData.map((sensor) => (
+                    {SENSOR_USAGE_DATA.map((sensor) => (
                       <div key={sensor.name} className="flex items-center gap-2">
                         <div 
                           className="w-3 h-3 rounded-full" 
@@ -584,9 +500,9 @@ export default function AnalyticsPage() {
               <CardContent className="pt-6">
                 <div className="space-y-3">
                   {[
-                    { time: "2 hours ago", sensor: "Soil Moisture", message: "Low moisture detected (22%)", severity: "warning" },
-                    { time: "Yesterday", sensor: "Temperature", message: "Temperature spike to 32°C", severity: "error" },
-                    { time: "2 days ago", sensor: "Light Level", message: "Extended darkness period", severity: "info" },
+                    { time: "2 hours ago", sensor: "Soil Moisture", message: "Low moisture detected (22%)", severity: "warning" as const },
+                    { time: "Yesterday", sensor: "Temperature", message: "Temperature spike to 32°C", severity: "error" as const },
+                    { time: "2 days ago", sensor: "Light Level", message: "Extended darkness period", severity: "info" as const },
                   ].map((alert, idx) => (
                     <div key={idx} className="flex items-start gap-3 p-3 rounded-lg bg-gray-50">
                       <div className={cn(
@@ -622,7 +538,7 @@ export default function AnalyticsPage() {
               </CardHeader>
               <CardContent>
                 <ResponsiveContainer width="100%" height={400}>
-                  <RadarChart data={personalityTraitsData}>
+                  <RadarChart data={PERSONALITY_TRAITS_DATA}>
                     <PolarGrid stroke="#E5E7EB" />
                     <PolarAngleAxis dataKey="trait" stroke="#6B7280" />
                     <PolarRadiusAxis angle={90} domain={[0, 100]} stroke="#6B7280" />
@@ -777,3 +693,5 @@ export default function AnalyticsPage() {
     </main>
   )
 }
+
+export default AnalyticsPage
