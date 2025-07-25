@@ -32,7 +32,7 @@ export default async function AuraInteractionPage({
   }
 
   return (
-    <div className="container py-8">
+    <div className="container">
       <div className="max-w-4xl mx-auto">
         <ChatInterface aura={aura} />
       </div>

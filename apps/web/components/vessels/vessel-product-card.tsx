@@ -4,6 +4,7 @@
 
 import React from "react"
 import Link from "next/link"
+import Image from "next/image"
 import {
   Card,
   CardHeader,
@@ -77,13 +78,38 @@ export function VesselProductCard({
         </Badge>
       </div>
 
-      <CardHeader className="flex flex-col items-center pb-4">
-        <div className="relative text-6xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
-          {displayIcon}
-          {isPlantSensor && (
-            <Leaf className="w-6 h-6 text-green-500 absolute -bottom-1 -right-1" />
-          )}
+      {/* Product Image or Icon */}
+      {product.image ? (
+        <div className="relative w-full aspect-[4/3] overflow-hidden bg-gray-100">
+          <Image
+            src={product.image}
+            alt={displayName}
+            fill
+            className="object-cover group-hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+          />
+          {/* Icon overlay */}
+          <div className="absolute bottom-3 right-3 bg-white/90 backdrop-blur-sm rounded-xl p-2 shadow-lg">
+            <div className="text-2xl relative">
+              {displayIcon}
+              {isPlantSensor && (
+                <Leaf className="w-3 h-3 text-green-500 absolute -bottom-1 -right-1" />
+              )}
+            </div>
+          </div>
         </div>
+      ) : (
+        <CardHeader className="pb-4">
+          <div className="relative text-6xl mb-3 transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3">
+            {displayIcon}
+            {isPlantSensor && (
+              <Leaf className="w-6 h-6 text-green-500 absolute -bottom-1 -right-1" />
+            )}
+          </div>
+        </CardHeader>
+      )}
+
+      <CardHeader className={cn("flex-1", product.image ? "pt-4" : "pt-0")}>
         <CardTitle className="text-xl">{displayName}</CardTitle>
         <CardDescription className="text-sm mt-2">
           {product.description}

@@ -330,7 +330,14 @@ export function PersonalityMatrix({
           </div>
 
           {/* Navigation for Style */}
-          <div className="flex justify-between pt-4">
+          <div className="flex flex-col items-center pt-4 space-y-4">
+            {/* Completion indicator on its own line */}
+            <div className="flex items-center space-x-2 text-green-600">
+              <CheckCircle className="w-5 h-5" />
+              <span className="font-medium">Personality Complete!</span>
+            </div>
+
+            {/* Back button below */}
             <Button
               onClick={goToPrevTab}
               variant="outline"
@@ -340,11 +347,6 @@ export function PersonalityMatrix({
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Core Traits
             </Button>
-            {/* Completion indicator */}
-            <div className="flex items-center gap-2 text-green-600">
-              <CheckCircle className="w-5 h-5" />
-              <span className="font-medium">Personality Complete!</span>
-            </div>
           </div>
         </TabsContent>
       </Tabs>

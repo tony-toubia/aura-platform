@@ -354,8 +354,13 @@ export function AuraCreator() {
                               {category.vessels.map((vessel) => (
                                 <button
                                   key={vessel.code}
-                                  onClick={() => handleVesselOptionSelect(vessel)}
-                                  className="text-left p-3 bg-white rounded-lg border border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all"
+                                  onClick={() => {
+                                  // just populate the input, don’t auto-advance
+                                  setManualInput(vessel.code)
+                                  setError(null)
+                                  setShowVesselSelector(false)
+                                }}
+                                className="text-left p-3 bg-white rounded-lg border border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all"
                                 >
                                 <div className="flex items-center justify-between">
                                   {/* ManualVesselOption only has .code and .type */}
