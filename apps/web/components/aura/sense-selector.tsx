@@ -18,7 +18,7 @@ import {
   Zap,
   Eye,
   CheckCircle2,
-  WifiOff,
+  WifiCog,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -251,16 +251,14 @@ export function SenseSelector({
       {connectedSenses.length > 0 && (
         <div className="space-y-4">
           <div className="flex items-center gap-2">
-            <WifiOff className="w-5 h-5 text-orange-600" />
+            <WifiCog className="w-5 h-5 text-orange-600" />
             <h3 className="text-lg font-semibold">Personal Connected Senses</h3>
             <span className="text-sm text-gray-500">(About you, not your vessel)</span>
           </div>
           
           <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 mb-4">
             <p className="text-sm text-orange-800">
-              <strong>These sensors share data about YOU with your Aura</strong> - your sleep patterns, fitness activities, 
-              calendar events, and location. This helps your Aura understand your daily life and provide more 
-              personalized, context-aware responses.
+              <strong>These sensors share data about YOU with your Aura</strong>
             </p>
           </div>
           
@@ -282,7 +280,7 @@ export function SenseSelector({
                 >
                   {active && (
                     <div className="absolute top-3 right-3">
-                      <CheckCircle2 className="w-5 h-5 text-orange-600" />
+                      <CheckCircle2 className="w-5 h-5 text-green-600" />
                     </div>
                   )}
                   <div className="flex items-start gap-4">
@@ -319,7 +317,7 @@ export function SenseSelector({
                             ? "bg-orange-100 text-orange-700" 
                             : "bg-gray-100 text-gray-600 group-hover:bg-orange-50 group-hover:text-orange-600"
                         )}>
-                          {active ? "Connected" : "Click to sync"}
+                          {active ? "Connected" : "Click to add"}
                         </div>
                       </div>
                     </div>
