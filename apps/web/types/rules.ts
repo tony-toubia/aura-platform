@@ -1,5 +1,7 @@
 // apps/web/types/rules.ts
 
+import type { BehaviorRule, SensorMetadata } from './index'
+
 export interface RuleTemplate {
   name: string
   sensor: string
@@ -16,11 +18,11 @@ export interface RuleBuilderProps {
   vesselType?: string
   vesselCode?: string
   availableSenses: string[]
-  existingRules?: any[] // BehaviorRule[]
-  editingRule?: any | null
-  onEditRule?: (rule: any | null) => void
-  onSaveEditedRule?: (rule: any) => void
-  onAddRule: (rule: any) => void
+  existingRules?: BehaviorRule[]
+  editingRule?: BehaviorRule | null
+  onEditRule?: (rule: BehaviorRule | null) => void
+  onSaveEditedRule?: (rule: BehaviorRule) => void
+  onAddRule: (rule: BehaviorRule) => void
   onDeleteRule?: (ruleId: string) => void
   onToggleRule?: (ruleId: string, enabled: boolean) => void
 }
@@ -33,8 +35,25 @@ export interface PriorityConfig {
 }
 
 export interface SensorValueInputProps {
-  sensor: any // SensorMetadata
+  sensor: SensorMetadata
   operator: string
   value: any
   onChange: (value: any) => void
+}
+
+// New types for the enhanced cooldown system
+export type FrequencyPeriod = 'hour' | 'day' | 'week' | 'month'
+
+export interface FrequencyPreset {
+  limit: number
+  period: FrequencyPeriod
+  label: string
+  description: string
+}
+
+export interface CooldownPayload {
+  cooldown: number
+  frequencyLimit?: number
+  frequencyPeriod?: FrequencyPeriod
+  minimumGap?: number
 }

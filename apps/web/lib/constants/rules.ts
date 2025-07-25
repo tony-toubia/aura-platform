@@ -30,7 +30,7 @@ export const QUICK_TEMPLATES: Record<string, RuleTemplate[]> = {
       sensor: "sleep.quality",
       operator: "==",
       value: "poor",
-      message: "I didn't sleep well last night 😴 Only got {sleep.duration} hours of sleep.",
+      message: "Looks like you didn't get much sleep last night... 😴 Only got {sleep.duration} hours of sleep. Better caffiene up!",
       priority: "6"
     },
     {
@@ -38,7 +38,7 @@ export const QUICK_TEMPLATES: Record<string, RuleTemplate[]> = {
       sensor: "sleep.quality",
       operator: "==",
       value: "excellent",
-      message: "I feel amazing today! 🌟 Had {sleep.duration} hours of quality sleep!",
+      message: "You look amazing today! 🌟 Must be that {sleep.duration} hours of quality sleep!",
       priority: "4"
     }
   ],
@@ -48,7 +48,7 @@ export const QUICK_TEMPLATES: Record<string, RuleTemplate[]> = {
       sensor: "fitness.steps",
       operator: ">=",
       value: 10000,
-      message: "Yes! Hit my step goal with {fitness.steps} steps today! 🎯",
+      message: "Yes! Nice work hitting your step goal with {fitness.steps} steps today! 🎯",
       priority: "5"
     },
     {
@@ -56,7 +56,7 @@ export const QUICK_TEMPLATES: Record<string, RuleTemplate[]> = {
       sensor: "fitness.heartRate",
       operator: ">",
       value: 160,
-      message: "Whoa, my heart is racing at {fitness.heartRate} bpm! Time to slow down? 💓",
+      message: "Whoa, your heart is racing at {fitness.heartRate} bpm! Time to slow down? 💓",
       priority: "8"
     }
   ],
@@ -76,7 +76,7 @@ export const QUICK_TEMPLATES: Record<string, RuleTemplate[]> = {
       sensor: "location.place",
       operator: "==",
       value: "gym",
-      message: "Time to crush this workout! 💪 Let's do this!",
+      message: "Time to crush this workout! 💪 You got this!",
       priority: "5"
     }
   ]

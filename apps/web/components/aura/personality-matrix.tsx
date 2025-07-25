@@ -215,13 +215,13 @@ export function PersonalityMatrix({
             ))}
           </div>
 
-          {/* Navigation for Traits */}
-          <div className="flex justify-between pt-4">
+          {/* Navigation for Traits - Mobile Stacked */}
+          <div className="flex flex-col sm:flex-row sm:justify-between gap-3 sm:gap-0 pt-4">
             <Button
               onClick={goToPrevTab}
               variant="outline"
               size="lg"
-              className="px-8"
+              className="px-8 w-full sm:w-auto order-2 sm:order-1"
             >
               <ArrowLeft className="w-4 h-4 mr-2" />
               Back to Persona
@@ -229,7 +229,7 @@ export function PersonalityMatrix({
             <Button
               onClick={goToNextTab}
               size="lg"
-              className="px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+              className="px-8 w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 order-1 sm:order-2"
             >
               Continue to Voice & Style
               <ArrowRight className="w-4 h-4 ml-2" />
@@ -353,15 +353,16 @@ export function PersonalityMatrix({
 
       {/* Enhanced Live Preview Section */}
       <div className="mt-12 pt-8 border-t-2 border-gray-100">
-        <h4 className="text-2xl font-bold mb-4 flex items-center gap-3">
-          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center">
-            <Feather className="w-5 h-5 text-white" />
+        <h4 className="text-xl sm:text-2xl font-bold mb-6 flex items-center gap-3 text-center sm:text-left">
+          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+            <Feather className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
           </div>
           Live Personality Preview
         </h4>
         
-        <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-pink-50 border-2 border-purple-100 rounded-2xl p-8">
-          <div className="flex items-start gap-4">
+        <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-pink-50 border-2 border-purple-100 rounded-2xl p-4 sm:p-8">
+          {/* Desktop Layout: Side by side */}
+          <div className="hidden sm:flex items-start gap-4">
             <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
               <MessageCircle className="w-6 h-6 text-white" />
             </div>
@@ -377,33 +378,87 @@ export function PersonalityMatrix({
                 </p>
               </div>
               
-              {/* Personality Summary */}
-              <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-3">
+              {/* Desktop Personality Summary */}
+              <div className="mt-4 grid grid-cols-3 gap-3">
                 <div className="bg-white/70 rounded-lg p-3 text-center">
                   <div className="text-xs text-gray-500 mb-1">Persona</div>
-                  <div className="font-medium text-purple-700 capitalize">
+                  <div className="font-medium text-purple-700 capitalize text-sm">
                     {personality.persona || 'None'}
                   </div>
                 </div>
                 <div className="bg-white/70 rounded-lg p-3 text-center">
                   <div className="text-xs text-gray-500 mb-1">Tone</div>
-                  <div className="font-medium text-blue-700 capitalize">
+                  <div className="font-medium text-blue-700 capitalize text-sm">
                     {personality.tone || 'Casual'}
                   </div>
                 </div>
                 <div className="bg-white/70 rounded-lg p-3 text-center">
                   <div className="text-xs text-gray-500 mb-1">Quirks</div>
-                  <div className="font-medium text-green-700">
+                  <div className="font-medium text-green-700 text-sm">
                     {personality.quirks?.length || 0} active
                   </div>
                 </div>
               </div>
             </div>
           </div>
+
+          {/* Mobile Layout: Stacked */}
+          <div className="sm:hidden space-y-4">
+            {/* Mobile message bubble - full width */}
+            <div className="bg-white rounded-2xl p-4 shadow-md border border-gray-200">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                  <MessageCircle className="w-4 h-4 text-white" />
+                </div>
+                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                <span className="text-sm font-medium text-gray-600">Sample Response</span>
+              </div>
+              <p className="text-gray-800 leading-relaxed italic text-sm">
+                "{generatePersonalityPreview(personality, vesselCode)}"
+              </p>
+            </div>
+            
+            {/* Mobile Personality Summary - Full width grid */}
+            <div className="grid grid-cols-1 gap-3">
+              <div className="bg-white/70 rounded-lg p-3 flex justify-between items-center">
+                <span className="text-sm text-gray-600 font-medium">Persona:</span>
+                <span className="font-semibold text-purple-700 capitalize text-sm">
+                  {personality.persona || 'None Selected'}
+                </span>
+              </div>
+              <div className="bg-white/70 rounded-lg p-3 flex justify-between items-center">
+                <span className="text-sm text-gray-600 font-medium">Tone:</span>
+                <span className="font-semibold text-blue-700 capitalize text-sm">
+                  {personality.tone || 'Casual'}
+                </span>
+              </div>
+              <div className="bg-white/70 rounded-lg p-3 flex justify-between items-center">
+                <span className="text-sm text-gray-600 font-medium">Vocabulary:</span>
+                <span className="font-semibold text-emerald-700 capitalize text-sm">
+                  {personality.vocabulary || 'Simple'}
+                </span>
+              </div>
+              {personality.quirks && personality.quirks.length > 0 && (
+                <div className="bg-white/70 rounded-lg p-3">
+                  <div className="text-sm text-gray-600 font-medium mb-2">Active Quirks:</div>
+                  <div className="flex flex-wrap gap-2">
+                    {personality.quirks.map((quirk, index) => (
+                      <span 
+                        key={index} 
+                        className="inline-flex items-center px-2 py-1 bg-gradient-to-r from-purple-100 to-blue-100 text-purple-700 rounded-full text-xs font-medium"
+                      >
+                        {QUIRK_OPTIONS.find(q => q.id === quirk)?.emoji} {QUIRK_OPTIONS.find(q => q.id === quirk)?.name || quirk}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
         
         <div className="mt-4 text-center">
-          <p className="text-sm text-gray-600">
+          <p className="text-xs sm:text-sm text-gray-600">
             ✨ This preview updates in real-time as you adjust the personality settings
           </p>
         </div>

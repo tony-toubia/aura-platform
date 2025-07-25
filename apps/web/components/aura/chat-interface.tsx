@@ -203,6 +203,7 @@ export function ChatInterface({
           </div>
 
           {/* Status and Controls row */}
+              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl">
           <div className="flex items-center justify-between text-white/80 text-sm -mt-1">
             <div className="flex items-center space-x-4 min-w-0 flex-1">
               <div className="flex items-center space-x-2 flex-shrink-0">
@@ -264,6 +265,7 @@ export function ChatInterface({
                 <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               </Button>
             </div>
+          </div>
           </div>
 
           {/* Bottom row - Conditional Live Awareness */}

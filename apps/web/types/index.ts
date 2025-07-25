@@ -260,6 +260,11 @@ export interface RuleTrigger {
   daysOfWeek?: number[] // 0 = Sunday, 6 = Saturday
   thresholds?: Array<{ min?: number; max?: number; label?: string }>
   cooldown?: number // seconds
+  
+  // New frequency-based cooldown properties
+  frequencyLimit?: number
+  frequencyPeriod?: 'hour' | 'day' | 'week' | 'month'
+  minimumGap?: number
 }
 
 export interface RuleAction {

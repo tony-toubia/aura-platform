@@ -27,7 +27,6 @@ import {
   Sparkles,
   MessageCircle,
   AlertTriangle,
-  Timer,
   Lightbulb,
   Save,
   X,
@@ -37,10 +36,11 @@ import {
 import { cn } from "@/lib/utils"
 import { RuleCard } from "@/components/rules/rule-card"
 import { SensorValueInput } from "@/components/rules/sensor-value-input"
+import { CooldownConfig } from "@/components/rules/cooldown-config"
+import { useCooldownConfig } from "@/hooks/use-cooldown-config"
 import { 
   OPERATOR_LABELS, 
   QUICK_TEMPLATES, 
-  DEFAULT_COOLDOWN, 
   DEFAULT_PRIORITY,
   getPriorityConfig 
 } from "@/lib/constants/rules"
@@ -63,15 +63,22 @@ export function RuleBuilder({
 }: RuleBuilderProps) {
   const router = useRouter()
   const [showTemplates, setShowTemplates] = useState(true)
+  const cooldownConfig = useCooldownConfig()
 
   // Form state
   const [ruleName, setRuleName] = useState("")
   const [selectedSensor, setSelectedSensor] = useState("")
   const [operator, setOperator] = useState<string>("==")
   const [sensorValue, setSensorValue] = useState<any>(null)
-  const [actionMessage, setActionMessage] = useState("")
   const [priority, setPriority] = useState(String(DEFAULT_PRIORITY))
-  const [cooldown, setCooldown] = useState(String(DEFAULT_COOLDOWN))
+
+  // Enhanced response state
+  const [responseType, setResponseType] = useState<'prompt' | 'template'>('prompt')
+  const [responseGuidelines, setResponseGuidelines] = useState("")
+  const [responseTones, setResponseTones] = useState<string[]>(['encouraging'])
+  const [actionMessage, setActionMessage] = useState("")
+  const [showAllPromptVariables, setShowAllPromptVariables] = useState(false)
+  const [showAllTemplateVariables, setShowAllTemplateVariables] = useState(false)
 
   const isEditing = editingRule !== null
   const nameInputRef = useRef<HTMLInputElement>(null)
@@ -115,6 +122,42 @@ export function RuleBuilder({
     return templates
   }, [availableSenses])
 
+  // Helper function to generate example responses
+  const generateExampleResponse = (
+    guidelines: string, 
+    tones: string[], 
+    sensorConfig: any, 
+    value: any
+  ) => {
+    if (!guidelines || !sensorConfig) {
+      return "Configure your response guidelines to see an example..."
+    }
+
+    const toneWords = {
+      encouraging: ['Great job', 'Keep it up', 'You\'re doing amazing'],
+      casual: ['Nice', 'Cool', 'Sweet'],
+      professional: ['Well done', 'Excellent work', 'Outstanding'],
+      playful: ['Awesome sauce', 'You rock', 'Way to go'],
+      caring: ['I\'m proud of you', 'Take care of yourself', 'You matter'],
+      motivational: ['Crush it', 'You\'ve got this', 'Push forward']
+    }
+
+    const activeTones = tones.length > 0 ? tones : ['encouraging']
+    const randomTone = activeTones[Math.floor(Math.random() * activeTones.length)]
+    const tonePhrase = toneWords[randomTone as keyof typeof toneWords]?.[0] || 'Great'
+
+    // Generate a contextual example based on the sensor and guidelines
+    if (guidelines.toLowerCase().includes('step')) {
+      return `${tonePhrase}! You hit ${value || '10,000'} steps today - your dedication to staying active really shows! 🚶‍♀️✨`
+    } else if (guidelines.toLowerCase().includes('sleep')) {
+      return `${tonePhrase}! That ${value || '8'} hours of ${sensorConfig.name?.toLowerCase()} really paid off - you're glowing today! 😴💫`
+    } else if (guidelines.toLowerCase().includes('meeting') || guidelines.toLowerCase().includes('calendar')) {
+      return `${tonePhrase}! Your ${value || 'next meeting'} is coming up in ${Math.floor(Math.random() * 15) + 5} minutes. You've got this! 📅⚡`
+    }
+
+    return `${tonePhrase}! Based on your ${sensorConfig?.name || 'sensor'} reading of ${value || 'current value'}, here's some encouragement based on your guidelines! 🌟`
+  }
+
   // Reset operator when sensor changes
   useEffect(() => {
     if (selectedSensor && availableOperators.length > 0) {
@@ -131,15 +174,28 @@ export function RuleBuilder({
       setSelectedSensor(editingRule.trigger.sensor || "")
       setOperator(editingRule.trigger.operator || "==")
       setSensorValue(editingRule.trigger.value ?? null)
-      setActionMessage(editingRule.action.message || "")
       setPriority(String(editingRule.priority ?? DEFAULT_PRIORITY))
-      setCooldown(String(editingRule.trigger.cooldown ?? DEFAULT_COOLDOWN))
+      
+      // Handle different response types
+      const action = editingRule.action as any
+      if (action.responseType === 'prompt') {
+        setResponseType('prompt')
+        setResponseGuidelines(action.promptGuidelines || "")
+        setResponseTones(action.responseTones || ['encouraging'])
+      } else {
+        setResponseType(action.responseType || 'template')
+        setActionMessage(action.message || "")
+      }
+      
+      // Apply cooldown config from editing rule
+      cooldownConfig.applyEditingRule(editingRule)
+      
       setTimeout(() => {
         nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
         nameInputRef.current?.focus()
       }, 100)
     }
-  }, [editingRule])
+  }, [editingRule, cooldownConfig])
 
   const clearForm = () => {
     setRuleName("")
@@ -147,13 +203,24 @@ export function RuleBuilder({
     setOperator("==")
     setSensorValue(null)
     setActionMessage("")
+    setResponseType('prompt')
+    setResponseGuidelines("")
+    setResponseTones(['encouraging'])
+    setShowAllPromptVariables(false)
+    setShowAllTemplateVariables(false)
     setPriority(String(DEFAULT_PRIORITY))
-    setCooldown(String(DEFAULT_COOLDOWN))
+    cooldownConfig.clearCooldownConfig()
     onEditRule?.(null)
   }
 
   const handleAddOrSave = async () => {
-    if (!ruleName || !selectedSensor || sensorValue === null || !actionMessage) return
+    if (!ruleName || !selectedSensor || sensorValue === null) return
+    
+    // Validate based on response type
+    if (responseType === 'template' && !actionMessage) return
+    if (responseType === 'prompt' && !responseGuidelines) return
+
+    const cooldownPayload = cooldownConfig.getCooldownPayload()
 
     const payload = {
       auraId,
@@ -163,11 +230,14 @@ export function RuleBuilder({
         sensor: selectedSensor,
         operator: operator as RuleTrigger['operator'],
         value: sensorValue,
-        cooldown: parseInt(cooldown, 10),
+        ...cooldownPayload
       },
       action: {
-        type: "respond" as const,
-        message: actionMessage,
+        type: responseType === 'prompt' ? "prompt_respond" : "respond" as const,
+        message: responseType === 'prompt' ? undefined : actionMessage,
+        promptGuidelines: responseType === 'prompt' ? responseGuidelines : undefined,
+        responseTones: responseType === 'prompt' ? responseTones : undefined,
+        responseType,
         severity: "info" as const,
       },
       priority: parseInt(priority, 10),
@@ -211,7 +281,10 @@ export function RuleBuilder({
     setSensorValue(template.value)
     setActionMessage(template.message)
     setPriority(template.priority)
-    setCooldown(template.cooldown || String(DEFAULT_COOLDOWN))
+    setResponseType('template') // Templates use template mode
+    // Templates use simple cooldown for now
+    cooldownConfig.setCooldownType('simple')
+    cooldownConfig.setSimpleCooldown(template.cooldown || '60')
     nameInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
   }
 
@@ -242,8 +315,8 @@ export function RuleBuilder({
                   Click any template to instantly configure a rule, then customize it
                 </CardDescription>
               </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <CardContent className="p-4 sm:p-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
                   {relevantTemplates.map((template, idx) => (
                     <Button
                       key={idx}
@@ -283,7 +356,7 @@ export function RuleBuilder({
               Your Aura will respond automatically when these conditions are met
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-6 space-y-4">
+          <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
             {existingRules.map((rule) => (
               <RuleCard
                 key={rule.id}
@@ -322,7 +395,7 @@ export function RuleBuilder({
               : "Define when and how your Aura should respond to sensor data"}
           </CardDescription>
         </CardHeader>
-        <CardContent className="p-6 space-y-6">
+        <CardContent className="p-4 sm:p-6 space-y-4 sm:space-y-6">
           {/* Rule Name */}
           <div className="space-y-2">
             <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
@@ -413,35 +486,280 @@ export function RuleBuilder({
             )}
           </div>
 
-          {/* Response Message */}
-          <div className="space-y-2">
+          {/* Enhanced Response Configuration */}
+          <div className="space-y-4">
             <label className="text-sm font-semibold text-gray-700 flex items-center gap-2">
-              <Sparkles className="w-4 h-4" /> Response Message
+              <Sparkles className="w-4 h-4" /> Response Style & Tone
             </label>
-            <Input
-              placeholder="What should your Aura say? e.g., Time for your meeting! 📅"
-              value={actionMessage}
-              onChange={(e) => setActionMessage(e.target.value)}
-              className="text-lg py-6 border-2 border-purple-200 focus:border-purple-400"
-            />
-            <div className="space-y-2">
-              <p className="text-xs text-purple-600 bg-purple-50 p-2 rounded flex items-center gap-2">
-                <Lightbulb className="w-3 h-3" /> 
-                <span>Use variables to include sensor data in your message:</span>
-              </p>
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                {selectedSensorConfig && (
-                  <code className="bg-gray-100 p-2 rounded">{`{${selectedSensorConfig.id}}`}</code>
-                )}
-                {availableSensorConfigs.slice(0, 3).map(sensor => (
-                  <code key={sensor.id} className="bg-gray-100 p-2 rounded">{`{${sensor.id}}`}</code>
-                ))}
+            
+            {responseType === 'prompt' && (
+              <div className="flex justify-center sm:justify-end">
+                <div className="flex items-center gap-2 text-xs">
+                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                  <span className="text-green-600 font-medium">AI-Generated</span>
+                </div>
               </div>
+            )}
+
+            {/* Response Type Selection */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <Button
+                type="button"
+                variant={responseType === 'prompt' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setResponseType('prompt')}
+                className="h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <Sparkles className="w-5 h-5" />
+                <div className="text-center">
+                  <div className="text-sm font-medium">Smart Response</div>
+                  <div className={cn(
+                    "text-xs",
+                    responseType === 'prompt' ? "text-white/90" : "text-gray-500"
+                  )}>
+                    AI varies the message each time
+                  </div>
+                </div>
+              </Button>
+              <Button
+                type="button"
+                variant={responseType === 'template' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => setResponseType('template')}
+                className="h-auto p-4 flex flex-col items-center gap-2"
+              >
+                <MessageCircle className="w-5 h-5" />
+                <div className="text-center">
+                  <div className="text-sm font-medium">Template</div>
+                  <div className={cn(
+                    "text-xs",
+                    responseType === 'template' ? "text-white/90" : "text-gray-500"
+                  )}>
+                    Fixed message with variables
+                  </div>
+                </div>
+              </Button>
             </div>
+
+            {/* Dynamic Input Based on Type */}
+            {responseType === 'prompt' && (
+              <div className="space-y-3">
+                <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-lg p-4">
+                  <div className="space-y-3">
+                    {/* Header with icon - only on larger screens */}
+                    <div className="flex items-start gap-3">
+                      <div className="hidden sm:flex w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full items-center justify-center flex-shrink-0">
+                        <Sparkles className="w-4 h-4 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 sm:gap-0">
+                          <div className="sm:hidden w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
+                            <Sparkles className="w-3 h-3 text-white" />
+                          </div>
+                          <h4 className="font-medium text-gray-800">Response Guidelines</h4>
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1 mb-3">
+                          Describe how your Aura should respond. The AI will generate varied messages based on your guidelines.
+                        </p>
+                      </div>
+                    </div>
+                    
+                    {/* Textarea - full width */}
+                    <textarea
+                      placeholder="e.g., Celebrate enthusiastically when I hit my step goal. Mention the exact step count and encourage me to keep up the great work. Use emojis and be upbeat."
+                      value={responseGuidelines}
+                      onChange={(e) => setResponseGuidelines(e.target.value)}
+                      className="w-full h-20 px-3 py-2 border-2 border-purple-200 focus:border-purple-400 rounded-lg resize-none text-sm"
+                    />
+                    
+                    {/* Available Variables - moved here for prompt mode */}
+                    <div className="space-y-2 pt-2 border-t border-purple-200/50">
+                      <p className="text-xs text-purple-700 font-medium">
+                        💡 Available data to reference in your guidelines:
+                      </p>
+                      <div className="space-y-2">
+                        {/* Current sensor variable */}
+                        {selectedSensorConfig && (
+                          <div className="flex flex-wrap gap-2">
+                            <span className="text-xs text-gray-600 font-medium">Current sensor:</span>
+                            <code className="bg-white/70 text-purple-700 px-2 py-1 rounded text-xs font-mono break-all">
+                              {selectedSensorConfig.name} ({selectedSensorConfig.id})
+                            </code>
+                          </div>
+                        )}
+                        
+                        {/* Other available variables */}
+                        {availableSensorConfigs.length > 1 && (
+                          <div className="space-y-1">
+                            <span className="text-xs text-gray-600 font-medium">Other sensors you can reference:</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {availableSensorConfigs
+                                .filter(sensor => sensor.id !== selectedSensor)
+                                .slice(0, showAllPromptVariables ? undefined : 4)
+                                .map(sensor => (
+                                  <code 
+                                    key={sensor.id} 
+                                    className="bg-white/70 text-purple-700 px-2 py-1 rounded text-xs font-mono break-all max-w-full"
+                                    title={sensor.name}
+                                  >
+                                    {sensor.name}
+                                  </code>
+                                ))}
+                              {!showAllPromptVariables && availableSensorConfigs.length > 5 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAllPromptVariables(true)}
+                                  className="text-xs text-purple-600 hover:text-purple-700 underline px-2 py-1 font-medium"
+                                >
+                                  +{availableSensorConfigs.length - 5} more
+                                </button>
+                              )}
+                              {showAllPromptVariables && availableSensorConfigs.length > 5 && (
+                                <button
+                                  type="button"
+                                  onClick={() => setShowAllPromptVariables(false)}
+                                  className="text-xs text-purple-600 hover:text-purple-700 underline px-2 py-1 font-medium"
+                                >
+                                  show less
+                                </button>
+                              )}
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {/* Tone Modifiers */}
+                    <div className="space-y-2">
+                      <label className="text-xs font-medium text-gray-600">Response Tone:</label>
+                      <div className="flex flex-wrap gap-2">
+                        {['encouraging', 'casual', 'professional', 'playful', 'caring', 'motivational'].map((tone) => (
+                          <Button
+                            key={tone}
+                            type="button"
+                            variant={responseTones.includes(tone) ? 'default' : 'outline'}
+                            size="sm"
+                            onClick={() => {
+                              setResponseTones(prev => 
+                                prev.includes(tone) 
+                                  ? prev.filter(t => t !== tone)
+                                  : [...prev, tone]
+                              )
+                            }}
+                            className="h-auto px-3 py-1 text-xs capitalize"
+                          >
+                            {tone}
+                          </Button>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Example Preview */}
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                      <MessageCircle className="w-3 h-3 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-600">Example AI Response:</span>
+                  </div>
+                  <p className="text-sm text-gray-700 italic">
+                    "{generateExampleResponse(responseGuidelines, responseTones, selectedSensorConfig, sensorValue)}"
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    ✨ Each response will be unique while following your guidelines
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {responseType === 'template' && (
+              <div className="space-y-3">
+                <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <MessageCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
+                    <div className="space-y-2">
+                      <h4 className="font-medium text-gray-800">Message Template</h4>
+                      <p className="text-sm text-gray-600">
+                        Create a message template with variables, or write a fixed message without variables.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                
+                <Input
+                  placeholder="e.g., Great job hitting {fitness.steps} steps today! 🎯 OR Time for your meeting! 📅"
+                  value={actionMessage}
+                  onChange={(e) => setActionMessage(e.target.value)}
+                  className="text-lg py-6 border-2 border-yellow-200 focus:border-yellow-400"
+                />
+              </div>
+            )}
+
+            {/* Variable Helper Section - Only for Template mode now */}
+            {responseType === 'template' && (
+              <div className="space-y-3">
+                <p className="text-xs text-purple-600 bg-purple-50 p-3 rounded flex items-start gap-2">
+                  <Lightbulb className="w-3 h-3 mt-0.5 flex-shrink-0" /> 
+                  <span>Use variables to include sensor data in your message:</span>
+                </p>
+                <div className="space-y-2">
+                  {/* Current sensor variable */}
+                  {selectedSensorConfig && (
+                    <div className="flex flex-wrap gap-2">
+                      <span className="text-xs text-gray-600 font-medium">Current sensor:</span>
+                      <code className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-mono break-all">
+                        {`{${selectedSensorConfig.id}}`}
+                      </code>
+                    </div>
+                  )}
+                  
+                  {/* Other available variables */}
+                  {availableSensorConfigs.length > 1 && (
+                    <div className="space-y-1">
+                      <span className="text-xs text-gray-600 font-medium">Other available variables:</span>
+                      <div className="flex flex-wrap gap-1.5">
+                        {availableSensorConfigs
+                          .filter(sensor => sensor.id !== selectedSensor)
+                          .slice(0, showAllTemplateVariables ? undefined : 4)
+                          .map(sensor => (
+                            <code 
+                              key={sensor.id} 
+                              className="bg-gray-100 text-gray-800 px-2 py-1 rounded text-xs font-mono break-all max-w-full"
+                              title={sensor.name}
+                            >
+                              {`{${sensor.id}}`}
+                            </code>
+                          ))}
+                        {!showAllTemplateVariables && availableSensorConfigs.length > 5 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAllTemplateVariables(true)}
+                            className="text-xs text-purple-600 hover:text-purple-700 underline px-2 py-1 font-medium"
+                          >
+                            +{availableSensorConfigs.length - 5} more
+                          </button>
+                        )}
+                        {showAllTemplateVariables && availableSensorConfigs.length > 5 && (
+                          <button
+                            type="button"
+                            onClick={() => setShowAllTemplateVariables(false)}
+                            className="text-xs text-purple-600 hover:text-purple-700 underline px-2 py-1 font-medium"
+                          >
+                            show less
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Advanced Settings */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 gap-6">
             <div className="space-y-2">
               <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
                 <AlertTriangle className="w-4 h-4" /> Priority (1–10)
@@ -467,21 +785,9 @@ export function RuleBuilder({
                 </SelectContent>
               </Select>
             </div>
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-gray-700 flex items-center gap-2">
-                <Timer className="w-4 h-4" /> Cooldown (seconds)
-              </label>
-              <Input
-                type="number"
-                min="0"
-                value={cooldown}
-                onChange={(e) => setCooldown(e.target.value)}
-                className="border-2 border-gray-200 focus:border-purple-400"
-              />
-              <p className="text-xs text-gray-500">
-                Minimum time before this rule can trigger again
-              </p>
-            </div>
+            
+            {/* Enhanced Cooldown Section */}
+            <CooldownConfig cooldownConfig={cooldownConfig} />
           </div>
 
           {/* Action Buttons */}
@@ -494,7 +800,13 @@ export function RuleBuilder({
                   ? "from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                   : "from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               )}
-              disabled={!ruleName || !selectedSensor || sensorValue === null || !actionMessage}
+              disabled={
+                !ruleName || 
+                !selectedSensor || 
+                sensorValue === null || 
+                (responseType === 'prompt' && !responseGuidelines) ||
+                (responseType === 'template' && !actionMessage)
+              }
             >
               {isEditing ? (
                 <>

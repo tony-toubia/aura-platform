@@ -663,11 +663,13 @@ export function AuraCreator() {
                   </div>
                 )}
 
-                {/* Enhanced Navigation */}
+                {/* Enhanced Navigation - Mobile Stacked */}
                 <div
                   className={cn(
-                    "flex items-center mt-10 pt-8 border-t-2 border-gray-100",
-                    step === "rules" ? "flex-col-reverse gap-4" : "justify-between"
+                    "flex mt-10 pt-8 border-t-2 border-gray-100",
+                    step === "rules" 
+                      ? "flex-col-reverse gap-4" 
+                      : "flex-col sm:flex-row sm:justify-between gap-3 sm:gap-0"
                   )}
                 >
                   <Button
@@ -675,7 +677,12 @@ export function AuraCreator() {
                     onClick={onBack}
                     disabled={loading}
                     size="lg"
-                    className={cn("px-8", step === "rules" && "w-full max-w-xs")}
+                    className={cn(
+                      "px-8",
+                      step === "rules" 
+                        ? "w-full max-w-xs" 
+                        : "w-full sm:w-auto order-2 sm:order-1"
+                    )}
                   >
                     Back
                   </Button>
@@ -690,7 +697,7 @@ export function AuraCreator() {
                         (step === "details" && !canNextDetails)
                       }
                       size="lg"
-                      className="px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      className="px-8 w-full sm:w-auto bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 order-1 sm:order-2"
                     >
                       {step === "details" && loading ? (
                         <>
@@ -703,17 +710,6 @@ export function AuraCreator() {
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </>
                       )}
-                    </Button>
-                  )}
-
-                  {step === "rules" && (
-                    <Button
-                      onClick={() => router.push(`/auras/${auraData.id}`)}
-                      size="lg"
-                      className="px-8 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 w-full max-w-xs"
-                    >
-                      <Heart className="w-4 h-4 mr-2" />
-                      <span className="truncate">{meetButtonText}</span>
                     </Button>
                   )}
                 </div>
