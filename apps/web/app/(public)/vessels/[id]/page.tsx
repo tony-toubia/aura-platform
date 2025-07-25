@@ -90,16 +90,40 @@ export default function VesselDetailPage() {
       <div className="grid lg:grid-cols-2 gap-12">
         {/* Product Image/Icon Section */}
         <div className="space-y-6">
-          <Card className="p-12 bg-gradient-to-br from-gray-50 to-gray-100 border-2">
-            <div className="flex items-center justify-center">
-              <div className="text-[120px] relative">
-                {displayIcon}
-                {isPlantSensor && (
-                  <Leaf className="w-12 h-12 text-green-500 absolute -bottom-2 -right-2" />
-                )}
+          {/* Main Product Image */}
+          {product.image ? (
+            <Card className="overflow-hidden border-2">
+              <div className="relative aspect-square bg-gradient-to-br from-gray-50 to-gray-100">
+                <Image
+                  src={product.image}
+                  alt={displayName}
+                  fill
+                  className="object-cover"
+                  sizes="(max-width: 768px) 100vw, 50vw"
+                />
+                {/* Icon overlay in corner */}
+                <div className="absolute top-4 right-4 bg-white/90 backdrop-blur-sm rounded-xl p-3 shadow-lg">
+                  <div className="text-3xl">
+                    {displayIcon}
+                    {isPlantSensor && (
+                      <Leaf className="w-4 h-4 text-green-500 absolute -bottom-1 -right-1" />
+                    )}
+                  </div>
+                </div>
               </div>
-            </div>
-          </Card>
+            </Card>
+          ) : (
+            <Card className="p-12 bg-gradient-to-br from-gray-50 to-gray-100 border-2">
+              <div className="flex items-center justify-center">
+                <div className="text-[120px] relative">
+                  {displayIcon}
+                  {isPlantSensor && (
+                    <Leaf className="w-12 h-12 text-green-500 absolute -bottom-2 -right-2" />
+                  )}
+                </div>
+              </div>
+            </Card>
+          )}
 
           {/* Animal Selector for Variants */}
           {product.hasVariants && animalOptions.length > 0 && (

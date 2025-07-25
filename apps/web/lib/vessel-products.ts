@@ -11,6 +11,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "terra-pot",
     type: "terra",
     icon: "🌱",
+    image: "/images/vessels/terra-pot.png",
     name: "Ceramic Plant Pot",
     price: "$39.99",
     description:
@@ -22,6 +23,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "terra-prong-sensor",
     type: "terra",
     icon: "🔌",
+    image: "/images/vessels/terra-sensor.png",
     name: "Pronged Plant Sensor",
     price: "$19.99",
     description:
@@ -35,6 +37,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "terra-animal-sensor",
     type: "terra",
     icon: "", // rendered dynamically
+    image: "/images/vessels/terra-sensor.png",
     name: "Animal Figurine Plant Sensor",
     price: "$34.99",
     description:
@@ -50,6 +53,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "companion-plush",
     type: "companion",
     icon: "", // rendered dynamically
+    image: "/images/vessels/companion-plush-elephant.png",
     name: "Plush Animal Companion",
     price: "$24.99",
     description:
@@ -63,6 +67,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "companion-figurine",
     type: "companion",
     icon: "", // rendered dynamically
+    image: "/images/vessels/companion-figurine-lion.png",
     name: "Desktop Figurine",
     price: "$29.99",
     description:
@@ -76,6 +81,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "companion-bracelet",
     type: "companion",
     icon: "",
+    image: "/images/vessels/companion-bracelet-whale.png",
     name: "Companion Bracelet",
     price: "$19.99",
     description:
@@ -91,6 +97,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "digital-glass-orb",
     type: "digital",
     icon: "🔮",
+    image: "/images/vessels/digital-glass-orb.png",
     name: "Glass Orb Vessel",
     price: "$29.99",
     description:
@@ -102,6 +109,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "digital-wooden-box",
     type: "digital",
     icon: "🪵",
+    image: "/images/vessels/digital-wooden-box.png",
     name: "Handcrafted Wooden Box",
     price: "$34.99",
     description:
@@ -113,6 +121,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "digital-ceramic-cube",
     type: "digital",
     icon: "🧊",
+    image: "/images/vessels/digital-ceramic-cube.png",
     name: "Ceramic Cube Vessel",
     price: "$24.99",
     description:
@@ -124,6 +133,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "digital-bracelet",
     type: "digital",
     icon: "📿",
+    image: "/images/vessels/companion-bracelet-whale.png",
     name: "Digital Bracelet Vessel",
     price: "$19.99",
     description:
@@ -137,6 +147,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "licensed-yoda-plant",
     type: "licensed",
     icon: "🌿",
+    image: "/images/vessels/licensed-yoda.png",
     name: "Yoda Plant Guardian",
     price: "$49.99",
     description:
@@ -154,6 +165,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "licensed-gru-figurine",
     type: "licensed",
     icon: "🦹",
+    image: "/images/vessels/licensed-gru.png",
     name: "Gru Villainous Vessel",
     price: "$44.99",
     description:
@@ -171,6 +183,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "licensed-captain-america",
     type: "licensed",
     icon: "🛡️",
+    image: "/images/vessels/licensed-captain-america.png",
     name: "Captain America Shield Sensor",
     price: "$54.99",
     description:
@@ -188,6 +201,7 @@ export const VESSEL_PRODUCTS: VesselProduct[] = [
     id: "licensed-blue-raptor",
     type: "licensed",
     icon: "🦖",
+    image: "/images/vessels/licensed-blue.png",
     name: "Blue Raptor Companion",
     price: "$59.99",
     description:

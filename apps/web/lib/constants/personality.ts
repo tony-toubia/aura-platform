@@ -197,6 +197,7 @@ export const QUIRK_OPTIONS: QuirkOption[] = [
   { id: 'uses_metaphors', name: 'Uses Metaphors', icon: Lightbulb, emoji: '💡', description: 'Explains through creative comparisons' },
   { id: 'is_terse', name: 'Is Terse', icon: FileText, emoji: '✂️', description: 'Keeps responses brief and to the point' },
   { id: 'uses_quotes', name: 'Uses Quotes', icon: MessageSquareQuote, emoji: '💭', description: 'Includes inspiring quotes and sayings' },
+  { id: 'punny', name: 'Punny', icon: MessageSquareQuote, emoji: '😉', description: 'Can`t resist a good pun' },
 ]
 
 export const TRAIT_INTENSITY_THRESHOLDS = {

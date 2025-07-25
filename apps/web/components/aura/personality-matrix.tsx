@@ -7,17 +7,20 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RadioGroup } from "@/components/ui/radio-group"
 import { ToggleGroup } from "@/components/ui/toggle-group"
+import { Button } from "@/components/ui/button"
 import {
   Heart,
   Palette,
   Crown,
   CheckCircle2,
   ArrowRight,
+  ArrowLeft,
   Wand2,
   Feather,
   MessageCircle,
   GraduationCap,
-  Zap
+  Zap,
+  CheckCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TraitSlider } from '@/components/personality/trait-slider'
@@ -52,44 +55,78 @@ export function PersonalityMatrix({
     }
   }
 
+  const isPersonaSelected = !!personality.persona
+  const areTraitsCustomized = true // Always allow progression from traits
+  const isStyleConfigured = personality.tone && personality.vocabulary
+
+  const tabs = [
+    { id: 'personas', label: '1. Persona', icon: Crown, completed: isPersonaSelected },
+    { id: 'traits', label: '2. Core Traits', icon: Heart, completed: areTraitsCustomized },
+    { id: 'style', label: '3. Voice & Style', icon: Palette, completed: isStyleConfigured }
+  ]
+
+  const currentTabIndex = tabs.findIndex(t => t.id === activeTab)
+  const canGoNext = currentTabIndex < tabs.length - 1
+  const canGoPrev = currentTabIndex > 0
+
+  const goToNextTab = () => {
+    if (canGoNext) {
+      setActiveTab(tabs[currentTabIndex + 1]!.id)
+    }
+  }
+
+  const goToPrevTab = () => {
+    if (canGoPrev) {
+      setActiveTab(tabs[currentTabIndex - 1]!.id)
+    }
+  }
+
   return (
     <div className="space-y-8">
-      {/* Enhanced Header */}
-      <div className="text-center space-y-3">
+      {/* Enhanced Header with Progress */}
+      <div className="text-center space-y-4">
         <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium">
           <Wand2 className="w-4 h-4" />
           Personality Configuration
         </div>
+        
+        {/* Progress Indicators */}
+        <div className="flex items-center justify-center gap-2">
+          {tabs.map((tab, index) => (
+            <React.Fragment key={tab.id}>
+              <div 
+                className={cn(
+                  "flex items-center gap-2 px-3 py-1.5 rounded-full text-sm font-medium transition-all cursor-pointer",
+                  activeTab === tab.id 
+                    ? "bg-purple-600 text-white shadow-lg scale-105" 
+                    : tab.completed 
+                    ? "bg-green-100 text-green-700 hover:bg-green-200"
+                    : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                )}
+                onClick={() => setActiveTab(tab.id)}
+              >
+                {tab.completed && activeTab !== tab.id ? (
+                  <CheckCircle className="w-4 h-4" />
+                ) : (
+                  <tab.icon className="w-4 h-4" />
+                )}
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{index + 1}</span>
+              </div>
+              {index < tabs.length - 1 && (
+                <div className={cn(
+                  "w-8 h-0.5 rounded",
+                  tabs[index]!.completed ? "bg-green-500" : "bg-gray-300"
+                )} />
+              )}
+            </React.Fragment>
+          ))}
+        </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-        {/* Enhanced Tabs List */}
-        <TabsList className="grid w-full grid-cols-3 bg-gradient-to-r from-purple-50 to-blue-50 border-2 border-purple-100 rounded-2xl p-1">
-          <TabsTrigger 
-            value="personas" 
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-xl"
-          >
-            <Crown className="w-4 h-4 mr-2" />
-            1. Persona
-          </TabsTrigger>
-          <TabsTrigger 
-            value="traits"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-xl"
-          >
-            <Heart className="w-4 h-4 mr-2" />
-            2. Core Traits
-          </TabsTrigger>
-          <TabsTrigger 
-            value="style"
-            className="data-[state=active]:bg-gradient-to-r data-[state=active]:from-purple-600 data-[state=active]:to-blue-600 data-[state=active]:text-white rounded-xl"
-          >
-            <Palette className="w-4 h-4 mr-2" />
-            3. Voice & Style
-          </TabsTrigger>
-        </TabsList>
-
         {/* Tab 1: Enhanced Personas */}
-        <TabsContent value="personas" className="mt-8">
+        <TabsContent value="personas" className="mt-8 space-y-8">
           <div className="text-center mb-8">
             <h3 className="text-2xl font-bold text-gray-800 mb-2">Choose Your Archetype</h3>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -138,21 +175,28 @@ export function PersonalityMatrix({
                   
                   <CardContent className="text-center">
                     <p className="text-sm text-gray-600 leading-relaxed">{persona.description}</p>
-                    {isSelected && (
-                      <div className="mt-4 flex items-center justify-center gap-2 text-purple-600 text-sm font-medium">
-                        <span>Click "2. Core Traits" to fine-tune</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               )
             })}
           </div>
+
+          {/* Navigation for Personas */}
+          <div className="flex justify-center pt-4">
+            <Button
+              onClick={goToNextTab}
+              disabled={!isPersonaSelected}
+              size="lg"
+              className="px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            >
+              Continue to Core Traits
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
+          </div>
         </TabsContent>
 
         {/* Tab 2: Enhanced Core Traits */}
-        <TabsContent value="traits" className="mt-8">
+        <TabsContent value="traits" className="mt-8 space-y-8">
           <div className="text-center mb-8">
             <h3 className="text-2xl font-bold text-gray-800 mb-2">Fine-Tune Core Traits</h3>
             <p className="text-gray-600 max-w-2xl mx-auto">
@@ -169,6 +213,27 @@ export function PersonalityMatrix({
                 onChange={(value) => onChange({ [trait.id]: value })}
               />
             ))}
+          </div>
+
+          {/* Navigation for Traits */}
+          <div className="flex justify-between pt-4">
+            <Button
+              onClick={goToPrevTab}
+              variant="outline"
+              size="lg"
+              className="px-8"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Persona
+            </Button>
+            <Button
+              onClick={goToNextTab}
+              size="lg"
+              className="px-8 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            >
+              Continue to Voice & Style
+              <ArrowRight className="w-4 h-4 ml-2" />
+            </Button>
           </div>
         </TabsContent>
 
@@ -262,6 +327,24 @@ export function PersonalityMatrix({
                 />
               ))}
             </ToggleGroup>
+          </div>
+
+          {/* Navigation for Style */}
+          <div className="flex justify-between pt-4">
+            <Button
+              onClick={goToPrevTab}
+              variant="outline"
+              size="lg"
+              className="px-8"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Back to Core Traits
+            </Button>
+            {/* Completion indicator */}
+            <div className="flex items-center gap-2 text-green-600">
+              <CheckCircle className="w-5 h-5" />
+              <span className="font-medium">Personality Complete!</span>
+            </div>
           </div>
         </TabsContent>
       </Tabs>

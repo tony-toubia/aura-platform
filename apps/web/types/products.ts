@@ -13,6 +13,7 @@ export interface VesselProduct {
   name: string
   price: string
   icon: string
+  image?: string // Added image field
   description: string
   features: string[]
   href: string

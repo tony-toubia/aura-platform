@@ -29,9 +29,30 @@ import {
   CheckCircle,
   QrCode,
   Scan,
+  Package,
+  ChevronDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Personality } from "@/types"
+
+// Vessel categories for better organization
+const VESSEL_CATEGORIES = {
+  terra: {
+    name: "Terra Vessels",
+    description: "Plant companions with environmental sensors",
+    vessels: MANUAL_VESSEL_OPTIONS.filter(v => v.type === "terra")
+  },
+  companion: {
+    name: "Companion Vessels",
+    description: "Wildlife friends that come to life",
+    vessels: MANUAL_VESSEL_OPTIONS.filter(v => v.type === "companion")
+  },
+  licensed: {
+    name: "Licensed Characters",
+    description: "Iconic personalities with preset traits",
+    vessels: MANUAL_VESSEL_OPTIONS.filter(v => v.code.startsWith("licensed"))
+  }
+}
 
 export function AuraCreator() {
   const router = useRouter()
@@ -46,6 +67,7 @@ export function AuraCreator() {
   // Manual entry + focus state
   const [manualInput, setManualInput] = useState("")
   const [isInputFocused, setIsInputFocused] = useState(false)
+  const [showVesselSelector, setShowVesselSelector] = useState(false)
 
   const [auraData, setAuraData] = useState<AuraFormData>({
     id: "",
@@ -124,21 +146,23 @@ export function AuraCreator() {
     const found = MANUAL_VESSEL_OPTIONS.find(o => o.code.toLowerCase() === val)
     
     if (found) {
-      setAuraData((prev) => ({
-        ...prev,
-        vesselType: found.type,
-        vesselCode: found.code,
-      }))
-      // If Terra vessel, go to plant selection, otherwise senses
-      setStep(found.type === "terra" ? "plant" : "senses")
-      setError(null)
+      handleVesselOptionSelect(found)
     } else {
-      setError(
-        `Vessel not found. Please enter one of: ${MANUAL_VESSEL_OPTIONS
-          .map((o) => `"${o.code}"`)
-          .join(", ")}.`
-      )
+      setError("Vessel code not recognized. Please select from the available options below.")
+      setShowVesselSelector(true)
     }
+  }
+
+  const handleVesselOptionSelect = (option: typeof MANUAL_VESSEL_OPTIONS[0]) => {
+    setAuraData((prev) => ({
+      ...prev,
+      vesselType: option.type,
+      vesselCode: option.code,
+    }))
+    setStep(option.type === "terra" ? "plant" : "senses")
+    setError(null)
+    setShowVesselSelector(false)
+    setManualInput("")
   }
 
   const handleVesselSelect = (vesselType: VesselTypeId) => {
@@ -147,7 +171,6 @@ export function AuraCreator() {
       vesselType,
       vesselCode: vesselType === "digital" ? "" : vesselType,
     }))
-    // If Terra vessel, go to plant selection, otherwise senses
     setStep(vesselType === "terra" ? "plant" : "senses")
     setError(null)
   }
@@ -204,7 +227,6 @@ export function AuraCreator() {
     ? VESSEL_SENSE_CONFIG[auraData.vesselType]
     : { defaultSenses: [], optionalSenses: [] }
   
-  // Get allowed senses, including connected senses for all vessel types
   const allowedSenses = AVAILABLE_SENSES.filter((s) => {
     const isDefault = senseConfig.defaultSenses.includes(s.id)
     const isOptional = senseConfig.optionalSenses.includes(s.id)
@@ -248,8 +270,7 @@ export function AuraCreator() {
           Create Your Aura
         </h1>
         <p className="text-xl text-gray-600">
-          Bring a unique personality to life through magical connection and
-          understanding
+          Bring a unique personality to life through magical connection and understanding
         </p>
       </div>
 
@@ -262,50 +283,93 @@ export function AuraCreator() {
                 <div className="text-center space-y-6">
                   <div className="space-y-3">
                     <h2 className="text-2xl font-bold flex items-center justify-center gap-2">
-                      <QrCode className="w-6 h-6 text-purple-600" />
+                      <Package className="w-6 h-6 text-purple-600" />
                       Do you have a physical vessel?
                     </h2>
                     <p className="text-gray-600">
-                      Scan your vessel's QR code or enter its ID to connect with a
-                      physical companion
+                      Connect with a physical companion by entering its code or selecting from available vessels
                     </p>
                   </div>
 
-                <div className="max-w-md mx-auto space-y-4">
-                  <div className="relative">
-                    {/* turn the input into a searchable dropdown */}
-                    <Input
-                      list="vessel-options"
-                      value={manualInput}
-                      onChange={(e) => { setManualInput(e.target.value); setError(null) }}
-                      placeholder="Start typing or paste your vessel ID…"
-                      className="text-center text-lg py-6 border-2 border-purple-200 focus:border-purple-400"
-                    />
-                    <datalist id="vessel-options">
-                      {MANUAL_VESSEL_OPTIONS.map((o) => (
-                        <option key={o.code} value={o.code} label={`${o.code} (${o.type})`} />
-                      ))}
-                    </datalist>
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                      <Scan className="w-5 h-5 text-gray-400" />
+                  <div className="max-w-md mx-auto space-y-4">
+                    <div className="relative">
+                      <Input
+                        value={manualInput}
+                        onChange={(e) => {
+                          setManualInput(e.target.value)
+                          setError(null)
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' && manualInput.trim()) {
+                            handleManualSubmit()
+                          }
+                        }}
+                        placeholder="Enter vessel code (e.g., TERRA-POT-001)"
+                        className="text-center text-lg py-6 border-2 border-purple-200 focus:border-purple-400 pr-12"
+                      />
+                      <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                        <QrCode className="w-5 h-5 text-gray-400" />
+                      </div>
                     </div>
+
+                    {error && (
+                      <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
+                        {error}
+                      </div>
+                    )}
+
+                    <div className="flex items-center gap-3">
+                      <Button
+                        onClick={handleManualSubmit}
+                        disabled={!manualInput.trim()}
+                        className="flex-1 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                      >
+                        Connect Vessel
+                      </Button>
+                      <Button
+                        variant="outline"
+                        onClick={() => setShowVesselSelector(!showVesselSelector)}
+                        className="border-2 border-purple-200 hover:border-purple-400"
+                      >
+                        <ChevronDown className={cn(
+                          "w-4 h-4 transition-transform",
+                          showVesselSelector && "rotate-180"
+                        )} />
+                      </Button>
+                    </div>
+
+                    {/* Available Vessels Dropdown */}
+                    {showVesselSelector && (
+                      <div className="mt-4 p-4 bg-purple-50 rounded-xl border-2 border-purple-100 space-y-4">
+                        <p className="text-sm font-medium text-purple-700">
+                          Select from available vessels:
+                        </p>
+                        
+                        {Object.entries(VESSEL_CATEGORIES).map(([key, category]) => (
+                          <div key={key} className="space-y-2">
+                            <h4 className="text-xs font-semibold text-gray-600 uppercase tracking-wider">
+                              {category.name}
+                            </h4>
+                            <div className="grid grid-cols-1 gap-2">
+                              {category.vessels.map((vessel) => (
+                                <button
+                                  key={vessel.code}
+                                  onClick={() => handleVesselOptionSelect(vessel)}
+                                  className="text-left p-3 bg-white rounded-lg border border-purple-200 hover:border-purple-400 hover:bg-purple-50 transition-all"
+                                >
+                                <div className="flex items-center justify-between">
+                                  {/* ManualVesselOption only has .code and .type */}
+                                  <span className="font-medium text-sm">{vessel.code}</span>
+                                  <span className="text-xs text-gray-500 font-mono">{vessel.code}</span>
+                                </div>
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
-
-                  {error && (
-                    <div className="bg-red-50 border border-red-200 text-red-700 p-3 rounded-lg text-sm">
-                      {error}
-                    </div>
-                  )}
-
-                  <Button
-                    onClick={handleManualSubmit}
-                    disabled={!manualInput.trim()}
-                    size="lg"
-                    className="w-full bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                  >
-                    Connect Vessel
-                  </Button>
-                </div>
                 </div>
 
                 {/* Divider */}
@@ -322,8 +386,7 @@ export function AuraCreator() {
                       Create a Digital Being
                     </h3>
                     <p className="text-gray-600">
-                      No physical vessel? No problem! Create a pure digital
-                      consciousness
+                      No physical vessel? No problem! Create a pure digital consciousness
                     </p>
                   </div>
 
@@ -440,15 +503,7 @@ export function AuraCreator() {
                           {selectedVessel.name}
                           {auraData.vesselCode && selectedVessel.id !== "digital" && (
                             <span className="ml-2 text-sm text-gray-500">
-                              (
-                              {auraData.vesselCode.startsWith("licensed - ")
-                                ? `Licensed: ${
-                                    auraData.vesselCode
-                                      .replace("licensed - ", "")
-                                      .replace(/\b\w/g, (l) => l.toUpperCase())
-                                  }`
-                                : auraData.vesselCode}
-                              )
+                              ({auraData.vesselCode})
                             </span>
                           )}
                         </h3>
@@ -461,27 +516,6 @@ export function AuraCreator() {
                           <p className="text-sm">
                             <span className="font-medium">Plant:</span>{" "}
                             {PLANT_DATABASE[auraData.plantType]?.name ?? auraData.plantType}
-                          </p>
-                        )}
-
-                        {/* Companion: show study & individual IDs */}
-                        {auraData.vesselType === "companion" && (
-                          <>
-                            <p className="text-sm">
-                              <span className="font-medium">Study ID:</span>{" "}
-                              {auraData.selectedStudyId}
-                            </p>
-                            <p className="text-sm">
-                              <span className="font-medium">Individual ID:</span>{" "}
-                              {auraData.selectedIndividualId}
-                            </p>
-                          </>
-                        )}
-
-                        {/* Digital: little note */}
-                        {auraData.vesselType === "digital" && (
-                          <p className="text-sm italic text-gray-500">
-                            Pure digital vessel – no hardware required.
                           </p>
                         )}
                       </div>
