@@ -61,20 +61,20 @@ import { cn } from "@/lib/utils"
 
 // Mock data for charts
 const marketGrowthData = [
-  { year: "2023", iot: 120, ai: 45, combined: 165 },
-  { year: "2024", iot: 145, ai: 62, combined: 207 },
-  { year: "2025", iot: 178, ai: 89, combined: 267 },
-  { year: "2026", iot: 215, ai: 125, combined: 340 },
-  { year: "2027", iot: 260, ai: 168, combined: 428 },
+  { year: "2024", iot: 120, ai: 45, combined: 165 },
+  { year: "2025", iot: 145, ai: 62, combined: 207 },
+  { year: "2026", iot: 178, ai: 89, combined: 267 },
+  { year: "2027", iot: 215, ai: 125, combined: 340 },
+  { year: "2028", iot: 260, ai: 168, combined: 428 },
 ]
 
 const revenueProjections = [
-  { quarter: "Q1 2024", consumer: 50, enterprise: 0, total: 50 },
-  { quarter: "Q2 2024", consumer: 150, enterprise: 50, total: 200 },
-  { quarter: "Q3 2024", consumer: 400, enterprise: 200, total: 600 },
-  { quarter: "Q4 2024", consumer: 800, enterprise: 500, total: 1300 },
-  { quarter: "Q1 2025", consumer: 1200, enterprise: 1000, total: 2200 },
-  { quarter: "Q2 2025", consumer: 1500, enterprise: 2000, total: 3500 },
+  { quarter: "Q1 2026", consumer: 50, enterprise: 0, total: 50 },
+  { quarter: "Q2 2026", consumer: 150, enterprise: 50, total: 200 },
+  { quarter: "Q3 2026", consumer: 400, enterprise: 200, total: 600 },
+  { quarter: "Q4 2026", consumer: 800, enterprise: 500, total: 1300 },
+  { quarter: "Q1 2027", consumer: 1200, enterprise: 1000, total: 2200 },
+  { quarter: "Q2 2027", consumer: 1500, enterprise: 2000, total: 3500 },
 ]
 
 const productAdoption = [
@@ -378,7 +378,7 @@ const SentientSystemsPage = () => {
                     </div>
                     <h4 className="font-semibold text-yellow-400 mb-1">Phase 3: Enterprise</h4>
                     <p className="text-sm text-gray-400">B2B platform expansion</p>
-                    <p className="text-xs text-gray-600 mt-1">Q2 2024</p>
+                    <p className="text-xs text-gray-600 mt-1">Q2 2026</p>
                   </div>
                 </div>
               </CardContent>
@@ -793,10 +793,10 @@ const SentientSystemsPage = () => {
             {/* Milestones */}
             <div className="grid md:grid-cols-4 gap-6 mb-12">
               {[
-                { target: "50K", metric: "Active Users", timeline: "Q4 2024", icon: Users },
-                { target: "SDK", metric: "Developer Launch", timeline: "Q2 2024", icon: Code },
-                { target: "5", metric: "Enterprise Pilots", timeline: "Q3 2024", icon: Building2 },
-                { target: "$5M", metric: "ARR Target", timeline: "Q1 2025", icon: DollarSign },
+                { target: "50K", metric: "Active Users", timeline: "Q1 2026", icon: Users },
+                { target: "SDK", metric: "Developer Launch", timeline: "Q2 2026", icon: Code },
+                { target: "5", metric: "Enterprise Pilots", timeline: "Q3 2026", icon: Building2 },
+                { target: "$5M", metric: "ARR Target", timeline: "Q1 2027", icon: DollarSign },
               ].map((milestone, idx) => (
                 <Card key={idx} className="bg-gray-900/50 border-yellow-900/20 hover:border-yellow-600/40 transition-all group">
                   <CardContent className="p-6 text-center">
@@ -1026,7 +1026,7 @@ const SentientSystemsPage = () => {
         {/* Footer */}
         <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t border-yellow-900/20">
           <div className="max-w-7xl mx-auto text-center text-gray-500 text-sm">
-            <p>© 2024 Sentient Systems. Confidential and Proprietary.</p>
+            <p>© 2025 Sentient Systems. Confidential and Proprietary.</p>
             <p className="mt-2">
               Aura is a trademark of Sentient Systems, Inc. Patent pending on personality engine technology.
             </p>
