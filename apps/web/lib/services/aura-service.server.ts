@@ -5,6 +5,8 @@ import type { Aura } from '@/types'
 export interface CreateAuraInput {
   name: string
   vesselType: 'digital' | 'terra' | 'companion' | 'memory' | 'sage'
+  vesselCode?: string
+  plantType?: string
   personality: Record<string, number>
   senses: string[]
   communicationStyle?: string
@@ -42,9 +44,11 @@ export class AuraServiceServer {
       id: r.id,
       name: r.name,
       vesselType: r.vessel_type,
+      vesselCode: r.vessel_code,
+      plantType: r.plant_type,
       personality: r.personality,
       senses: r.aura_senses.map((as: any) => as.sense.code),
-      avatar: r.avatar ?? this.getAvatarForVessel(r.vessel_type),
+      avatar: r.avatar ?? this.getAvatarForVessel(r.vessel_type, r.vessel_code),
       rules: [],
       enabled: r.enabled,
       createdAt: new Date(r.created_at),
@@ -75,9 +79,11 @@ export class AuraServiceServer {
       id: row.id,
       name: row.name,
       vesselType: row.vessel_type,
+      vesselCode: row.vessel_code,
+      plantType: row.plant_type,
       personality: row.personality,
       senses: row.aura_senses.map((as: any) => as.sense.code),
-      avatar: row.avatar ?? this.getAvatarForVessel(row.vessel_type),
+      avatar: row.avatar ?? this.getAvatarForVessel(row.vessel_type, row.vessel_code),
       rules: [],
       enabled: row.enabled,
       createdAt: new Date(row.created_at),
@@ -103,10 +109,12 @@ export class AuraServiceServer {
         user_id: user.id,
         name: input.name,
         vessel_type: input.vesselType,
+        vessel_code: input.vesselCode || null,
+        plant_type: input.plantType || null,
         personality: input.personality,
         communication_style: input.communicationStyle ?? 'balanced',
         voice_profile: input.voiceProfile ?? 'neutral',
-        avatar: this.getAvatarForVessel(input.vesselType),
+        avatar: this.getAvatarForVessel(input.vesselType, input.vesselCode),
         selected_study_id: input.selectedStudyId,
         selected_individual_id: input.selectedIndividualId,
       })
@@ -136,6 +144,8 @@ export class AuraServiceServer {
       id: aura.id,
       name: aura.name,
       vesselType: aura.vessel_type,
+      vesselCode: aura.vessel_code,
+      plantType: aura.plant_type,
       personality: aura.personality,
       senses: input.senses,
       avatar: aura.avatar!,
@@ -201,20 +211,8 @@ export class AuraServiceServer {
       }
     }
 
-    return {
-      id: aura.id,
-      name: aura.name,
-      vesselType: aura.vessel_type,
-      personality: aura.personality,
-      senses: input.senses || [],
-      avatar: aura.avatar!,
-      rules: [],
-      enabled: aura.enabled,
-      createdAt: new Date(aura.created_at),
-      updatedAt: new Date(aura.updated_at),
-      selectedStudyId: aura.selected_study_id ?? null,
-      selectedIndividualId: aura.selected_individual_id ?? null,
-    }
+    // Re-fetch the complete aura
+    return this.getAuraById(id) as Promise<Aura>
   }
 
   /** Delete an aura (only if it belongs to current user) */
@@ -234,12 +232,24 @@ export class AuraServiceServer {
     if (error) throw error
   }
 
-  private static getAvatarForVessel(vesselType: string): string {
+  private static getAvatarForVessel(vesselType: string, vesselCode?: string | null): string {
+    // Check for licensed character avatars
+    if (vesselCode) {
+      const code = vesselCode.toLowerCase()
+      if (code.includes('yoda')) return '🧙'
+      if (code.includes('gru')) return '🦹'
+      if (code.includes('captain-america')) return '🛡️'
+      if (code.includes('blue')) return '🦖'
+      if (code.includes('triceratops')) return '🦕'
+    }
+    
+    // Default avatars by vessel type
     const avatars: Record<string, string> = {
       terra: '🌱',
       companion: '🐘',
       memory: '💎',
       sage: '📚',
+      digital: '🤖',
     }
     return avatars[vesselType] ?? '🤖'
   }

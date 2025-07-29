@@ -2,7 +2,7 @@
 
 "use client"
 
-import React, { useState } from 'react'
+import React, { useState, useCallback, useEffect } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RadioGroup } from "@/components/ui/radio-group"
@@ -20,11 +20,14 @@ import {
   MessageCircle,
   GraduationCap,
   Zap,
-  CheckCircle
+  CheckCircle,
+  RefreshCw,
+  Loader2
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { TraitSlider } from '@/components/personality/trait-slider'
 import { OptionCard } from '@/components/personality/option-card'
+import { usePersonalityPreview } from '@/hooks/use-personality-preview'
 import { generatePersonalityPreview } from '@/lib/personality-preview'
 import { 
   CORE_TRAITS, 
@@ -38,15 +41,28 @@ import type { Personality } from '@/types'
 interface PersonalityMatrixProps {
   personality: Personality
   vesselCode?: string
+  vesselType?: string
+  auraName?: string
   onChange: (update: Partial<Personality>) => void
 }
 
 export function PersonalityMatrix({
   personality,
   vesselCode = "",
+  vesselType = "digital",
+  auraName = "Your Aura",
   onChange
 }: PersonalityMatrixProps) {
   const [activeTab, setActiveTab] = useState('personas')
+  
+  // Enhanced preview hook
+  const { 
+    preview, 
+    isLoading: previewLoading, 
+    error: previewError, 
+    generatePreview, 
+    clearError 
+  } = usePersonalityPreview()
 
   const handlePersonaSelect = (personaId: string) => {
     const selected = PERSONAS.find(p => p.id === personaId)
@@ -80,6 +96,28 @@ export function PersonalityMatrix({
       setActiveTab(tabs[currentTabIndex - 1]!.id)
     }
   }
+
+  // Function to trigger AI preview generation
+  const handleGeneratePreview = useCallback(async () => {
+    clearError()
+    await generatePreview({
+      personality,
+      vesselType,
+      vesselCode,
+      auraName
+    })
+  }, [personality, vesselType, vesselCode, auraName, generatePreview, clearError])
+
+  // Auto-generate preview when component mounts or when key personality traits change
+  useEffect(() => {
+    const hasBasicPersonality = personality.persona || personality.tone || personality.vocabulary
+    if (hasBasicPersonality) {
+      handleGeneratePreview()
+    }
+  }, [personality.persona, personality.tone, personality.vocabulary, handleGeneratePreview])
+
+  // Fallback preview using the original static function
+  const fallbackPreview = generatePersonalityPreview(personality, vesselCode)
 
   return (
     <div className="space-y-8">
@@ -351,14 +389,34 @@ export function PersonalityMatrix({
         </TabsContent>
       </Tabs>
 
-      {/* Enhanced Live Preview Section */}
+      {/* Enhanced Live Preview Section with Real AI */}
       <div className="mt-12 pt-8 border-t-2 border-gray-100">
-        <h4 className="text-xl sm:text-2xl font-bold mb-6 flex items-center gap-3 text-center sm:text-left">
-          <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
-            <Feather className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
-          </div>
-          Live Personality Preview
-        </h4>
+        <div className="flex items-center justify-between mb-6">
+          <h4 className="text-xl sm:text-2xl font-bold flex items-center gap-3 text-center sm:text-left">
+            <div className="w-8 h-8 sm:w-10 sm:h-10 bg-gradient-to-r from-purple-500 to-blue-500 rounded-xl flex items-center justify-center flex-shrink-0">
+              <Feather className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            </div>
+            Live Personality Preview
+          </h4>
+          
+          {/* Refresh Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleGeneratePreview}
+            disabled={previewLoading}
+            className="flex items-center gap-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50"
+          >
+            {previewLoading ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <RefreshCw className="w-4 h-4" />
+            )}
+            <span className="hidden sm:inline">
+              {previewLoading ? 'Generating...' : 'Refresh'}
+            </span>
+          </Button>
+        </div>
         
         <div className="bg-gradient-to-r from-purple-50 via-blue-50 to-pink-50 border-2 border-purple-100 rounded-2xl p-4 sm:p-8">
           {/* Desktop Layout: Side by side */}
@@ -370,12 +428,49 @@ export function PersonalityMatrix({
             <div className="flex-1">
               <div className="bg-white rounded-2xl p-6 shadow-md border border-gray-200">
                 <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  <span className="text-sm font-medium text-gray-600">Sample Response</span>
+                  <div className={cn(
+                    "w-2 h-2 rounded-full",
+                    previewLoading ? "bg-yellow-500 animate-pulse" : "bg-green-500 animate-pulse"
+                  )}></div>
+                  <span className="text-sm font-medium text-gray-600">
+                    {previewLoading ? 'Generating AI Preview...' : 'AI Preview Response'}
+                  </span>
                 </div>
-                <p className="text-gray-800 leading-relaxed italic">
-                  "{generatePersonalityPreview(personality, vesselCode)}"
-                </p>
+                
+                {previewError && (
+                  <div className="mb-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+                    <p className="text-sm text-red-600">
+                      ⚠️ {previewError}
+                    </p>
+                  </div>
+                )}
+                
+                <div className="min-h-[60px] flex items-center">
+                  {previewLoading ? (
+                    <div className="flex items-center gap-3 text-gray-500">
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      <span className="italic">Generating your Aura's unique personality...</span>
+                    </div>
+                  ) : (
+                    <p className="text-gray-800 leading-relaxed italic">
+                      "{preview || fallbackPreview}"
+                    </p>
+                  )}
+                </div>
+                
+                {!previewLoading && preview && (
+                  <div className="mt-3 flex items-center gap-2 text-xs text-green-600">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                    <span>Generated using AI • Each refresh creates a unique response</span>
+                  </div>
+                )}
+                
+                {!previewLoading && !preview && (
+                  <div className="mt-3 flex items-center gap-2 text-xs text-gray-500">
+                    <div className="w-1.5 h-1.5 bg-gray-400 rounded-full"></div>
+                    <span>Static preview • Click refresh for AI-generated response</span>
+                  </div>
+                )}
               </div>
               
               {/* Desktop Personality Summary */}
@@ -410,12 +505,33 @@ export function PersonalityMatrix({
                 <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center flex-shrink-0">
                   <MessageCircle className="w-4 h-4 text-white" />
                 </div>
-                <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                <span className="text-sm font-medium text-gray-600">Sample Response</span>
+                <div className={cn(
+                  "w-2 h-2 rounded-full",
+                  previewLoading ? "bg-yellow-500 animate-pulse" : "bg-green-500 animate-pulse"
+                )}></div>
+                <span className="text-sm font-medium text-gray-600">
+                  {previewLoading ? 'Generating...' : 'AI Preview'}
+                </span>
               </div>
-              <p className="text-gray-800 leading-relaxed italic text-sm">
-                "{generatePersonalityPreview(personality, vesselCode)}"
-              </p>
+              
+              {previewError && (
+                <div className="mb-3 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+                  ⚠️ {previewError}
+                </div>
+              )}
+              
+              <div className="min-h-[50px] flex items-center">
+                {previewLoading ? (
+                  <div className="flex items-center gap-2 text-gray-500">
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span className="italic text-sm">Generating personality...</span>
+                  </div>
+                ) : (
+                  <p className="text-gray-800 leading-relaxed italic text-sm">
+                    "{preview || fallbackPreview}"
+                  </p>
+                )}
+              </div>
             </div>
             
             {/* Mobile Personality Summary - Full width grid */}
@@ -459,7 +575,8 @@ export function PersonalityMatrix({
         
         <div className="mt-4 text-center">
           <p className="text-xs sm:text-sm text-gray-600">
-            ✨ This preview updates in real-time as you adjust the personality settings
+            ✨ This preview uses AI to show how your Aura will actually communicate
+            {vesselCode && ` • Featuring ${vesselCode.charAt(0).toUpperCase() + vesselCode.slice(1)} personality`}
           </p>
         </div>
       </div>

@@ -1,9 +1,9 @@
 // apps/web/app/api/aura/chat/route.ts
 import { NextResponse, type NextRequest } from 'next/server'
-import { createServerSupabase }       from '@/lib/supabase/server.server'
-import { SenseDataService }           from '@/lib/services/sense-data-service'
-import { AuraServiceServer }          from '@/lib/services/aura-service.server'
-import { generateAuraReply }          from '@/lib/services/openai-service'
+import { createServerSupabase } from '@/lib/supabase/server.server'
+import { SenseDataService } from '@/lib/services/sense-data-service'
+import { AuraServiceServer } from '@/lib/services/aura-service.server'
+import { generateAuraReply } from '@/lib/services/openai-service'
 
 export async function POST(req: NextRequest) {
   const supabase = await createServerSupabase()
@@ -19,10 +19,37 @@ export async function POST(req: NextRequest) {
     senseData?: Record<string, any>
   }
 
-  // 1) Load aura
-  const aura = await AuraServiceServer.getAuraById(auraId)
-  if (!aura) {
+  // 1) Load aura with vessel code
+  const { data: auraData, error: auraError } = await supabase
+    .from('auras')
+    .select(`
+      *,
+      aura_senses (
+        sense:senses ( code )
+      )
+    `)
+    .eq('id', auraId)
+    .eq('user_id', user.id)
+    .single()
+
+  if (auraError || !auraData) {
     return NextResponse.json({ error: 'Aura not found' }, { status: 404 })
+  }
+
+  // Transform to Aura type
+  const aura = {
+    id: auraData.id,
+    name: auraData.name,
+    vesselType: auraData.vessel_type as any,
+    personality: auraData.personality,
+    senses: auraData.aura_senses?.map((as: any) => as.sense.code) || [],
+    avatar: auraData.avatar || '🤖',
+    rules: [],
+    enabled: auraData.enabled,
+    createdAt: new Date(auraData.created_at),
+    updatedAt: new Date(auraData.updated_at),
+    selectedStudyId: auraData.selected_study_id,
+    selectedIndividualId: auraData.selected_individual_id,
   }
 
   // 2) Load live sense-data (use provided data if available, otherwise fetch fresh)
@@ -34,16 +61,26 @@ export async function POST(req: NextRequest) {
       }))
     : await SenseDataService.getSenseData(aura.senses)
 
-  // 3) Analyze what influences this response
+  // 3) Extract vessel code if present (stored in the database or passed)
+  const vesselCode = auraData.vessel_code || ''
+
+  // 4) Analyze what influences this response
   const influences = analyzeInfluences(userMessage, aura, rawSenseData)
 
-  // 4) Check for triggered rules
-  const triggeredRule = checkTriggeredRules(aura.rules, rawSenseData, userMessage)
+  // 5) Check for triggered rules
+  const triggeredRule = checkTriggeredRules(auraData.rules || [], rawSenseData, userMessage)
 
-  // 5) Generate reply (server side OpenAI call)
-  const reply = await generateAuraReply(aura, userMessage, rawSenseData)
+  // 6) Generate reply with full context
+  let reply: string
+  try {
+    reply = await generateAuraReply(aura, userMessage, rawSenseData, conversationId, vesselCode)
+  } catch (error) {
+    console.error('Failed to generate AI response:', error)
+    // Fallback response
+    reply = "I'm having trouble connecting right now, but I'm still here with you. Please try again in a moment."
+  }
 
-  // 6) Build rich metadata
+  // 7) Build rich metadata
   const metadata = {
     influences: influences.general,
     senseData: influences.senseData,
@@ -52,7 +89,7 @@ export async function POST(req: NextRequest) {
     personalityFactors: influences.personalityFactors
   }
 
-  // 7) Persist both messages with metadata
+  // 8) Persist both messages with metadata
   await supabase
     .from('messages')
     .insert([
@@ -72,7 +109,7 @@ export async function POST(req: NextRequest) {
       },
     ])
 
-  // 8) Return JSON with rich metadata
+  // 9) Return JSON with rich metadata
   return NextResponse.json({ 
     reply, 
     metadata,
@@ -98,12 +135,12 @@ function analyzeInfluences(userMessage: string, aura: any, senseData: any[]) {
 
   // Analyze message content for sense references
   const senseKeywords = {
-    weather: ['weather', 'temperature', 'hot', 'cold', 'warm', 'cool', 'climate'],
-    air_quality: ['air', 'pollution', 'smog', 'aqi', 'air quality', 'breathing'],
-    soil_moisture: ['soil', 'water', 'moisture', 'thirsty', 'dry', 'wet'],
-    light_level: ['light', 'bright', 'dark', 'sunny', 'shade', 'illumination'],
-    news: ['news', 'headlines', 'current events', 'happening', 'world'],
-    wildlife: ['animals', 'wildlife', 'nature', 'birds', 'creatures']
+    weather: ['weather', 'temperature', 'hot', 'cold', 'warm', 'cool', 'climate', 'humid', 'dry'],
+    air_quality: ['air', 'pollution', 'smog', 'aqi', 'air quality', 'breathing', 'fresh', 'stuffy'],
+    soil_moisture: ['soil', 'water', 'moisture', 'thirsty', 'dry', 'wet', 'watering', 'hydration'],
+    light_level: ['light', 'bright', 'dark', 'sunny', 'shade', 'illumination', 'shadow', 'glow'],
+    news: ['news', 'headlines', 'current events', 'happening', 'world', 'today', 'events'],
+    wildlife: ['animals', 'wildlife', 'nature', 'birds', 'creatures', 'habitat', 'ecosystem']
   }
 
   // Check which senses the user mentioned
@@ -125,6 +162,9 @@ function analyzeInfluences(userMessage: string, aura: any, senseData: any[]) {
             if (senseDataItem.data?.main?.temp) {
               influences.senseInfluences.push(`Current temperature: ${Math.round(senseDataItem.data.main.temp)}°C`)
             }
+            if (senseDataItem.data?.weather?.[0]?.description) {
+              influences.senseInfluences.push(`Weather: ${senseDataItem.data.weather[0].description}`)
+            }
             break
           case 'air_quality':
             if (senseDataItem.data?.aqi) {
@@ -142,13 +182,18 @@ function analyzeInfluences(userMessage: string, aura: any, senseData: any[]) {
               influences.senseInfluences.push(`${senseDataItem.data.articles.length} recent news articles`)
             }
             break
+          case 'wildlife':
+            if (senseDataItem.data?.species) {
+              influences.senseInfluences.push(`Wildlife activity detected: ${senseDataItem.data.species}`)
+            }
+            break
         }
       }
     }
   })
 
   // Analyze personality influences based on message tone and content
-  if (messageWords.includes('feel') || messageWords.includes('emotion')) {
+  if (messageWords.includes('feel') || messageWords.includes('emotion') || messageWords.includes('feeling')) {
     if (aura.personality.empathy > 60) {
       influences.personalityFactors.push('High empathy - responding with emotional understanding')
     }
@@ -157,30 +202,39 @@ function analyzeInfluences(userMessage: string, aura: any, senseData: any[]) {
     }
   }
 
-  if (messageWords.includes('help') || messageWords.includes('advice')) {
+  if (messageWords.includes('help') || messageWords.includes('advice') || messageWords.includes('suggest')) {
     if (aura.personality.empathy > 50) {
       influences.personalityFactors.push('Empathy - eager to help and support')
     }
   }
 
-  if (messageWords.includes('fun') || messageWords.includes('play') || messageWords.includes('joke')) {
+  if (messageWords.includes('fun') || messageWords.includes('play') || messageWords.includes('joke') || messageWords.includes('laugh')) {
     if (aura.personality.playfulness > 60) {
       influences.personalityFactors.push('High playfulness - adding humor and lightness')
     }
   }
 
   // Analyze response length needs
-  if (messageWords.includes('explain') || messageWords.includes('detail') || messageWords.includes('how')) {
+  if (messageWords.includes('explain') || messageWords.includes('detail') || messageWords.includes('how') || messageWords.includes('why')) {
     if (aura.personality.verbosity > 60) {
       influences.personalityFactors.push('High verbosity - providing detailed explanations')
+    } else if (aura.personality.verbosity < 40) {
+      influences.personalityFactors.push('Low verbosity - keeping explanation concise')
     }
   }
 
   // Add creativity factors for open-ended questions
-  if (messageWords.includes('what do you think') || messageWords.includes('imagine') || messageWords.includes('creative')) {
+  if (messageWords.includes('what do you think') || messageWords.includes('imagine') || messageWords.includes('creative') || messageWords.includes('idea')) {
     if (aura.personality.creativity > 60) {
       influences.personalityFactors.push('High creativity - generating imaginative responses')
     }
+  }
+
+  // Add vessel-specific influences
+  if (aura.vesselType === 'terra') {
+    influences.general.push('Terra vessel - plant care perspective')
+  } else if (aura.vesselType === 'companion') {
+    influences.general.push('Companion vessel - wildlife connection')
   }
 
   // Add general influences
@@ -192,6 +246,17 @@ function analyzeInfluences(userMessage: string, aura: any, senseData: any[]) {
     influences.general.push(`Aura has ${aura.senses.length} active senses`)
   }
 
+  // Add personality summary
+  const dominantTraits = []
+  if (aura.personality.warmth > 70) dominantTraits.push('warm')
+  if (aura.personality.playfulness > 70) dominantTraits.push('playful')
+  if (aura.personality.empathy > 70) dominantTraits.push('empathetic')
+  if (aura.personality.creativity > 70) dominantTraits.push('creative')
+  
+  if (dominantTraits.length > 0) {
+    influences.general.push(`Dominant traits: ${dominantTraits.join(', ')}`)
+  }
+
   return influences
 }
 
@@ -199,7 +264,6 @@ function analyzeInfluences(userMessage: string, aura: any, senseData: any[]) {
 function checkTriggeredRules(rules: any[], senseData: any[], userMessage: string) {
   if (!rules || rules.length === 0) return null
 
-  // This is a simplified rule check - you'd want to implement your actual rule logic here
   for (const rule of rules) {
     if (!rule.enabled) continue
 

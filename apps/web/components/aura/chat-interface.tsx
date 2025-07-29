@@ -203,69 +203,69 @@ export function ChatInterface({
           </div>
 
           {/* Status and Controls row */}
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl">
-          <div className="flex items-center justify-between text-white/80 text-sm -mt-1">
-            <div className="flex items-center space-x-4 min-w-0 flex-1">
-              <div className="flex items-center space-x-2 flex-shrink-0">
-                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                <span className="whitespace-nowrap">Online &amp; Sensing</span>
+          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl">
+            <div className="flex items-start justify-between text-white/80 text-sm -mt-1">
+              <div className="flex flex-col space-y-2 min-w-0 flex-1">
+                <div className="flex items-center space-x-2 flex-shrink-0">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="whitespace-nowrap">Online &amp; Sensing</span>
+                </div>
+
+                {/* Sense icons - show when SenseStatus is hidden */}
+                {!showSenseStatus && (
+                  <div className="flex items-center space-x-2 overflow-hidden">
+                    {aura.senses.slice(0, 5).map((id: string) => {
+                      const Icon = SENSE_ICONS[id as keyof typeof SENSE_ICONS]
+                      return Icon ? (
+                        <Icon key={id} className="w-4 h-4 text-white opacity-80 flex-shrink-0" />
+                      ) : null
+                    })}
+                    {aura.senses.length > 5 && (
+                      <span className="text-xs opacity-70 flex-shrink-0">+{aura.senses.length - 5}</span>
+                    )}
+                  </div>
+                )}
               </div>
 
-              {/* Sense icons - show when SenseStatus is hidden */}
-              {!showSenseStatus && (
-                <div className="flex items-center space-x-2 overflow-hidden">
-                  {aura.senses.slice(0, 5).map((id: string) => {
-                    const Icon = SENSE_ICONS[id as keyof typeof SENSE_ICONS]
-                    return Icon ? (
-                      <Icon key={id} className="w-4 h-4 text-white opacity-80 flex-shrink-0" />
-                    ) : null
-                  })}
-                  {aura.senses.length > 5 && (
-                    <span className="text-xs opacity-70 flex-shrink-0">+{aura.senses.length - 5}</span>
+              {/* Control buttons */}
+              <div className="flex items-center space-x-2 flex-shrink-0 ml-2 self-center">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setVoiceEnabled((v) => !v)}
+                  className={cn(
+                    "text-white hover:bg-white/20 border border-white/30 w-8 h-8 sm:w-9 sm:h-9",
+                    voiceEnabled && "bg-white/20"
                   )}
-                </div>
-              )}
+                >
+                  {voiceEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowInfluence((s) => !s)}
+                  className={cn(
+                    "text-white hover:bg-white/20 border border-white/30 w-8 h-8 sm:w-9 sm:h-9",
+                    showInfluence && "bg-white/20"
+                  )}
+                  title={showInfluence ? "Hide influence details" : "Show influence details"}
+                >
+                  {showInfluence ? <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowSenseStatus((v) => !v)}
+                  className={cn(
+                    "text-white hover:bg-white/20 border border-white/30 w-8 h-8 sm:w-9 sm:h-9",
+                    !showSenseStatus && "opacity-60"
+                  )}
+                  title={showSenseStatus ? "Hide Live Awareness" : "Show Live Awareness"}
+                >
+                  <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                </Button>
+              </div>
             </div>
-
-            {/* Control buttons */}
-            <div className="flex items-center space-x-2 flex-shrink-0 ml-2">
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setVoiceEnabled((v) => !v)}
-                className={cn(
-                  "text-white hover:bg-white/20 border border-white/30 w-8 h-8 sm:w-9 sm:h-9",
-                  voiceEnabled && "bg-white/20"
-                )}
-              >
-                {voiceEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowInfluence((s) => !s)}
-                className={cn(
-                  "text-white hover:bg-white/20 border border-white/30 w-8 h-8 sm:w-9 sm:h-9",
-                  showInfluence && "bg-white/20"
-                )}
-                title={showInfluence ? "Hide influence details" : "Show influence details"}
-              >
-                {showInfluence ? <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowSenseStatus((v) => !v)}
-                className={cn(
-                  "text-white hover:bg-white/20 border border-white/30 w-8 h-8 sm:w-9 sm:h-9",
-                  !showSenseStatus && "opacity-60"
-                )}
-                title={showSenseStatus ? "Hide Live Awareness" : "Show Live Awareness"}
-              >
-                <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-              </Button>
-            </div>
-          </div>
           </div>
 
           {/* Bottom row - Conditional Live Awareness */}

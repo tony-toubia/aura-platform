@@ -29,6 +29,8 @@ export interface Aura {
   id: string
   name: string
   vesselType: 'digital' | 'terra' | 'companion' | 'memory' | 'sage'
+  vesselCode?: string  // Add this field
+  plantType?: string   // Add this field for terra vessels
   personality: Personality
   senses: string[]
   selectedStudyId: string

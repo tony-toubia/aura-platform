@@ -23,6 +23,14 @@
   --ring: 262.1 83.3% 57.8%;
   --input: 214.3 31.8% 91.4%;
   --radius: 0.5rem;
+  
+  /* Sentient Systems Gold Theme Variables */
+  --sentient-gold: 51 100% 50%;
+  --sentient-amber: 38 100% 50%;
+  --sentient-orange: 25 100% 50%;
+  --sentient-black: 0 0% 0%;
+  --sentient-gray-900: 0 0% 5%;
+  --sentient-gray-800: 0 0% 10%;
 }
 
 .dark {
@@ -153,6 +161,48 @@
     border-radius: 9999px; /* rounded-full */
     background-color: hsla(var(--primary), 0.1); /* bg-primary/10 */
   }
+  
+  /* Sentient Systems Component Classes */
+  .sentient-gradient-gold {
+    background: linear-gradient(to right, hsl(var(--sentient-gold)), hsl(var(--sentient-amber)), hsl(var(--sentient-orange)));
+  }
+  
+  .sentient-text-gradient {
+    background: linear-gradient(to right, hsl(var(--sentient-gold)), hsl(var(--sentient-amber)));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  .sentient-card {
+    background-color: rgba(17, 24, 39, 0.5);
+    border: 1px solid rgba(217, 119, 6, 0.2);
+    transition: all 0.3s ease;
+  }
+  
+  .sentient-card:hover {
+    border-color: rgba(217, 119, 6, 0.4);
+  }
+  
+  .sentient-button-primary {
+    background: linear-gradient(to right, hsl(var(--sentient-gold)), hsl(var(--sentient-amber)));
+    color: black;
+    font-weight: 600;
+    box-shadow: 0 10px 15px -3px rgba(217, 119, 6, 0.25);
+  }
+  
+  .sentient-button-primary:hover {
+    background: linear-gradient(to right, hsl(var(--sentient-amber)), hsl(var(--sentient-orange)));
+  }
+  
+  .sentient-button-secondary {
+    border: 1px solid rgba(217, 119, 6, 0.5);
+    color: hsl(var(--sentient-gold));
+  }
+  
+  .sentient-button-secondary:hover {
+    background-color: rgba(217, 119, 6, 0.1);
+  }
 }
 
 /* 4) Utility classes */
@@ -167,5 +217,30 @@
     --tw-gradient-from: #111827;
     --tw-gradient-to: rgba(30, 58, 138, 0.2);
     --tw-gradient-stops: var(--tw-gradient-from), rgba(88, 28, 135, 0.3), var(--tw-gradient-to);
+  }
+  
+  /* Sentient Systems Utilities */
+  .sentient-glow-gold {
+    box-shadow: 0 0 30px rgba(255, 215, 0, 0.3);
+  }
+  
+  .sentient-bg-pattern {
+    background-image: 
+      radial-gradient(circle at 20% 50%, rgba(255, 215, 0, 0.1) 0%, transparent 50%),
+      radial-gradient(circle at 80% 80%, rgba(255, 140, 0, 0.1) 0%, transparent 50%);
+  }
+  
+  /* Sentient Systems Animations */
+  @keyframes sentient-pulse {
+    0%, 100% {
+      opacity: 0.2;
+    }
+    50% {
+      opacity: 0.3;
+    }
+  }
+  
+  .sentient-animate-pulse {
+    animation: sentient-pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite;
   }
 }

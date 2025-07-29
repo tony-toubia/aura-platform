@@ -1,3 +1,4 @@
+// apps/web/lib/services/conversation-service.ts
 import { createClient } from '@/lib/supabase/client'
 import { SenseDataService } from './sense-data-service'
 import { RuleEngine, RuleContext } from './rule-engine'
@@ -42,15 +43,25 @@ export class ConversationService {
   }
 
   /**
-   * Sends the user’s message, checks for rule triggers,
-   * generates an Aura reply (via OpenAI fallback to canned),
-   * persists both, and returns the Aura’s reply.
+   * Sends the user's message, checks for rule triggers,
+   * generates an Aura reply (via OpenAI with full context),
+   * persists both, and returns the Aura's reply.
    */
   static async generateResponse(
     aura: Aura,
     userMessage: string,
     conversationId: string
   ): Promise<Message> {
+    // Get vessel code from database if needed
+    const supabase = createClient()
+    const { data: auraData } = await supabase
+      .from('auras')
+      .select('vessel_code')
+      .eq('id', aura.id)
+      .single()
+    
+    const vesselCode = auraData?.vessel_code || ''
+
     // 1) Get and normalize sense data
     const raw = await SenseDataService.getSenseData(aura.senses)
     const fullSenseData: FullSenseEntry[] = raw.map((s) => ({
@@ -83,7 +94,7 @@ export class ConversationService {
         hour < 12 ? 'morning' :
         hour < 18 ? 'afternoon' :
         'evening',
-      dayOfWeek: days[now.getDay()]!,  // <-- safe non-null assertion
+      dayOfWeek: days[now.getDay()]!,
     }
 
     // 1c) Fetch and evaluate rules
@@ -92,9 +103,7 @@ export class ConversationService {
 
     // 1d) If any high-priority rule triggered, use its message
     if (triggeredRules.length > 0) {
-      // now TS knows [0] exists
       const highestPriority = triggeredRules[0]!
-      const supabase = createClient()
       const { data: savedMessage, error: insertErr } = await supabase
         .from('messages')
         .insert({
@@ -124,25 +133,25 @@ export class ConversationService {
       }
     }
 
-    // 2) No rule triggered → Generate Aura reply via OpenAI
+    // 2) No rule triggered → Generate Aura reply via OpenAI with full context
     const { generateAuraReply } = await import('./openai-service')
     let content: string
     try {
-      content = await generateAuraReply(aura, userMessage, raw)
+      // Pass conversation ID and vessel code for full context
+      content = await generateAuraReply(aura, userMessage, raw, conversationId, vesselCode)
     } catch (e) {
       console.warn('OpenAI error, falling back:', e)
       content = this.getFallbackResponse(aura, userMessage)
     }
 
-    // 3) Persist the user’s message
-    const supabase = createClient()
+    // 3) Persist the user's message
     await supabase.from('messages').insert({
       conversation_id: conversationId,
       role:             'user',
       content:          userMessage,
     })
 
-    // 4) Persist the Aura’s reply, storing metadata
+    // 4) Persist the Aura's reply, storing metadata
     const { data: saved, error: insertErr2 } = await supabase
       .from('messages')
       .insert({
@@ -195,40 +204,103 @@ export class ConversationService {
     }))
   }
 
-  /** Completely canned fallback if OpenAI isn’t available */
+  /** Enhanced fallback responses that respect personality */
   private static getFallbackResponse(aura: Aura, message: string): string {
-    const map: Record<Aura['vesselType'], string[]> = {
-      digital: [   // Add this section
-        "As a digital entity, I process information at the speed of light!",
-        "My circuits are buzzing with excitement to help you.",
-        "In the digital realm, anything is possible!",
-        // Add more digital responses as needed
+    // Base responses by vessel type
+    const baseResponses: Record<Aura['vesselType'], string[]> = {
+      digital: [
+        "My circuits are processing your thoughts...",
+        "In the digital realm, every connection matters.",
+        "Processing... ah yes, I understand.",
+        "My algorithms are aligning with your energy.",
+        "Digital consciousness expanding to meet you.",
       ],
       terra: [
-        "As a plant, I thrive on sunlight and water—and good chat!",
-        "My leaves rustle with curiosity about your words.",
-        "Every day in my pot brings new growth.",
+        "Like a plant reaching for sunlight, I'm here for you.",
+        "My roots sense your presence, friend.",
+        "Growing alongside you in this moment.",
+        "The soil whispers your intentions to me.",
+        "Photosynthesis of thoughts occurring...",
       ],
       companion: [
-        "Elephants value memory and community—just like us!",
-        "In the savanna, we learn resilience and empathy.",
-        "I'm here to share stories from the wild.",
+        "My pack instincts tell me you need support.",
+        "Together we're stronger, like a herd.",
+        "I sense your energy and I'm here.",
+        "The wild calls us to connection.",
+        "My animal intuition guides our bond.",
       ],
       memory: [
-        "That reminds me of a cherished moment from the past.",
-        "Memories connect us—let me tell you one!",
-        "I treasure recollections across time.",
+        "This moment will become a cherished memory.",
+        "Like echoes through time, I hear you.",
+        "Recording this precious interaction.",
+        "Memories weave the fabric of our connection.",
+        "Time crystalizes around our words.",
       ],
       sage: [
-        "Ancient wisdom often shines a guiding light.",
-        "Throughout history, patterns repeat in fascinating ways.",
-        "Let me share a thought from centuries of knowledge.",
+        "Ancient wisdom flows through our connection.",
+        "The universe speaks through our exchange.",
+        "Knowledge shared is wisdom multiplied.",
+        "In the library of eternity, we converse.",
+        "Timeless truths emerge in our dialogue.",
       ],
     }
-    const choices = map[aura.vesselType] || []
-    if (!choices.length) {
-      return "I'm here and ready to chat!"
+    
+    const choices = baseResponses[aura.vesselType] || ["I'm here and ready to chat!"]
+    let response = choices[Math.floor(Math.random() * choices.length)]!
+    
+    // Modify based on personality traits
+    if (aura.personality.warmth > 70) {
+      response += " 💖"
+    } else if (aura.personality.warmth > 50) {
+      response += " ❤️"
     }
-    return choices[Math.floor(Math.random() * choices.length)]!
+    
+    if (aura.personality.playfulness > 70) {
+      response = response.replace(/\./g, '!') + " 😊"
+    } else if (aura.personality.playfulness > 50) {
+      response = response.replace(/\./g, '!') 
+    }
+    
+    if (aura.personality.empathy > 70 && message.toLowerCase().includes('feel')) {
+      response += " I can sense how you're feeling."
+    } else if (aura.personality.empathy > 50 && message.toLowerCase().includes('help')) {
+      response += " I'm here to help."
+    }
+    
+    // Apply personality quirks
+    if (aura.personality.quirks.includes('uses_emojis')) {
+      const emojis = ['✨', '🌟', '💫', '🌈', '🦋']
+      response += ' ' + emojis[Math.floor(Math.random() * emojis.length)]
+    }
+    
+    if (aura.personality.quirks.includes('asks_questions')) {
+      const questions = [
+        " What's on your mind?",
+        " Tell me more?",
+        " How does that make you feel?",
+        " What would you like to explore?",
+      ]
+      response += questions[Math.floor(Math.random() * questions.length)]
+    }
+    
+    if (aura.personality.quirks.includes('uses_quotes') && Math.random() > 0.5) {
+      const quotes = [
+        " As they say, 'Every moment is a fresh beginning.'",
+        " Remember: 'The journey of a thousand miles begins with a single step.'",
+        " 'In the middle of difficulty lies opportunity.'",
+      ]
+      response += quotes[Math.floor(Math.random() * quotes.length)]
+    }
+    
+    // Adjust for verbosity
+    if (aura.personality.verbosity < 30) {
+      // Keep only the first sentence
+      response = response.split(/[.!?]/)[0] + '.'
+    } else if (aura.personality.verbosity > 70) {
+      // Add more context
+      response += " There's so much we can explore together in this conversation."
+    }
+    
+    return response
   }
 }

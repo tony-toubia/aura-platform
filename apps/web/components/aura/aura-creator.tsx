@@ -663,31 +663,19 @@ export function AuraCreator() {
                   </div>
                 )}
 
-                {/* Enhanced Navigation - Mobile Stacked */}
-                <div
-                  className={cn(
-                    "flex mt-10 pt-8 border-t-2 border-gray-100",
-                    step === "rules" 
-                      ? "flex-col-reverse gap-4" 
-                      : "flex-col sm:flex-row sm:justify-between gap-3 sm:gap-0"
-                  )}
-                >
+                {/* Enhanced Navigation - Consistent Layout */}
+                <div className="flex flex-col sm:flex-row sm:justify-between gap-3 sm:gap-0 mt-10 pt-8 border-t-2 border-gray-100">
                   <Button
                     variant="outline"
                     onClick={onBack}
                     disabled={loading}
                     size="lg"
-                    className={cn(
-                      "px-8",
-                      step === "rules" 
-                        ? "w-full max-w-xs" 
-                        : "w-full sm:w-auto order-2 sm:order-1"
-                    )}
+                    className="px-8 w-full sm:w-auto order-2 sm:order-1"
                   >
                     Back
                   </Button>
 
-                  {step !== "rules" && (
+                  {step !== "rules" ? (
                     <Button
                       onClick={onNext}
                       disabled={
@@ -710,6 +698,15 @@ export function AuraCreator() {
                           <ArrowRight className="w-4 h-4 ml-2" />
                         </>
                       )}
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={() => router.push(`/auras/${auraData.id}`)}
+                      size="lg"
+                      className="px-8 w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold order-1 sm:order-2 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
+                    >
+                      <Heart className="w-5 h-5 mr-2" />
+                      Chat with {auraData.name}
                     </Button>
                   )}
                 </div>
