@@ -958,7 +958,7 @@ const SentientSystemsPage = () => {
         {/* Footer */}
         <footer className="py-8 px-4 sm:px-6 lg:px-8 border-t border-yellow-900/20">
           <div className="max-w-7xl mx-auto text-center text-gray-500 text-sm">
-            <p>© 2024 Sentient Systems. Confidential and Proprietary.</p>
+            <p>© 2025 Sentient Systems. Confidential and Proprietary.</p>
           </div>
         </footer>
       </div>
