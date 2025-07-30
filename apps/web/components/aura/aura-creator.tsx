@@ -12,6 +12,7 @@ import { SenseSelector } from "./sense-selector"
 import { RuleBuilder } from "./rule-builder"
 import { PlantSelector } from "./plant-selector"
 import { PLANT_DATABASE } from "@/lib/plant-database"
+import type { LocationConfig } from "./sense-location-modal"
 import {
   VESSEL_SENSE_CONFIG,
   AVAILABLE_SENSES,
@@ -68,6 +69,9 @@ export function AuraCreator() {
   const [manualInput, setManualInput] = useState("")
   const [isInputFocused, setIsInputFocused] = useState(false)
   const [showVesselSelector, setShowVesselSelector] = useState(false)
+
+  // Location configurations for location-aware senses
+  const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>({})
 
   const [auraData, setAuraData] = useState<AuraFormData>({
     id: "",
@@ -183,6 +187,14 @@ export function AuraCreator() {
         : [...prev.senses, senseId],
     }))
 
+  // Handler for location configuration
+  const handleLocationConfig = (senseId: SenseId, config: LocationConfig) => {
+    setLocationConfigs(prev => ({
+      ...prev,
+      [senseId]: config
+    }))
+  }
+
   const handleCreate = async () => {
     setLoading(true)
     setError(null)
@@ -200,6 +212,7 @@ export function AuraCreator() {
           plantType: auraData.plantType || undefined,
           personality: auraData.personality,
           senses: senseCodes,
+          locationConfigs, // Add location configurations
           selectedStudyId: auraData.selectedStudyId,
           selectedIndividualId: auraData.selectedIndividualId,
         }),
@@ -355,7 +368,7 @@ export function AuraCreator() {
                                 <button
                                   key={vessel.code}
                                   onClick={() => {
-                                  // just populate the input, don’t auto-advance
+                                  // just populate the input, don't auto-advance
                                   setManualInput(vessel.code)
                                   setError(null)
                                   setShowVesselSelector(false)
@@ -540,7 +553,7 @@ export function AuraCreator() {
                   </div>
                 )}
 
-                {/* Senses Step */}
+                {/* Senses Step with Location Support */}
                 {step === "senses" && (
                   <div className="space-y-8">
                     <div className="text-center">
@@ -558,6 +571,9 @@ export function AuraCreator() {
                       selectedSenses={auraData.senses}
                       onToggle={toggleSense}
                       vesselType={auraData.vesselType as VesselTypeId}
+                      auraName={auraData.name || "Your Aura"}
+                      onLocationConfig={handleLocationConfig}
+                      locationConfigs={locationConfigs}
                     />
                   </div>
                 )}
@@ -592,6 +608,8 @@ export function AuraCreator() {
                     <PersonalityMatrix
                       personality={auraData.personality}
                       vesselCode={auraData.vesselCode}
+                      vesselType={auraData.vesselType}
+                      auraName={auraData.name}
                       onChange={(update) =>
                         setAuraData((p) => ({
                           ...p,

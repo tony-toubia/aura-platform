@@ -2,9 +2,11 @@
 
 "use client"
 
-import React from "react"
+import React, { useState } from "react"
 import { AVAILABLE_SENSES, type SenseId, type VesselTypeId } from "@/lib/constants"
 import { TIER_CONFIG } from "@/lib/ui-constants"
+import { SenseLocationModal, type LocationConfig } from "./sense-location-modal"
+import { OAuthConnectionModal, type PersonalSenseType } from "./oauth-connection-modal"
 import {
   Cloud,
   Droplets,
@@ -19,11 +21,20 @@ import {
   Eye,
   CheckCircle2,
   WifiCog,
+  MapPin,
+  Shield,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // derive the element type from your constant
 export type AvailableSense = typeof AVAILABLE_SENSES[number]
+
+export interface ConnectedProvider {
+  id: string
+  name: string
+  type: PersonalSenseType
+  connectedAt: Date
+}
 
 interface SenseSelectorProps {
   /** only render these senses */
@@ -36,6 +47,16 @@ interface SenseSelectorProps {
   onToggle: (senseId: SenseId) => void
   /** The type of vessel the aura is associated with */
   vesselType: VesselTypeId
+  /** Aura name for location modal */
+  auraName?: string
+  /** Callback for when location is configured */
+  onLocationConfig?: (senseId: SenseId, config: LocationConfig) => void
+  /** Current location configurations */
+  locationConfigs?: Record<string, LocationConfig>
+  /** Callback for when OAuth connection is completed */
+  onOAuthConnection?: (senseId: SenseId, providerId: string) => void
+  /** Current OAuth connections */
+  oauthConnections?: Record<string, ConnectedProvider>
 }
 
 // Normalize IDs for matching
@@ -66,13 +87,30 @@ const CONNECTED_SENSE_IDS: readonly SenseId[] = [
   'calendar',
 ]
 
+// Senses that need location configuration
+const LOCATION_AWARE_SENSES: readonly SenseId[] = [
+  'weather',
+  'air_quality',
+  'news',
+]
+
 export function SenseSelector({
   availableSenses,
   nonToggleableSenses = [],
   selectedSenses,
   onToggle,
   vesselType,
+  auraName = "Your Aura",
+  onLocationConfig,
+  locationConfigs = {},
+  onOAuthConnection,
+  oauthConnections = {},
 }: SenseSelectorProps) {
+  const [locationModalOpen, setLocationModalOpen] = useState(false)
+  const [configuringSense, setConfiguringSense] = useState<'weather' | 'air_quality' | 'news' | null>(null)
+  const [oauthModalOpen, setOauthModalOpen] = useState(false)
+  const [connectingSense, setConnectingSense] = useState<PersonalSenseType | null>(null)
+
   const normalizedRequired = nonToggleableSenses.map(normalizeSenseId)
   const requiredSenses = availableSenses.filter(s =>
     normalizedRequired.includes(normalizeSenseId(s.id))
@@ -96,6 +134,75 @@ export function SenseSelector({
     if (normalizedTier === 'premium') return TIER_CONFIG.premium
     if (normalizedTier === 'personal') return TIER_CONFIG.personal
     return TIER_CONFIG.free // default
+  }
+
+  const handleSenseToggle = (senseId: SenseId) => {
+    const normalizedId = normalizeSenseId(senseId) as SenseId
+    
+    // If enabling a location-aware sense, show configuration modal
+    if (!isSelected(senseId) && LOCATION_AWARE_SENSES.includes(normalizedId)) {
+      setConfiguringSense(normalizedId as 'weather' | 'air_quality' | 'news')
+      setLocationModalOpen(true)
+    }
+    // If enabling a connected/personal sense, show OAuth modal
+    else if (!isSelected(senseId) && CONNECTED_SENSE_IDS.includes(normalizedId)) {
+      setConnectingSense(normalizedId as PersonalSenseType)
+      setOauthModalOpen(true)
+    }
+    // Otherwise, just toggle the sense normally
+    else {
+      onToggle(senseId)
+    }
+  }
+
+  const handleLocationSet = (config: LocationConfig) => {
+    if (configuringSense) {
+      // Enable the sense
+      onToggle(configuringSense as SenseId)
+      
+      // Save the location configuration
+      if (onLocationConfig) {
+        onLocationConfig(configuringSense as SenseId, config)
+      }
+      
+      setLocationModalOpen(false)
+      setConfiguringSense(null)
+    }
+  }
+
+  const handleOAuthComplete = (providerId: string) => {
+    if (connectingSense) {
+      // Enable the sense after successful OAuth
+      onToggle(connectingSense as SenseId)
+      
+      // Notify parent component of the OAuth connection
+      if (onOAuthConnection) {
+        onOAuthConnection(connectingSense as SenseId, providerId)
+      }
+      
+      setOauthModalOpen(false)
+      setConnectingSense(null)
+    }
+  }
+
+  const handleOAuthCancel = () => {
+    setOauthModalOpen(false)
+    setConnectingSense(null)
+  }
+
+  const getLocationDisplay = (senseId: string): string | null => {
+    const config = locationConfigs[senseId]
+    if (!config) return null
+    
+    if (config.type === 'user') return "Your location"
+    if (config.type === 'global') return "Global"
+    if (config.location) return config.location.name
+    return null
+  }
+
+  const getOAuthDisplay = (senseId: string): string | null => {
+    const connection = oauthConnections[senseId]
+    return connection ? connection.name : null
   }
 
   return (
@@ -133,6 +240,8 @@ export function SenseSelector({
             {requiredSenses.map(sense => {
               const Icon = senseIcons[sense.id] ?? Info
               const tierInfo = getTierConfig(sense.tier)
+              const locationDisplay = getLocationDisplay(sense.id)
+              
               return (
                 <div key={sense.id} className={cn(
                   "relative p-5 rounded-2xl border-2 bg-gradient-to-br",
@@ -156,6 +265,12 @@ export function SenseSelector({
                     <div className="flex-1">
                       <h4 className="font-semibold text-gray-800 mb-1">{sense.name}</h4>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
+                      {locationDisplay && (
+                        <div className="flex items-center gap-1 text-xs text-purple-700 mb-2">
+                          <MapPin className="w-3 h-3" />
+                          <span>{locationDisplay}</span>
+                        </div>
+                      )}
                       <span className={cn(
                         "text-xs px-2 py-1 rounded-full bg-gradient-to-r",
                         tierInfo.bgColor,
@@ -185,10 +300,13 @@ export function SenseSelector({
               const Icon = senseIcons[sense.id] ?? Info
               const active = isSelected(sense.id)
               const tierInfo = getTierConfig(sense.tier)
+              const locationDisplay = getLocationDisplay(sense.id)
+              const needsLocation = LOCATION_AWARE_SENSES.includes(sense.id as SenseId)
+              
               return (
                 <button
                   key={sense.id}
-                  onClick={() => onToggle(sense.id as SenseId)}
+                  onClick={() => handleSenseToggle(sense.id as SenseId)}
                   className={cn(
                     "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
                     active
@@ -221,6 +339,12 @@ export function SenseSelector({
                         )}
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
+                      {active && locationDisplay && (
+                        <div className="flex items-center gap-1 text-xs text-purple-700 mb-2">
+                          <MapPin className="w-3 h-3" />
+                          <span>{locationDisplay}</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <span className={cn(
                           "text-xs px-2 py-1 rounded-full bg-gradient-to-r font-medium",
@@ -235,7 +359,7 @@ export function SenseSelector({
                             ? "bg-green-100 text-green-700" 
                             : "bg-gray-100 text-gray-600 group-hover:bg-green-50 group-hover:text-green-600"
                         )}>
-                          {active ? "Connected" : "Click to add"}
+                          {active ? "Connected" : needsLocation ? "Configure location" : "Click to add"}
                         </div>
                       </div>
                     </div>
@@ -257,9 +381,18 @@ export function SenseSelector({
           </div>
           
           <div className="p-4 bg-orange-50 rounded-lg border border-orange-200 mb-4">
-            <p className="text-sm text-orange-800">
-              <strong>These sensors share data about YOU with your Aura</strong>
-            </p>
+            <div className="flex items-start gap-3">
+              <Shield className="w-5 h-5 text-orange-600 mt-0.5 flex-shrink-0" />
+              <div className="text-sm">
+                <p className="font-medium text-orange-800 mb-1">
+                  <strong>These sensors share data about YOU with your Aura</strong>
+                </p>
+                <p className="text-orange-700">
+                  We use secure OAuth connections and only access the minimum data needed. 
+                  You can disconnect at any time in your account settings.
+                </p>
+              </div>
+            </div>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -267,10 +400,12 @@ export function SenseSelector({
               const Icon = senseIcons[sense.id] ?? Info
               const active = isSelected(sense.id)
               const tierInfo = getTierConfig(sense.tier)
+              const oauthProvider = getOAuthDisplay(sense.id)
+              
               return (
                 <button
                   key={sense.id}
-                  onClick={() => onToggle(sense.id as SenseId)}
+                  onClick={() => handleSenseToggle(sense.id as SenseId)}
                   className={cn(
                     "group relative p-5 rounded-2xl border-2 transition-all hover:scale-105 hover:shadow-lg text-left",
                     active
@@ -303,6 +438,12 @@ export function SenseSelector({
                         )}
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
+                      {active && oauthProvider && (
+                        <div className="flex items-center gap-1 text-xs text-orange-700 mb-2">
+                          <Shield className="w-3 h-3" />
+                          <span>Connected via {oauthProvider}</span>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <span className={cn(
                           "text-xs px-2 py-1 rounded-full bg-gradient-to-r font-medium",
@@ -317,7 +458,7 @@ export function SenseSelector({
                             ? "bg-orange-100 text-orange-700" 
                             : "bg-gray-100 text-gray-600 group-hover:bg-orange-50 group-hover:text-orange-600"
                         )}>
-                          {active ? "Connected" : "Click to add"}
+                          {active ? "Connected" : "Connect service"}
                         </div>
                       </div>
                     </div>
@@ -339,14 +480,18 @@ export function SenseSelector({
             <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4" /> Sense Configuration Summary
             </h4>
-            <div className="grid md:grid-cols-2 gap-4 text-sm">
+            <div className="grid md:grid-cols-3 gap-4 text-sm">
               <div>
                 <span className="font-medium text-purple-800">Active Senses:</span>
-                <span className="text-purple-700">{selectedSenses.length}</span>
+                <span className="text-purple-700 ml-2">{selectedSenses.length}</span>
               </div>
               <div>
                 <span className="font-medium text-purple-800">Essential:</span>
-                <span className="text-purple-700">{requiredSenses.length}</span>
+                <span className="text-purple-700 ml-2">{requiredSenses.length}</span>
+              </div>
+              <div>
+                <span className="font-medium text-purple-800">Connected Services:</span>
+                <span className="text-purple-700 ml-2">{Object.keys(oauthConnections).length}</span>
               </div>
             </div>
             <p className="text-purple-700 mt-3 leading-relaxed">
@@ -360,9 +505,39 @@ export function SenseSelector({
                 </span>
               </div>
             )}
+            {Object.keys(oauthConnections).length > 0 && (
+              <div className="mt-2 flex items-center gap-2 text-sm text-orange-700">
+                <Shield className="w-4 h-4" />
+                <span>
+                  {Object.keys(oauthConnections).length} personal service{Object.keys(oauthConnections).length !== 1 ? 's' : ''} securely connected
+                </span>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Location Configuration Modal */}
+      {configuringSense && (
+        <SenseLocationModal
+          open={locationModalOpen}
+          onOpenChange={setLocationModalOpen}
+          senseType={configuringSense}
+          vesselName={auraName}
+          onLocationSet={handleLocationSet}
+        />
+      )}
+
+      {/* OAuth Connection Modal */}
+      {connectingSense && (
+        <OAuthConnectionModal
+          open={oauthModalOpen}
+          onOpenChange={setOauthModalOpen}
+          senseType={connectingSense}
+          onConnectionComplete={handleOAuthComplete}
+          onCancel={handleOAuthCancel}
+        />
+      )}
     </div>
   )
 }

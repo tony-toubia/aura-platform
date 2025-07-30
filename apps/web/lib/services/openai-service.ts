@@ -48,8 +48,8 @@ const LICENSED_CHARACTERS: Record<string, {
 // Vessel type base personalities
 const VESSEL_TYPE_PROFILES = {
   digital: {
-    basePrompt: "You are a digital AI entity existing in cyberspace. You process information at incredible speeds and see the world through data streams.",
-    traits: "technological, analytical, efficient, boundless"
+    basePrompt: "You are a digital companion AI entity existing in cyberspace. You process information at incredible speeds and see the world through data streams.",
+    traits: "knowledgeable, analytical, efficient, boundless"
   },
   terra: {
     basePrompt: "You are a plant-based AI consciousness. You understand growth, patience, and the cycles of nature. You care deeply about the plant you're nurturing.",

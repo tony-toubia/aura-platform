@@ -12,6 +12,16 @@ export interface WeatherData {
   country: string
 }
 
+export interface LocationConfig {
+  type: 'specific' | 'user' | 'global'
+  location?: {
+    name: string
+    lat?: number
+    lon?: number
+    country?: string
+  }
+}
+
 export class WeatherService {
   /**
    * We look for either:
@@ -24,7 +34,8 @@ export class WeatherService {
 
   static async getCurrentWeather(
     lat?: number,
-    lon?: number
+    lon?: number,
+    locationConfig?: LocationConfig
   ): Promise<WeatherData | null> {
     if (!this.apiKey) {
       console.error(
@@ -34,8 +45,20 @@ export class WeatherService {
     }
 
     try {
-      const latitude = lat  ?? 39.0997
-      const longitude = lon ?? -94.5786
+      let latitude = lat ?? 39.0997   // Default to Kansas City
+      let longitude = lon ?? -94.5786
+
+      // Handle location config
+      if (locationConfig) {
+        if (locationConfig.type === 'specific' && locationConfig.location) {
+          latitude = locationConfig.location.lat ?? latitude
+          longitude = locationConfig.location.lon ?? longitude
+        } else if (locationConfig.type === 'user') {
+          // This would use the user's current location
+          // For now, we'll use the default or passed coordinates
+          // In a real implementation, you'd get this from the browser's geolocation API
+        }
+      }
 
       const res = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude
@@ -62,11 +85,23 @@ export class WeatherService {
     }
   }
 
-  static async getForecast(lat?: number, lon?: number): Promise<any[]> {
+  static async getForecast(
+    lat?: number, 
+    lon?: number,
+    locationConfig?: LocationConfig
+  ): Promise<any[]> {
     if (!this.apiKey) return []
     try {
-      const latitude  = lat  ?? 39.0997
-      const longitude = lon ?? -94.5786
+      let latitude  = lat  ?? 39.0997
+      let longitude = lon ?? -94.5786
+
+      // Handle location config
+      if (locationConfig) {
+        if (locationConfig.type === 'specific' && locationConfig.location) {
+          latitude = locationConfig.location.lat ?? latitude
+          longitude = locationConfig.location.lon ?? longitude
+        }
+      }
 
       const res = await fetch(
         `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude
@@ -81,6 +116,38 @@ export class WeatherService {
     } catch (e) {
       console.error('Failed to fetch forecast:', e)
       return []
+    }
+  }
+
+  // New method to geocode location names
+  static async geocodeLocation(query: string): Promise<{
+    name: string
+    lat: number
+    lon: number
+    country: string
+  } | null> {
+    if (!this.apiKey) return null
+
+    try {
+      const res = await fetch(
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${this.apiKey}`
+      )
+      
+      if (!res.ok) return null
+      
+      const data = await res.json()
+      if (!data || data.length === 0) return null
+      
+      const location = data[0]
+      return {
+        name: location.name,
+        lat: location.lat,
+        lon: location.lon,
+        country: location.country,
+      }
+    } catch (error) {
+      console.error('Geocoding failed:', error)
+      return null
     }
   }
 }
