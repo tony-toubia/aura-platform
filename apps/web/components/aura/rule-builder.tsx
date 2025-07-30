@@ -2,7 +2,7 @@
 
 "use client"
 
-import React, { useState, useEffect, useRef, useMemo } from "react"
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -31,13 +31,16 @@ import {
   Save,
   X,
   Activity,
-  Info
+  Info,
+  RefreshCw,
+  Loader2
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { RuleCard } from "@/components/rules/rule-card"
 import { SensorValueInput } from "@/components/rules/sensor-value-input"
 import { CooldownConfig } from "@/components/rules/cooldown-config"
 import { useCooldownConfig } from "@/hooks/use-cooldown-config"
+import { useRulePreview } from "@/hooks/use-rule-preview"
 import { 
   OPERATOR_LABELS, 
   QUICK_TEMPLATES, 
@@ -47,6 +50,23 @@ import {
 import { SENSOR_CONFIGS, getSensorConfig, getOperatorsForSensor } from "@/types"
 import type { BehaviorRule, SensorMetadata, RuleTrigger } from "@/types"
 import type { RuleBuilderProps } from "@/types/rules"
+
+// Debounce helper for preview generation
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [value, delay])
+
+  return debouncedValue
+}
 
 export function RuleBuilder({
   auraId,
@@ -80,8 +100,25 @@ export function RuleBuilder({
   const [showAllPromptVariables, setShowAllPromptVariables] = useState(false)
   const [showAllTemplateVariables, setShowAllTemplateVariables] = useState(false)
 
+  // AI Preview state
+  const { 
+    preview, 
+    isLoading: previewLoading, 
+    error: previewError, 
+    generatePreview, 
+    clearError: clearPreviewError,
+    clearPreview 
+  } = useRulePreview()
+
+  // Debounce form values for preview generation
+  const debouncedGuidelines = useDebounce(responseGuidelines, 1000)
+  const debouncedTones = useDebounce(responseTones, 500)
+  const debouncedSensorValue = useDebounce(sensorValue, 800)
+
   const isEditing = editingRule !== null
   const nameInputRef = useRef<HTMLInputElement>(null)
+  const hasGeneratedPreview = useRef(false)
+  const previousPreviewData = useRef<string>('')
 
   // Get sensor configuration
   const selectedSensorConfig = selectedSensor ? getSensorConfig(selectedSensor) : null
@@ -122,41 +159,58 @@ export function RuleBuilder({
     return templates
   }, [availableSenses])
 
-  // Helper function to generate example responses
-  const generateExampleResponse = (
-    guidelines: string, 
-    tones: string[], 
-    sensorConfig: any, 
-    value: any
-  ) => {
-    if (!guidelines || !sensorConfig) {
-      return "Configure your response guidelines to see an example..."
+  // Generate AI preview when relevant values change
+  useEffect(() => {
+    if (responseType === 'prompt' && selectedSensorConfig && debouncedGuidelines && debouncedSensorValue !== null) {
+      const previewData = JSON.stringify({
+        guidelines: debouncedGuidelines,
+        tones: debouncedTones,
+        sensor: selectedSensor,
+        value: debouncedSensorValue,
+        operator
+      })
+      
+      // Only generate if data actually changed
+      if (previousPreviewData.current !== previewData) {
+        generatePreview({
+          guidelines: debouncedGuidelines,
+          tones: debouncedTones,
+          sensorConfig: selectedSensorConfig,
+          sensorValue: debouncedSensorValue,
+          operator,
+          vesselType: vesselType || '',
+          vesselCode,
+          auraName: 'Your Aura'
+        })
+        previousPreviewData.current = previewData
+        hasGeneratedPreview.current = true
+      }
+    } else if (responseType === 'template') {
+      // Clear preview when switching to template mode
+      if (hasGeneratedPreview.current) {
+        clearPreview()
+        hasGeneratedPreview.current = false
+        previousPreviewData.current = ''
+      }
     }
+  }, [responseType, selectedSensorConfig, debouncedGuidelines, debouncedTones, debouncedSensorValue, selectedSensor, operator, generatePreview, clearPreview, vesselType, vesselCode])
 
-    const toneWords = {
-      encouraging: ['Great job', 'Keep it up', 'You\'re doing amazing'],
-      casual: ['Nice', 'Cool', 'Sweet'],
-      professional: ['Well done', 'Excellent work', 'Outstanding'],
-      playful: ['Awesome sauce', 'You rock', 'Way to go'],
-      caring: ['I\'m proud of you', 'Take care of yourself', 'You matter'],
-      motivational: ['Crush it', 'You\'ve got this', 'Push forward']
+  // Manual refresh for preview
+  const handleRefreshPreview = useCallback(() => {
+    if (responseType === 'prompt' && selectedSensorConfig && responseGuidelines && sensorValue !== null) {
+      clearPreviewError()
+      generatePreview({
+        guidelines: responseGuidelines,
+        tones: responseTones,
+        sensorConfig: selectedSensorConfig,
+        sensorValue: sensorValue,
+        operator,
+        vesselType: vesselType || '',
+        vesselCode,
+        auraName: 'Your Aura'
+      })
     }
-
-    const activeTones = tones.length > 0 ? tones : ['encouraging']
-    const randomTone = activeTones[Math.floor(Math.random() * activeTones.length)]
-    const tonePhrase = toneWords[randomTone as keyof typeof toneWords]?.[0] || 'Great'
-
-    // Generate a contextual example based on the sensor and guidelines
-    if (guidelines.toLowerCase().includes('step')) {
-      return `${tonePhrase}! You hit ${value || '10,000'} steps today - your dedication to staying active really shows! 🚶‍♀️✨`
-    } else if (guidelines.toLowerCase().includes('sleep')) {
-      return `${tonePhrase}! That ${value || '8'} hours of ${sensorConfig.name?.toLowerCase()} really paid off - you're glowing today! 😴💫`
-    } else if (guidelines.toLowerCase().includes('meeting') || guidelines.toLowerCase().includes('calendar')) {
-      return `${tonePhrase}! Your ${value || 'next meeting'} is coming up in ${Math.floor(Math.random() * 15) + 5} minutes. You've got this! 📅⚡`
-    }
-
-    return `${tonePhrase}! Based on your ${sensorConfig?.name || 'sensor'} reading of ${value || 'current value'}, here's some encouragement based on your guidelines! 🌟`
-  }
+  }, [responseType, selectedSensorConfig, responseGuidelines, sensorValue, responseTones, operator, vesselType, vesselCode, generatePreview, clearPreviewError])
 
   // Reset operator when sensor changes
   useEffect(() => {
@@ -210,6 +264,9 @@ export function RuleBuilder({
     setShowAllTemplateVariables(false)
     setPriority(String(DEFAULT_PRIORITY))
     cooldownConfig.clearCooldownConfig()
+    clearPreview()
+    hasGeneratedPreview.current = false
+    previousPreviewData.current = ''
     onEditRule?.(null)
   }
 
@@ -656,20 +713,75 @@ export function RuleBuilder({
                   </div>
                 </div>
 
-                {/* Example Preview */}
+                {/* AI Preview with Real-time Generation */}
                 <div className="bg-white border border-gray-200 rounded-lg p-3">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
-                      <MessageCircle className="w-3 h-3 text-white" />
+                                    <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-6 h-6 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center">
+                        <MessageCircle className="w-3 h-3 text-white" />
+                      </div>
+                      <span className="text-xs font-medium text-gray-600">
+                        {previewLoading ? 'Generating AI Preview...' : 'AI Preview Response:'}
+                      </span>
+                      <div className={cn(
+                        "w-2 h-2 rounded-full",
+                        previewLoading ? "bg-yellow-500 animate-pulse" : preview ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                      )}></div>
                     </div>
-                    <span className="text-xs font-medium text-gray-600">Example AI Response:</span>
+                    
+                    {/* Refresh Button */}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={handleRefreshPreview}
+                      disabled={previewLoading || !responseGuidelines || !selectedSensorConfig || sensorValue === null}
+                      className="h-6 w-6 p-0 hover:bg-purple-100"
+                    >
+                      {previewLoading ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <RefreshCw className="w-3 h-3" />
+                      )}
+                    </Button>
                   </div>
-                  <p className="text-sm text-gray-700 italic">
-                    "{generateExampleResponse(responseGuidelines, responseTones, selectedSensorConfig, sensorValue)}"
-                  </p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    ✨ Each response will be unique while following your guidelines
-                  </p>
+                  
+                  {previewError && (
+                    <div className="mb-2 p-2 bg-red-50 border border-red-200 rounded text-xs text-red-600">
+                      ⚠️ {previewError}
+                    </div>
+                  )}
+                  
+                  <div className="min-h-[40px] flex items-center">
+                    {previewLoading ? (
+                      <div className="flex items-center gap-2 text-gray-500">
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span className="italic text-sm">Generating your Aura's response...</span>
+                      </div>
+                    ) : preview ? (
+                      <p className="text-sm text-gray-700 italic">
+                        "{preview}"
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-500 italic">
+                        Fill out the guidelines above to see an AI-generated preview...
+                      </p>
+                    )}
+                  </div>
+                  
+                  {!previewLoading && preview && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-green-600">
+                      <div className="w-1.5 h-1.5 bg-green-500 rounded-full"></div>
+                      <span>Generated using AI • Each response will be unique while following your guidelines</span>
+                    </div>
+                  )}
+                  
+                  {!previewLoading && !preview && responseGuidelines && selectedSensorConfig && sensorValue !== null && (
+                    <div className="mt-2 flex items-center gap-2 text-xs text-purple-600">
+                      <div className="w-1.5 h-1.5 bg-purple-500 rounded-full"></div>
+                      <span>Click refresh to generate an AI preview</span>
+                    </div>
+                  )}
                 </div>
               </div>
             )}
@@ -694,6 +806,23 @@ export function RuleBuilder({
                   onChange={(e) => setActionMessage(e.target.value)}
                   className="text-lg py-6 border-2 border-yellow-200 focus:border-yellow-400"
                 />
+
+                {/* Static Example Preview for Template Mode */}
+                <div className="bg-white border border-gray-200 rounded-lg p-3">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-6 h-6 bg-gradient-to-r from-yellow-500 to-orange-500 rounded-full flex items-center justify-center">
+                      <MessageCircle className="w-3 h-3 text-white" />
+                    </div>
+                    <span className="text-xs font-medium text-gray-600">Template Preview:</span>
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  </div>
+                  <p className="text-sm text-gray-700 italic">
+                    "{actionMessage || 'Enter your message template above to see a preview...'}"
+                  </p>
+                  <p className="text-xs text-gray-500 mt-2">
+                    📝 Fixed template • Variables will be replaced with actual sensor values
+                  </p>
+                </div>
               </div>
             )}
 

@@ -2,7 +2,7 @@
 
 "use client"
 
-import React, { useState, useCallback, useEffect } from 'react'
+import React, { useState, useCallback, useEffect, useRef } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { RadioGroup } from "@/components/ui/radio-group"
@@ -46,6 +46,23 @@ interface PersonalityMatrixProps {
   onChange: (update: Partial<Personality>) => void
 }
 
+// Debounce hook for delayed API calls
+function useDebounce<T>(value: T, delay: number): T {
+  const [debouncedValue, setDebouncedValue] = useState<T>(value)
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value)
+    }, delay)
+
+    return () => {
+      clearTimeout(handler)
+    }
+  }, [value, delay])
+
+  return debouncedValue
+}
+
 export function PersonalityMatrix({
   personality,
   vesselCode = "",
@@ -63,6 +80,15 @@ export function PersonalityMatrix({
     generatePreview, 
     clearError 
   } = usePersonalityPreview()
+
+  // Debounce personality changes to avoid excessive API calls
+  const debouncedPersonality = useDebounce(personality, 1000) // 1 second delay
+  const debouncedAuraName = useDebounce(auraName, 800) // Slightly less delay for name changes
+
+  // Track if this is the initial load
+  const hasGeneratedInitialPreview = useRef(false)
+  const previousPersonalityRef = useRef<string>('')
+  const previousNameRef = useRef<string>('')
 
   const handlePersonaSelect = (personaId: string) => {
     const selected = PERSONAS.find(p => p.id === personaId)
@@ -98,23 +124,39 @@ export function PersonalityMatrix({
   }
 
   // Function to trigger AI preview generation
-  const handleGeneratePreview = useCallback(async () => {
+  const handleGeneratePreview = useCallback(async (forceRefresh = false) => {
     clearError()
     await generatePreview({
-      personality,
+      personality: forceRefresh ? personality : debouncedPersonality,
       vesselType,
       vesselCode,
-      auraName
+      auraName: forceRefresh ? auraName : debouncedAuraName
     })
-  }, [personality, vesselType, vesselCode, auraName, generatePreview, clearError])
+  }, [debouncedPersonality, debouncedAuraName, vesselType, vesselCode, generatePreview, clearError, personality, auraName])
 
-  // Auto-generate preview when component mounts or when key personality traits change
+  // Auto-generate preview when debounced values change, but not on every keystroke
   useEffect(() => {
-    const hasBasicPersonality = personality.persona || personality.tone || personality.vocabulary
+    const personalityString = JSON.stringify(debouncedPersonality)
+    const nameString = debouncedAuraName
+    
+    // Check if we have basic personality data
+    const hasBasicPersonality = debouncedPersonality.persona || debouncedPersonality.tone || debouncedPersonality.vocabulary
+    
+    // Only generate if:
+    // 1. We have basic personality data AND
+    // 2. Either this is the first load OR something meaningful changed
     if (hasBasicPersonality) {
-      handleGeneratePreview()
+      const personalityChanged = previousPersonalityRef.current !== personalityString
+      const nameChanged = previousNameRef.current !== nameString
+      
+      if (!hasGeneratedInitialPreview.current || personalityChanged || nameChanged) {
+        handleGeneratePreview()
+        hasGeneratedInitialPreview.current = true
+        previousPersonalityRef.current = personalityString
+        previousNameRef.current = nameString
+      }
     }
-  }, [personality.persona, personality.tone, personality.vocabulary, handleGeneratePreview])
+  }, [debouncedPersonality, debouncedAuraName, handleGeneratePreview])
 
   // Fallback preview using the original static function
   const fallbackPreview = generatePersonalityPreview(personality, vesselCode)
@@ -403,7 +445,7 @@ export function PersonalityMatrix({
           <Button
             variant="outline"
             size="sm"
-            onClick={handleGeneratePreview}
+            onClick={() => handleGeneratePreview(true)} // Force refresh with current values
             disabled={previewLoading}
             className="flex items-center gap-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50"
           >
