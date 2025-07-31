@@ -19,35 +19,41 @@ export interface VesselType {
   disabled: boolean    // now present on every item
 }
 
+// Digital-only launch configuration
+// Physical vessels preserved in constants-full.ts for future release
 export const VESSEL_TYPES: VesselType[] = [
   {
     id: "digital",
     name: "Digital",
     icon: "🤖",
-    description: "Free digital vessel, no hardware required",
+    description: "Your AI companion lives in the cloud, accessible anywhere",
     disabled: false,
   },
+]
+
+// Coming soon vessels - for preview/marketing purposes
+export const COMING_SOON_VESSELS: VesselType[] = [
   {
     id: "terra",
     name: "Terra",
     icon: "🌱",
-    description: "Plant Companion",
+    description: "Plant Companion - Connect with nature",
     price: 79,
-    disabled: false,
+    disabled: true,
   },
   {
     id: "companion",
     name: "Companion",
     icon: "🐘",
-    description: "Wildlife Connection",
+    description: "Wildlife Connection - Embody your favorite animal",
     price: 149,
-    disabled: false,
+    disabled: true,
   },
   {
     id: "memory",
     name: "Memory",
     icon: "💎",
-    description: "Digital Keepsake",
+    description: "Digital Keepsake - Preserve precious memories",
     price: 99,
     disabled: true,
   },
@@ -55,7 +61,7 @@ export const VESSEL_TYPES: VesselType[] = [
     id: "sage",
     name: "Sage",
     icon: "📚",
-    description: "Knowledge Artifact",
+    description: "Knowledge Artifact - Your personal wisdom keeper",
     price: 129,
     disabled: true,
   },
@@ -103,6 +109,8 @@ export interface VesselSenseConfig {
   optionalSenses: SenseId[]
 }
 
+// Digital-only launch configuration
+// Full vessel sense config preserved in constants-full.ts
 export const VESSEL_SENSE_CONFIG: Record<
   VesselTypeId,
   VesselSenseConfig
@@ -111,6 +119,7 @@ export const VESSEL_SENSE_CONFIG: Record<
     defaultSenses: [],
     optionalSenses: ["weather", "news", "air_quality", "sleep", "fitness", "calendar", "location"],
   },
+  // Future vessel configurations preserved in constants-full.ts
   terra: {
     defaultSenses: ["soil_moisture", "light_level"],
     optionalSenses: ["weather", "news", "air_quality", "sleep", "fitness", "calendar", "location"],
@@ -121,10 +130,10 @@ export const VESSEL_SENSE_CONFIG: Record<
   },
   memory: {
     defaultSenses: [],      
-    optionalSenses: ["sleep", "fitness", "calendar", "location"], // Memory vessels could access personal data
+    optionalSenses: ["sleep", "fitness", "calendar", "location"],
   },
   sage: {
     defaultSenses: [],      
-    optionalSenses: ["news", "calendar", "sleep", "fitness", "location"], // Sage vessels focus on knowledge and personal insights
+    optionalSenses: ["news", "calendar", "sleep", "fitness", "location"],
   },
 }

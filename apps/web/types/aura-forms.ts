@@ -9,15 +9,24 @@ export type AuraEditStep = 'senses' | 'details' | 'rules'
 export interface AuraFormData {
   id: string
   name: string
-  vesselType: VesselTypeId | ""
+  vesselType: VesselTypeId
   vesselCode: string
   plantType?: string
   personality: Personality
   senses: SenseId[]
+  availableSenses: SenseId[] 
   rules: BehaviorRule[]
   selectedStudyId?: string
   selectedIndividualId?: string
+  // Location and news configuration from agent
+  locationInfo?: {
+    city: string
+    state?: string
+    country?: string
+  }
+  newsType?: 'local' | 'global' | 'both'
 }
+
 
 export interface ManualVesselOption {
   code: string

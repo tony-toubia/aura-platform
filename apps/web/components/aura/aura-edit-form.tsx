@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
+import { type LocationConfig } from "./sense-location-modal"
 import { RuleBuilder } from "./rule-builder"
 import { VESSEL_SENSE_CONFIG, AVAILABLE_SENSES } from "@/lib/constants"
 import type { VesselTypeId, SenseId } from "@/lib/constants"
@@ -69,9 +70,10 @@ const normalizeSenseId = (senseId: string): string => {
 
 interface AuraEditFormProps {
   initialAura: Aura
+  initialLocationConfigs?: Record<string, LocationConfig>
 }
 
-export function AuraEditForm({ initialAura }: AuraEditFormProps) {
+export function AuraEditForm({ initialAura, initialLocationConfigs = {} }: AuraEditFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get("tab") as Step | null
@@ -79,6 +81,7 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
   const [step, setStep] = useState<Step>(initialTab || "senses")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>(initialLocationConfigs)
 
   // Refs for scrolling
   const containerRef = useRef<HTMLDivElement>(null)
@@ -156,6 +159,13 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
     }))
   }
 
+  const handleLocationConfig = (senseId: SenseId, config: LocationConfig) => {
+    setLocationConfigs(prev => ({
+      ...prev,
+      [senseId]: config
+    }))
+  }
+
   const handleSave = async () => {
     setLoading(true)
     setError(null)
@@ -169,6 +179,7 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
           senses: auraData.senses,
           selectedStudyId: (auraData as any).selectedStudyId,
           selectedIndividualId: (auraData as any).selectedIndividualId,
+          locationConfigs: locationConfigs,
         }),
       })
       const body = await resp.json()
@@ -322,6 +333,9 @@ export function AuraEditForm({ initialAura }: AuraEditFormProps) {
                   selectedSenses={auraData.senses}
                   onToggle={toggleSense}
                   vesselType={auraData.vesselType}
+                  auraName={auraData.name}
+                  onLocationConfig={handleLocationConfig}
+                  locationConfigs={locationConfigs}
                 />
               </div>
             )}

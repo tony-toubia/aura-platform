@@ -171,6 +171,9 @@ export default function WildlifeTrackingPage() {
             <div className="inline-flex items-center gap-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
               <Navigation className="w-4 h-4" />
               Wildlife Companion Tracking
+              <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5 ml-2">
+                Coming Soon
+              </Badge>
             </div>
             <h1 className="text-5xl font-bold bg-gradient-to-r from-blue-600 to-green-600 bg-clip-text text-transparent">
               Journey Through Wild Eyes
@@ -318,22 +321,24 @@ export default function WildlifeTrackingPage() {
                         </>
                       )}
 
-                      {/* Journey path */}
+                      {/* Journey path - using actual waypoint coordinates */}
                       <path
-                        d={`M 50,200 Q 150,100 250,150 T 400,200`}
+                        d={`M 50,200 L 150,100 L 250,150 L 325,125 L 400,200`}
                         fill="none"
                         stroke="url(#pathGradient)"
                         strokeWidth="3"
                         strokeLinecap="round"
+                        strokeLinejoin="round"
                       />
                       
                       {/* Animated dashes along the path */}
                       <path
-                        d={`M 50,200 Q 150,100 250,150 T 400,200`}
+                        d={`M 50,200 L 150,100 L 250,150 L 325,125 L 400,200`}
                         fill="none"
                         stroke="white"
                         strokeWidth="5"
                         strokeLinecap="round"
+                        strokeLinejoin="round"
                         strokeDasharray="10,20"
                         opacity="0.6"
                       >

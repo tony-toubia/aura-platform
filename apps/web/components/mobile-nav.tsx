@@ -4,14 +4,9 @@ import React, { useState, useEffect, useRef } from "react"
 import { createPortal } from "react-dom"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { Menu, User, LogOut, X, ArrowRight } from "lucide-react"
-
-interface NavItem { href: string; label: string }
-interface MobileNavProps {
-  navItems: NavItem[]
-  userEmail?: string | null
-  signOutAction: () => Promise<void>
-}
+import { Badge } from "@/components/ui/badge"
+import { Menu, User, LogOut, X, ArrowRight, Settings, CreditCard } from "lucide-react"
+import type { MobileNavProps } from '@/types/components'
 
 export function MobileNav({ navItems, userEmail, signOutAction }: MobileNavProps) {
   const [isOpen, setIsOpen] = useState(false)
@@ -66,14 +61,28 @@ export function MobileNav({ navItems, userEmail, signOutAction }: MobileNavProps
 
           <nav className="flex flex-col space-y-2 p-4">
             {navItems.map((item) => (
-              <a
-                key={item.href}
-                href={item.href}
-                onClick={() => setIsOpen(false)}
-                className="py-3 px-4 rounded-md text-base font-medium hover:bg-accent hover:text-primary transition-colors"
-              >
-                {item.label}
-              </a>
+              <div key={item.href} className="relative">
+                {item.disabled ? (
+                  <>
+                    <span className="py-3 px-4 rounded-md text-base font-medium text-gray-400 cursor-not-allowed">
+                      {item.label}
+                    </span>
+                    {item.comingSoon && (
+                      <Badge className="absolute top-2 right-2 bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5 pointer-events-none">
+                        Coming Soon
+                      </Badge>
+                    )}
+                  </>
+                ) : (
+                  <a
+                    href={item.href}
+                    onClick={() => setIsOpen(false)}
+                    className="py-3 px-4 rounded-md text-base font-medium hover:bg-accent hover:text-primary transition-colors"
+                  >
+                    {item.label}
+                  </a>
+                )}
+              </div>
             ))}
           </nav>
 
@@ -87,12 +96,35 @@ export function MobileNav({ navItems, userEmail, signOutAction }: MobileNavProps
                     {userEmail}
                   </span>
                 </div>
+                
+                {/* User Menu Items */}
+                <div className="space-y-2">
+                  <Button asChild variant="ghost" size="sm" className="w-full justify-start">
+                    <Link href="/account" onClick={() => setIsOpen(false)}>
+                      <User className="h-4 w-4 mr-2" />
+                      My Account
+                    </Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="w-full justify-start">
+                    <Link href="/settings" onClick={() => setIsOpen(false)}>
+                      <Settings className="h-4 w-4 mr-2" />
+                      Settings
+                    </Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="w-full justify-start">
+                    <Link href="/subscription" onClick={() => setIsOpen(false)}>
+                      <CreditCard className="h-4 w-4 mr-2" />
+                      Subscription
+                    </Link>
+                  </Button>
+                </div>
+                
                 <form action={signOutAction}>
                   <Button
                     variant="outline"
                     size="sm"
                     type="submit"
-                    className="w-full justify-start"
+                    className="w-full justify-start text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
                   >
                     <LogOut className="h-4 w-4 mr-2" />
                     Sign Out

@@ -28,7 +28,8 @@ export default async function EditAuraPage({ params }: PageProps) {
     .select(
       `*,
       aura_senses (
-        sense:senses ( code )
+        sense:senses ( code ),
+        config
       ),
       behavior_rules (
         id, name, trigger, action, priority, enabled,
@@ -69,9 +70,22 @@ export default async function EditAuraPage({ params }: PageProps) {
     })),
   }
 
+  // Extract location configs from the database
+  const locationConfigs = auraRow.location_configs || {}
+  
+  console.log('🔍 Loaded aura data:', {
+    id: auraRow.id,
+    name: auraRow.name,
+    location_configs: auraRow.location_configs,
+    senses: auraRow.aura_senses?.map((as: any) => ({ code: as.sense.code, config: as.config }))
+  })
+
   return (
     <div className="container py-8">
-      <AuraEditForm initialAura={initialAura} />
+      <AuraEditForm 
+        initialAura={initialAura} 
+        initialLocationConfigs={locationConfigs}
+      />
     </div>
   )
 }

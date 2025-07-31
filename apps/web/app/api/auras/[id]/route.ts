@@ -13,7 +13,7 @@ type RouteParams = {
 export async function PUT(req: NextRequest, context: RouteParams) {
   const { id: auraId } = await context.params
   const body = await req.json()
-  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId } = body
+  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, locationConfigs } = body
 
   // Basic validation
   if (
@@ -37,15 +37,22 @@ export async function PUT(req: NextRequest, context: RouteParams) {
 
   try {
     // Update the aura basic info
+    const updateData: any = {
+      name,
+      personality,
+      selected_study_id: selectedStudyId,
+      selected_individual_id: selectedIndividualId,
+      updated_at: new Date().toISOString(),
+    }
+    
+    // Add location configs if provided
+    if (locationConfigs !== undefined) {
+      updateData.location_configs = locationConfigs
+    }
+    
     const { error: auraError } = await supabase
       .from("auras")
-      .update({
-        name,
-        personality,
-        selected_study_id: selectedStudyId,
-        selected_individual_id: selectedIndividualId,
-        updated_at: new Date().toISOString(),
-      })
+      .update(updateData)
       .eq("id", auraId)
       .eq("user_id", user.id) // Ensure user owns this aura
 

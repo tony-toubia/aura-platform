@@ -89,30 +89,80 @@ export async function POST(req: NextRequest) {
     personalityFactors: influences.personalityFactors
   }
 
-  // 8) Persist both messages with metadata
-  await supabase
+  // 8) Ensure conversation exists and persist both messages with metadata
+  let finalConversationId = conversationId
+  
+  if (!conversationId) {
+    // Create a new conversation
+    const sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`
+    const { data: newConversation, error: convError } = await supabase
+      .from('conversations')
+      .insert({
+        aura_id: auraId,
+        session_id: sessionId,
+        context: {},
+        started_at: new Date().toISOString()
+      })
+      .select('id')
+      .single()
+    
+    if (convError || !newConversation) {
+      console.error('Failed to create conversation:', convError)
+      return NextResponse.json({ error: 'Failed to create conversation' }, { status: 500 })
+    }
+    
+    finalConversationId = newConversation.id
+  } else {
+    // Verify conversation exists and belongs to user's aura
+    const { data: existingConv, error: convCheckError } = await supabase
+      .from('conversations')
+      .select('id')
+      .eq('id', conversationId)
+      .eq('aura_id', auraId)
+      .single()
+    
+    if (convCheckError || !existingConv) {
+      console.error('Conversation not found or access denied:', convCheckError)
+      return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
+    }
+  }
+
+  // Insert messages
+  const { error: messageError } = await supabase
     .from('messages')
     .insert([
       { 
-        conversation_id: conversationId, 
-        aura_id: auraId, 
+        conversation_id: finalConversationId, 
         role: 'user', 
         content: userMessage,
         metadata: {} 
       },
       { 
-        conversation_id: conversationId, 
-        aura_id: auraId, 
+        conversation_id: finalConversationId, 
         role: 'aura', 
         content: reply,
         metadata: metadata
       },
     ])
+  
+  if (messageError) {
+    console.error('Failed to save messages:', messageError)
+    return NextResponse.json({ error: 'Failed to save messages' }, { status: 500 })
+  }
 
-  // 9) Return JSON with rich metadata
+  // Update conversation's last activity timestamp
+  await supabase
+    .from('conversations')
+    .update({ 
+      context: { last_message_at: new Date().toISOString() }
+    })
+    .eq('id', finalConversationId)
+
+  // 9) Return JSON with rich metadata including conversation ID
   return NextResponse.json({ 
     reply, 
     metadata,
+    conversationId: finalConversationId,
     // Also send individual fields for backwards compatibility
     influences: influences.general,
     senseInfluences: influences.senseInfluences,

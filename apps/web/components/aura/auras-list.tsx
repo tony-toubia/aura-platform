@@ -45,7 +45,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
             My Auras
           </h1>
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Manage and interact with your magical AI personalities
+            Manage and interact with your digital AI companions
           </p>
         </div>
 
@@ -80,7 +80,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
         {/* Create Button */}
         <div className="text-center">
           <Button 
-            onClick={() => router.push('/auras/create')} 
+            onClick={() => router.push('/auras/create-select-enhanced')} 
             size="lg"
             className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg"
           >
@@ -96,13 +96,13 @@ export function AurasList({ initialAuras }: AurasListProps) {
           icon={Brain}
           iconGradient="from-purple-500 to-blue-500"
           title="Ready to Create Magic?"
-          description="You haven't created any Auras yet. Start your journey by bringing your first AI personality to life!"
+          description="You haven't created any digital Auras yet. Start your journey by bringing your first AI companion to life!"
           primaryAction={{
             label: "Create Your First Aura",
-            onClick: () => router.push('/auras/create'),
+            onClick: () => router.push('/auras/create-select-enhanced'),
             icon: Sparkles
           }}
-          secondaryText="✨ Start with a digital being or connect a physical vessel"
+          secondaryText="✨ Start with a digital companion - physical vessels coming soon!"
         >
           {/* Feature Preview */}
           <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
@@ -289,7 +289,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
             </h3>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button 
-                onClick={() => router.push('/auras/create')}
+                onClick={() => router.push('/auras/create-select-enhanced')}
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
               >
                 <Plus className="w-4 h-4 mr-2" />

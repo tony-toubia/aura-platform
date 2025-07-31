@@ -92,3 +92,15 @@ export async function refreshGoogleToken(
 
   return response.json()
 }
+
+// Get current authenticated user info (client-side)
+export async function getCurrentUserId(): Promise<string | null> {
+  const supabase = createClient()
+  const {
+    data: { user },
+    error,
+  } = await supabase.auth.getUser()
+
+  if (error || !user) return null
+  return user.id
+}

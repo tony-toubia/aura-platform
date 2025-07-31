@@ -194,9 +194,19 @@ export function SenseSelector({
     const config = locationConfigs[senseId]
     if (!config) return null
     
-    if (config.type === 'user') return "Your location"
+    if (config.type === 'user') return "Your Location"
     if (config.type === 'global') return "Global"
-    if (config.location) return config.location.name
+    if (config.location) {
+      // Proper case the location name
+      return config.location.name
+        .split(', ')
+        .map((part: string) => 
+          part.split(' ')
+            .map((word: string) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+            .join(' ')
+        )
+        .join(', ')
+    }
     return null
   }
 
@@ -266,9 +276,9 @@ export function SenseSelector({
                       <h4 className="font-semibold text-gray-800 mb-1">{sense.name}</h4>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
                       {locationDisplay && (
-                        <div className="flex items-center gap-1 text-xs text-purple-700 mb-2">
+                        <div className="flex items-center gap-1 text-xs text-blue-700 mb-2 px-2 py-1 rounded-md bg-blue-50 border border-blue-200">
                           <MapPin className="w-3 h-3" />
-                          <span>{locationDisplay}</span>
+                          <span className="font-medium">{locationDisplay}</span>
                         </div>
                       )}
                       <span className={cn(
@@ -339,10 +349,15 @@ export function SenseSelector({
                         )}
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
-                      {active && locationDisplay && (
-                        <div className="flex items-center gap-1 text-xs text-purple-700 mb-2">
+                      {locationDisplay && (
+                        <div className={cn(
+                          "flex items-center gap-1 text-xs mb-2 px-2 py-1 rounded-md",
+                          active 
+                            ? "text-purple-700 bg-purple-50 border border-purple-200" 
+                            : "text-blue-600 bg-blue-50 border border-blue-200"
+                        )}>
                           <MapPin className="w-3 h-3" />
-                          <span>{locationDisplay}</span>
+                          <span className="font-medium">{locationDisplay}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between">
@@ -354,12 +369,20 @@ export function SenseSelector({
                           {tierInfo.icon} {sense.tier}
                         </span>
                         <div className={cn(
-                          "text-xs px-2 py-1 rounded-full transition-all",
+                          "text-xs px-2 py-1 rounded-full transition-all font-medium",
                           active 
                             ? "bg-green-100 text-green-700" 
+                            : locationDisplay
+                            ? "bg-blue-100 text-blue-700"
                             : "bg-gray-100 text-gray-600 group-hover:bg-green-50 group-hover:text-green-600"
                         )}>
-                          {active ? "Connected" : needsLocation ? "Configure location" : "Click to add"}
+                          {active 
+                            ? "Connected" 
+                            : locationDisplay 
+                            ? "Location configured" 
+                            : needsLocation 
+                            ? "Configure location" 
+                            : "Click to add"}
                         </div>
                       </div>
                     </div>
@@ -401,6 +424,7 @@ export function SenseSelector({
               const active = isSelected(sense.id)
               const tierInfo = getTierConfig(sense.tier)
               const oauthProvider = getOAuthDisplay(sense.id)
+              const locationDisplay = getLocationDisplay(sense.id)
               
               return (
                 <button
@@ -439,9 +463,16 @@ export function SenseSelector({
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
                       {active && oauthProvider && (
-                        <div className="flex items-center gap-1 text-xs text-orange-700 mb-2">
+                        <div className="flex items-center gap-1 text-xs text-orange-700 mb-2 px-2 py-1 rounded-md bg-orange-50 border border-orange-200">
                           <Shield className="w-3 h-3" />
-                          <span>Connected via {oauthProvider}</span>
+                          <span className="font-medium">Connected via {oauthProvider}</span>
+                        </div>
+                      )}
+                      {/* Show location for OAuth senses that might need it */}
+                      {active && locationDisplay && (
+                        <div className="flex items-center gap-1 text-xs text-purple-700 mb-2 px-2 py-1 rounded-md bg-purple-50 border border-purple-200">
+                          <MapPin className="w-3 h-3" />
+                          <span className="font-medium">{locationDisplay}</span>
                         </div>
                       )}
                       <div className="flex items-center justify-between">

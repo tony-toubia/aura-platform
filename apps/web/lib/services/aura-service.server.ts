@@ -2,7 +2,7 @@
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import type { Aura } from '@/types'
 
-export interface CreateAuraInput {
+export interface CreateAuraServerInput {
   name: string
   vesselType: 'digital' | 'terra' | 'companion' | 'memory' | 'sage'
   vesselCode?: string
@@ -13,6 +13,7 @@ export interface CreateAuraInput {
   voiceProfile?: string
   selectedStudyId?: number | null
   selectedIndividualId?: string | null
+  locationConfigs?: Record<string, any> | null
 }
 
 export interface UpdateAuraInput {
@@ -94,7 +95,7 @@ export class AuraServiceServer {
   }
 
   /** Create a new aura (and link its senses) */
-  static async createAura(input: CreateAuraInput): Promise<Aura> {
+  static async createAura(input: CreateAuraServerInput): Promise<Aura> {
     const supabase = await createServerSupabase()
     const {
       data: { user },
@@ -117,6 +118,7 @@ export class AuraServiceServer {
         avatar: this.getAvatarForVessel(input.vesselType, input.vesselCode),
         selected_study_id: input.selectedStudyId,
         selected_individual_id: input.selectedIndividualId,
+        location_configs: input.locationConfigs || null,
       })
       .select()
       .single()

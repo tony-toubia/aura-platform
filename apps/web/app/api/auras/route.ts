@@ -15,6 +15,7 @@ export async function POST(request: Request) {
       voiceProfile,
       selectedStudyId,
       selectedIndividualId,
+      locationConfigs,
     } = await request.json()
 
     // 2. Initialize Supabase with the HTTP‐only cookie
@@ -40,6 +41,7 @@ export async function POST(request: Request) {
       voiceProfile,
       selectedStudyId: selectedStudyId ?? null,
       selectedIndividualId: selectedIndividualId ?? null,
+      locationConfigs: locationConfigs ?? null,
     })
 
     // 5. Return the newly created record

@@ -10,6 +10,7 @@ import {
   CardContent,
 } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import {
   Brain,
   MessageCircle,
@@ -62,7 +63,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
           Welcome Back!
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          Here's what's happening with your Aura collection today
+          Here's what's happening with your digital Aura collection today
         </p>
       </div>
 
@@ -84,7 +85,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
               iconName: "Eye",
             }}
             secondaryAction={{
-              href: "/auras/create",
+              href: "/auras/create-select-digital",
               iconName: "Plus",
             }}
           />
@@ -262,16 +263,19 @@ export function DashboardContent({ stats }: DashboardContentProps) {
               Discover physical vessels to house your Auras. From smart plant
               pots to wildlife trackers!
             </p>
-            <Button
-              asChild
-              size="lg"
-              className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-            >
-              <Link href="/vessels">
+            <div className="relative">
+              <Button
+                size="lg"
+                disabled
+                className="bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+              >
                 <ShoppingBag className="w-5 h-5 mr-2" />
                 Browse Vessel Shop
-              </Link>
-            </Button>
+              </Button>
+              <Badge className="absolute -top-2 -right-2 bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5">
+                Coming Soon
+              </Badge>
+            </div>
           </CardContent>
         </Card>
 
@@ -296,17 +300,20 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                   Create Another Aura
                 </Link>
               </Button>
-              <Button
-                asChild
-                size="lg"
-                variant="outline"
-                className="border-2 border-white text-white hover:bg-white hover:text-purple-600 px-8"
-              >
-                <Link href="/vessels">
+              <div className="relative">
+                <Button
+                  size="lg"
+                  variant="outline"
+                  disabled
+                  className="border-2 border-white text-gray-400 cursor-not-allowed px-8"
+                >
                   <Star className="w-5 h-5 mr-2" />
                   Explore Vessels
-                </Link>
-              </Button>
+                </Button>
+                <Badge className="absolute -top-2 -right-2 bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5">
+                  Coming Soon
+                </Badge>
+              </div>
             </div>
             <div className="mt-6 text-sm opacity-75">
               ✨ Join thousands creating magical AI relationships

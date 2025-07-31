@@ -1,5 +1,33 @@
 // apps/web/types/index.ts
+// Main types file - imports and re-exports all type definitions
 import React from 'react'
+
+// Re-export shared types
+// Export specific types to avoid conflicts
+export type { 
+  BaseComponentProps,
+  LoadingState,
+  AsyncState,
+  CardProps,
+  ModalProps,
+  FormProps
+} from './shared'
+
+export type {
+  ApiResponse,
+  ApiError,
+  CreateAuraRequest,
+  UpdateAuraRequest,
+  ChatMessageRequest
+} from './api'
+
+export type {
+  AuraCardProps,
+  AuraListProps,
+  AuraFormProps,
+  VesselTypeId,
+  SenseId
+} from './components'
 
 export interface User {
   id: string
@@ -40,6 +68,30 @@ export interface Aura {
   enabled: boolean
   createdAt: Date
   updatedAt: Date
+}
+
+export interface AuraConfiguration {
+  name: string
+  vesselType: 'digital' | 'terra' | 'companion' | 'memory' | 'sage'
+  vesselCode?: string
+  personality: Personality
+  rules: BehaviorRule[]
+  availableSenses: string[]
+  // Location and news configuration
+  locationInfo?: {
+    city: string
+    state?: string
+    country?: string
+  }
+  newsType?: 'local' | 'global' | 'both'
+  // Temporary flags for agent communication
+  needsLocationInfo?: {
+    senses: string[]
+    message: string
+  }
+  needsNewsTypeInfo?: {
+    message: string
+  }
 }
 
 // Enhanced sensor types for different data structures
@@ -270,7 +322,7 @@ export interface RuleTrigger {
 }
 
 export interface RuleAction {
-  type: 'notify' | 'alert' | 'respond' | 'log' | 'webhook'
+  type: 'notify' | 'alert' | 'respond' | 'log' | 'webhook' | 'prompt'
   message?: string
   defaultMessage?: string
   severity?: 'info' | 'warning' | 'critical'

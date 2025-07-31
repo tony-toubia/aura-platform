@@ -125,9 +125,20 @@ export function RuleCard({ rule, onEdit, onToggle, onDelete }: RuleCardProps) {
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
           <div className="flex items-start gap-2">
             <Zap className="w-4 h-4 text-purple-600 mt-0.5 flex-shrink-0" />
-            <p className="text-sm text-purple-700 leading-relaxed">
-              "{rule.action.message}"
-            </p>
+            <div className="text-sm text-purple-700 leading-relaxed">
+              {rule.action.message ? (
+                <p>"{rule.action.message}"</p>
+              ) : rule.action.type === 'prompt' ? (
+                <div className="space-y-1">
+                  <p className="font-medium">🤖 AI-Generated Response</p>
+                  <p className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">
+                    Uses context and personality to craft personalized responses
+                  </p>
+                </div>
+              ) : (
+                <p className="italic text-purple-600">No response configured</p>
+              )}
+            </div>
           </div>
         </div>
 

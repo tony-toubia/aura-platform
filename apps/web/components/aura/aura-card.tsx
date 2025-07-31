@@ -9,15 +9,10 @@ import { Button } from '@/components/ui/button'
 import { MessageCircle, BarChart3, Download, Trash2 } from 'lucide-react'
 import { AURA_CARD_CONFIG } from '@/lib/constants/aura'
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
-import type { Aura } from '@/types'
+import { cn } from '@/lib/utils'
+import type { AuraCardProps } from '@/types/components'
 
-interface AuraCardProps {
-  aura: Aura
-  onDelete?: (id: string) => void
-  onExport?: (id: string) => void
-}
-
-export function AuraCard({ aura, onDelete, onExport }: AuraCardProps) {
+export function AuraCard({ aura, onDelete, onExport, onEdit, className }: AuraCardProps) {
   const router = useRouter()
   const vesselConfig = VESSEL_TYPE_CONFIG[aura.vesselType] || {
     name: aura.vesselType,
@@ -60,7 +55,7 @@ export function AuraCard({ aura, onDelete, onExport }: AuraCardProps) {
   }
 
   return (
-    <Card className="overflow-hidden hover:shadow-lg transition-shadow">
+    <Card className={cn("overflow-hidden hover:shadow-lg transition-shadow", className)}>
       <CardHeader className={`bg-gradient-to-r ${AURA_CARD_CONFIG.gradients.header}`}>
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">

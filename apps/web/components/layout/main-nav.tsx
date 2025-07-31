@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { Sparkles } from 'lucide-react'
 
 export function MainNav() {
@@ -19,9 +20,21 @@ export function MainNav() {
           <Button asChild variant="ghost" size="sm">
             <Link href="/meet-the-animals">Meet the Animals</Link>
           </Button>
-          <Button asChild variant="ghost" size="sm">
-            <Link href="/vessels">Shop Vessels</Link>
-          </Button>
+          <div className="relative">
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              disabled
+              className="cursor-not-allowed opacity-60 relative"
+            >
+              Shop Vessels
+            </Button>
+            <Badge 
+              className="absolute -top-2 -right-2 bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5 pointer-events-none"
+            >
+              Coming Soon
+            </Badge>
+          </div>
           <div className="hidden sm:flex items-center space-x-2">
             <Button asChild variant="ghost">
               <Link href="/login">Sign In</Link>
