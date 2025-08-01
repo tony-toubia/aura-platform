@@ -129,11 +129,11 @@ export const VESSEL_SENSE_CONFIG: Record<
     optionalSenses: ["weather", "news", "air_quality", "sleep", "fitness", "calendar", "location"],
   },
   memory: {
-    defaultSenses: [],      
+    defaultSenses: [],
     optionalSenses: ["sleep", "fitness", "calendar", "location"],
   },
   sage: {
-    defaultSenses: [],      
+    defaultSenses: [],
     optionalSenses: ["news", "calendar", "sleep", "fitness", "location"],
   },
 }

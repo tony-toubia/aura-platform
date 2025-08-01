@@ -227,34 +227,142 @@ export class SubscriptionService {
     const Stripe = (await import('stripe')).default as typeof StripeModule
     const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
+    console.log('Handling webhook event:', event.type, event.id)
+
     switch (event.type) {
       case 'checkout.session.completed': {
         const sess = event.data.object as StripeModule.Checkout.Session
-        const userId = sess.client_reference_id
+        const userId = sess.client_reference_id || sess.metadata?.userId
         const tierId = sess.metadata?.tierId as SubscriptionTier['id']
+        
+        console.log('Checkout completed:', { userId, tierId, sessionId: sess.id })
+        
         if (userId && tierId) {
-          await supabase
+          // First, ensure the user has a subscription record
+          const { data: existing } = await supabase
+            .from('subscriptions')
+            .select('id')
+            .eq('user_id', userId)
+            .single()
+
+          if (!existing) {
+            // Create new subscription record
+            const { error: insertError } = await supabase
+              .from('subscriptions')
+              .insert({
+                user_id: userId,
+                tier: tierId,
+                status: 'active',
+                stripe_customer_id: sess.customer as string,
+                stripe_subscription_id: sess.subscription as string,
+                created_at: new Date().toISOString(),
+                updated_at: new Date().toISOString(),
+              })
+            
+            if (insertError) {
+              console.error('Failed to create subscription:', insertError)
+            } else {
+              console.log('Created new subscription for user:', userId)
+            }
+          } else {
+            // Update existing subscription
+            const { error: updateError } = await supabase
+              .from('subscriptions')
+              .update({
+                tier: tierId,
+                status: 'active',
+                stripe_customer_id: sess.customer as string,
+                stripe_subscription_id: sess.subscription as string,
+                updated_at: new Date().toISOString(),
+              })
+              .eq('user_id', userId)
+            
+            if (updateError) {
+              console.error('Failed to update subscription:', updateError)
+            } else {
+              console.log('Updated subscription for user:', userId)
+            }
+          }
+        } else {
+          console.error('Missing userId or tierId in checkout session:', { userId, tierId })
+        }
+        break
+      }
+      case 'customer.subscription.updated': {
+        const sub = event.data.object as StripeModule.Subscription
+        const userId = sub.metadata?.userId
+        
+        console.log('Subscription updated:', { userId, subscriptionId: sub.id, status: sub.status })
+        
+        if (userId) {
+          const priceId = sub.items.data[0]?.price.id
+          let tierId: SubscriptionTier['id'] = 'free'
+          
+          if (priceId === process.env.STRIPE_PERSONAL_PRICE_ID) tierId = 'personal'
+          else if (priceId === process.env.STRIPE_FAMILY_PRICE_ID) tierId = 'family'
+          else if (priceId === process.env.STRIPE_BUSINESS_PRICE_ID) tierId = 'business'
+
+          const { error } = await supabase
             .from('subscriptions')
             .update({
               tier: tierId,
-              status: 'active',
-              stripe_customer_id: sess.customer as string,
-              stripe_subscription_id: sess.subscription as string,
+              status: sub.status === 'active' ? 'active' : 'cancelled',
+              updated_at: new Date().toISOString(),
             })
             .eq('user_id', userId)
+          
+          if (error) {
+            console.error('Failed to update subscription:', error)
+          } else {
+            console.log('Updated subscription tier:', { userId, tierId, status: sub.status })
+          }
         }
         break
       }
       case 'customer.subscription.deleted': {
         const sub = event.data.object as StripeModule.Subscription
-        if (sub.id) {
-          await supabase
+        const userId = sub.metadata?.userId
+        
+        console.log('Subscription deleted:', { userId, subscriptionId: sub.id })
+        
+        if (userId) {
+          const { error } = await supabase
             .from('subscriptions')
-            .update({ tier: 'free', status: 'cancelled' })
+            .update({
+              tier: 'free',
+              status: 'cancelled',
+              stripe_subscription_id: null,
+              updated_at: new Date().toISOString(),
+            })
+            .eq('user_id', userId)
+          
+          if (error) {
+            console.error('Failed to cancel subscription:', error)
+          } else {
+            console.log('Cancelled subscription for user:', userId)
+          }
+        } else if (sub.id) {
+          // Fallback: find by stripe subscription ID
+          const { error } = await supabase
+            .from('subscriptions')
+            .update({
+              tier: 'free',
+              status: 'cancelled',
+              stripe_subscription_id: null,
+              updated_at: new Date().toISOString(),
+            })
             .eq('stripe_subscription_id', sub.id)
+          
+          if (error) {
+            console.error('Failed to cancel subscription by stripe ID:', error)
+          } else {
+            console.log('Cancelled subscription by stripe ID:', sub.id)
+          }
         }
         break
       }
+      default:
+        console.log('Unhandled webhook event type:', event.type)
     }
   }
 }

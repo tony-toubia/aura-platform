@@ -87,14 +87,26 @@ async function loadConversationHistory(conversationId: string, limit: number = 1
     return []
   }
 
-  // Reverse to get chronological order
-  return data.reverse().map(msg => ({
-    id: msg.id,
-    role: msg.role as 'user' | 'aura',
-    content: msg.content,
-    timestamp: new Date(msg.created_at),
-    metadata: msg.metadata
-  }))
+  // Reverse to get chronological order and normalize role values
+  return data.reverse().map(msg => {
+    // Normalize role values to our internal format
+    let normalizedRole: 'user' | 'aura' | 'system'
+    if (msg.role === 'human' || msg.role === 'user') {
+      normalizedRole = 'user'
+    } else if (msg.role === 'assistant' || msg.role === 'aura' || msg.role === 'bot') {
+      normalizedRole = 'aura'
+    } else {
+      normalizedRole = 'system'
+    }
+
+    return {
+      id: msg.id,
+      role: normalizedRole,
+      content: msg.content,
+      created_at: msg.created_at,
+      metadata: msg.metadata
+    }
+  })
 }
 
 /**

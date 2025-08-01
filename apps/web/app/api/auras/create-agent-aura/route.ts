@@ -10,10 +10,46 @@ import {
   createApiSuccess 
 } from '@/types/api'
 
+// Global request tracking to detect duplicate requests
+const activeRequests = new Map<string, { timestamp: number, requestId: string }>()
+
 export async function POST(req: NextRequest) {
+  const timestamp = new Date().toISOString()
+  const requestId = uuidv4()
+  let requestKey = ''
+  
+  console.log(`[${timestamp}] /api/auras/create-agent-aura POST called - Request ID: ${requestId}`)
+  
   try {
     const supabase = await createServerSupabase()
     const body = await req.json()
+    
+    console.log(`[${timestamp}] create-agent-aura payload (${requestId}):`, body)
+    
+    // Create a unique key for this request based on user + aura name + timestamp window
+    requestKey = `${body.userId}:${body.name}:${Math.floor(Date.now() / 2000)}` // 2-second window
+    
+    if (activeRequests.has(requestKey)) {
+      const existing = activeRequests.get(requestKey)!
+      console.warn(`[${timestamp}] DUPLICATE REQUEST DETECTED! Current: ${requestId}, Existing: ${existing.requestId}`)
+      console.warn(`[${timestamp}] Time difference: ${Date.now() - existing.timestamp}ms`)
+      console.warn(`[${timestamp}] Frontend duplicate prevention should handle this, but allowing request to proceed`)
+      
+      // Remove the duplicate from tracking since we're allowing it
+      activeRequests.delete(requestKey)
+    }
+    
+    // Track this request
+    activeRequests.set(requestKey, { timestamp: Date.now(), requestId })
+    console.log(`[${timestamp}] Tracking request ${requestId} with key: ${requestKey}`)
+    
+    // Clean up old requests (older than 10 seconds)
+    const cutoff = Date.now() - 10000
+    for (const [key, value] of activeRequests.entries()) {
+      if (value.timestamp < cutoff) {
+        activeRequests.delete(key)
+      }
+    }
 
     const validation = validateApiRequest(CreateAuraSchema, body)
     if (!validation.success) {
@@ -39,7 +75,7 @@ export async function POST(req: NextRequest) {
     // Ensure digital vessels have proper vessel code
     const finalVesselCode = vesselCode || (vesselType === 'digital' ? 'digital-only' : '')
     
-    console.log('Creating aura with received data:', {
+    console.log(`[${timestamp}] Creating aura "${name}" via create-agent-aura route`, {
       name,
       vesselType,
       vesselCode: finalVesselCode,
@@ -49,6 +85,22 @@ export async function POST(req: NextRequest) {
       rules: JSON.stringify(rules, null, 2),
       senses: senses
     })
+
+    // Check if aura with same name was created recently (within last 5 seconds)
+    const { data: recentAuras } = await supabase
+      .from('auras')
+      .select('id, name, created_at')
+      .eq('user_id', userId)
+      .eq('name', name)
+      .gte('created_at', new Date(Date.now() - 5000).toISOString())
+
+    if (recentAuras && recentAuras.length > 0) {
+      console.warn(`[${timestamp}] Aura "${name}" was recently created, preventing duplicate`)
+      return NextResponse.json(
+        createApiError('Duplicate aura creation detected', 'An aura with this name was just created'),
+        { status: 409 }
+      )
+    }
 
     // Prepare location configs for the aura
     let locationConfigs: Record<string, any> = {}
@@ -182,12 +234,14 @@ if (senses && senses.length > 0) {
       }
     }
 
+    console.log(`[${timestamp}] Successfully created aura "${name}" - Request ID: ${requestId}`)
+    
     return NextResponse.json(
       createApiSuccess({ auraId: aura.id }, `Successfully created ${name}`)
     )
     
   } catch (error) {
-    console.error('Unexpected error:', error)
+    console.error(`[${timestamp}] Unexpected error in request ${requestId}:`, error)
     return NextResponse.json(
       createApiError(
         'An unexpected error occurred',
@@ -195,5 +249,11 @@ if (senses && senses.length > 0) {
       ),
       { status: 500 }
     )
+  } finally {
+    // Clean up the request tracking
+    if (requestKey) {
+      activeRequests.delete(requestKey)
+      console.log(`[${timestamp}] Cleaned up request tracking for ${requestId}`)
+    }
   }
 }

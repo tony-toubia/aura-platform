@@ -5,7 +5,8 @@ import { createPortal } from "react-dom"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Menu, User, LogOut, X, ArrowRight, Settings, CreditCard } from "lucide-react"
+import { SignOutButton } from "@/components/layout/sign-out-button"
+import { Menu, User, X, ArrowRight, Settings, CreditCard } from "lucide-react"
 import type { MobileNavProps } from '@/types/components'
 
 export function MobileNav({ navItems, userEmail, signOutAction }: MobileNavProps) {
@@ -119,17 +120,7 @@ export function MobileNav({ navItems, userEmail, signOutAction }: MobileNavProps
                   </Button>
                 </div>
                 
-                <form action={signOutAction}>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    type="submit"
-                    className="w-full justify-start text-red-600 hover:text-red-700 border-red-200 hover:border-red-300"
-                  >
-                    <LogOut className="h-4 w-4 mr-2" />
-                    Sign Out
-                  </Button>
-                </form>
+                <SignOutButton variant="mobile" />
               </>
             ) : (
               <div className="space-y-2">

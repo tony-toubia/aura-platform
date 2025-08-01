@@ -7,13 +7,14 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
+import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
-import { 
-  Plus, 
-  Brain, 
-  Edit3, 
-  GitBranch, 
-  Sparkles, 
+import {
+  Plus,
+  Brain,
+  Edit3,
+  GitBranch,
+  Sparkles,
   Heart,
   Zap,
   Trash2,
@@ -79,14 +80,16 @@ export function AurasList({ initialAuras }: AurasListProps) {
 
         {/* Create Button */}
         <div className="text-center">
-          <Button 
-            onClick={() => router.push('/auras/create-select')} 
-            size="lg"
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg"
-          >
-            <Sparkles className="w-5 h-5 mr-2" />
-            Create New Aura
-          </Button>
+          <SubscriptionGuard feature="maxAuras">
+            <Button
+              onClick={() => router.push('/auras/create-select')}
+              size="lg"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg"
+            >
+              <Sparkles className="w-5 h-5 mr-2" />
+              Create New Aura
+            </Button>
+          </SubscriptionGuard>
         </div>
       </div>
 
@@ -288,13 +291,15 @@ export function AurasList({ initialAuras }: AurasListProps) {
               Ready to expand your collection?
             </h3>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                onClick={() => router.push('/auras/create-select')}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Another Aura
-              </Button>
+              <SubscriptionGuard feature="maxAuras">
+                <Button
+                  onClick={() => router.push('/auras/create-select')}
+                  className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create Another Aura
+                </Button>
+              </SubscriptionGuard>
               <Button 
                 variant="outline"
                 onClick={() => router.push('/vessels')}

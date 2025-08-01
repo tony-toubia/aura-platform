@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
 import {
   Sparkles,
@@ -28,8 +29,6 @@ export default function CreateSelectEnhancedPage() {
     { id: 'digital', available: true, featured: true },
     { id: 'terra', available: false, comingSoon: true },
     { id: 'companion', available: false, comingSoon: true },
-    { id: 'memory', available: false, comingSoon: true },
-    { id: 'sage', available: false, comingSoon: true },
   ]
 
   const handleVesselSelect = (vesselId: string, available: boolean) => {
@@ -44,23 +43,24 @@ export default function CreateSelectEnhancedPage() {
   }
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-6xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mb-6">
-            <Sparkles className="w-8 h-8 text-white" />
+    <SubscriptionGuard feature="maxAuras">
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-6xl mx-auto">
+          {/* Header */}
+          <div className="text-center mb-12">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mb-6">
+              <Sparkles className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-4xl font-bold text-gray-900 mb-4">
+              Choose Your Vessel Type
+            </h1>
+            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+              Each vessel type offers a unique way to experience AI companionship. Start with Digital Being, or explore what's coming soon!
+            </p>
           </div>
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Choose Your Vessel Type
-          </h1>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-            Each vessel type offers a unique way to experience AI companionship. Start with Digital Being, or explore what's coming soon!
-          </p>
-        </div>
 
-        {/* Vessel Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
+          {/* Vessel Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {vesselOrder.map(({ id, available, comingSoon, featured }) => {
             const config = VESSEL_TYPE_CONFIG[id as keyof typeof VESSEL_TYPE_CONFIG]
             
@@ -279,8 +279,9 @@ export default function CreateSelectEnhancedPage() {
               </div>
             </CardContent>
           </Card>
+          </div>
         </div>
       </div>
-    </div>
+    </SubscriptionGuard>
   )
 }

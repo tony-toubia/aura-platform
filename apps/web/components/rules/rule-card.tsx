@@ -128,12 +128,30 @@ export function RuleCard({ rule, onEdit, onToggle, onDelete }: RuleCardProps) {
             <div className="text-sm text-purple-700 leading-relaxed">
               {rule.action.message ? (
                 <p>"{rule.action.message}"</p>
-              ) : rule.action.type === 'prompt' ? (
-                <div className="space-y-1">
+              ) : (rule.action.type === 'prompt' || rule.action.type === 'prompt_respond' || rule.action.promptGuidelines || rule.action.responseTones) ? (
+                <div className="space-y-2">
                   <p className="font-medium">🤖 AI-Generated Response</p>
-                  <p className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">
-                    Uses context and personality to craft personalized responses
-                  </p>
+                  {rule.action.promptGuidelines && (
+                    <div className="bg-purple-100 border border-purple-200 rounded p-2">
+                      <p className="text-xs font-medium text-purple-800 mb-1">Prompt Guidelines:</p>
+                      <p className="text-xs text-purple-700 italic">"{rule.action.promptGuidelines}"</p>
+                    </div>
+                  )}
+                  {rule.action.responseTones && rule.action.responseTones.length > 0 && (
+                    <div className="flex flex-wrap gap-1">
+                      <span className="text-xs text-purple-600">Tones:</span>
+                      {rule.action.responseTones.map((tone, index) => (
+                        <span key={tone} className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded capitalize">
+                          {tone}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  {!rule.action.promptGuidelines && (
+                    <p className="text-xs text-purple-600 bg-purple-100 px-2 py-1 rounded">
+                      Uses context and personality to craft personalized responses
+                    </p>
+                  )}
                 </div>
               ) : (
                 <p className="italic text-purple-600">No response configured</p>
@@ -177,9 +195,7 @@ export function RuleCard({ rule, onEdit, onToggle, onDelete }: RuleCardProps) {
               <>Updated {new Date(rule.updatedAt).toLocaleDateString()}</>
             ) : rule.createdAt ? (
               <>Created {new Date(rule.createdAt).toLocaleDateString()}</>
-            ) : (
-              'No date available'
-            )}
+            ) : null}
           </div>
           
           <div className="flex items-center gap-2">

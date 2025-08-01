@@ -3,6 +3,9 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+
+// Global flag to prevent duplicate aura creation across component re-renders
+const creationInProgress = new Set<string>()
 import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -61,9 +64,11 @@ export function AuraCreator() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Refs for scrolling
+  // Refs for scrolling and preventing duplicate creation
   const containerRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
+  const isCreatingRef = useRef(false)
+  const lastClickTimeRef = useRef(0)
 
   // Manual entry + focus state
   const [manualInput, setManualInput] = useState("")
@@ -198,35 +203,65 @@ export function AuraCreator() {
   }
 
   const handleCreate = async () => {
+    const timestamp = new Date().toISOString()
+    const creationKey = `${auraData.name}-${auraData.vesselType}-${Date.now()}`
+    
+    console.log(`[${timestamp}] handleCreate called - starting aura creation`, {
+      loading,
+      isCreating: isCreatingRef.current,
+      auraName: auraData.name,
+      creationKey,
+      globalCreationsInProgress: Array.from(creationInProgress)
+    })
+    
+    if (loading || isCreatingRef.current || creationInProgress.has(auraData.name)) {
+      console.log(`[${timestamp}] Already creating aura, ignoring duplicate call`)
+      return
+    }
+    
+    creationInProgress.add(auraData.name)
+    isCreatingRef.current = true
     setLoading(true)
     setError(null)
+    
+    console.log(`[${timestamp}] Proceeding with aura creation for: ${auraData.name}`)
     try {
       const senseCodes = auraData.senses.map((id) =>
         id.replace(/([A-Z])/g, "_$1").toLowerCase()
       )
+      
+      const requestPayload = {
+        name: auraData.name,
+        vesselType: auraData.vesselType,
+        vesselCode: auraData.vesselCode || undefined,
+        plantType: auraData.plantType || undefined,
+        personality: auraData.personality,
+        senses: senseCodes,
+        locationConfigs,
+        selectedStudyId: auraData.selectedStudyId,
+        selectedIndividualId: auraData.selectedIndividualId,
+      }
+      
+      console.log(`[${timestamp}] Making API call to /api/auras with payload:`, requestPayload)
+      
       const resp = await fetch("/api/auras", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: auraData.name,
-          vesselType: auraData.vesselType,
-          vesselCode: auraData.vesselCode || undefined,
-          plantType: auraData.plantType || undefined,
-          personality: auraData.personality,
-          senses: senseCodes,
-          locationConfigs, // Add location configurations
-          selectedStudyId: auraData.selectedStudyId,
-          selectedIndividualId: auraData.selectedIndividualId,
-        }),
+        body: JSON.stringify(requestPayload),
       })
       const body = await resp.json()
+      console.log('Aura creation response:', { status: resp.status, body })
       if (!resp.ok) throw new Error(body.error || "Failed to create Aura")
       setAuraData((prev: AuraFormData) => ({ ...prev, id: body.id }))
+      console.log('Aura created successfully with ID:', body.id)
       setStep("rules")
     } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
+      isCreatingRef.current = false
+      creationInProgress.delete(auraData.name)
+      console.log(`[${timestamp}] Cleanup completed for: ${auraData.name}`)
     }
   }
 
@@ -250,11 +285,23 @@ export function AuraCreator() {
   })
 
   const onNext = () => {
+    const now = Date.now()
+    const timestamp = new Date().toISOString()
+    console.log(`[${timestamp}] onNext called for step: ${step}`)
+    
+    // Debounce rapid clicks (prevent clicks within 1 second)
+    if (now - lastClickTimeRef.current < 1000) {
+      console.log(`[${timestamp}] Ignoring rapid click (debounced)`)
+      return
+    }
+    lastClickTimeRef.current = now
+    
     if (step === "plant") {
       setStep("senses")
     } else if (step === "senses") {
       setStep("details")
     } else if (step === "details") {
+      console.log(`[${timestamp}] onNext triggering handleCreate`)
       handleCreate()
     }
   }

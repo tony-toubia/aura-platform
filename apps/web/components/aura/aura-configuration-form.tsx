@@ -46,6 +46,7 @@ interface AuraConfigurationFormProps {
   onAuraDataChange: (updates: Partial<AuraData>) => void
   onLocationConfigChange?: (senseId: SenseId, config: LocationConfig) => void
   onSave?: () => Promise<void>
+  autoSaveBeforeRules?: boolean
   
   // UI Configuration
   initialStep?: Step
@@ -75,6 +76,7 @@ export function AuraConfigurationForm({
   onAuraDataChange,
   onLocationConfigChange,
   onSave,
+  autoSaveBeforeRules = false,
   initialStep = "senses",
   showStepNavigation = true,
   showSaveButton = true,
@@ -86,6 +88,7 @@ export function AuraConfigurationForm({
   className
 }: AuraConfigurationFormProps) {
   const [step, setStep] = useState<Step>(initialStep)
+  const [isAutoSaving, setIsAutoSaving] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
 
@@ -126,6 +129,26 @@ export function AuraConfigurationForm({
     onAuraDataChange({ rules })
   }
 
+  const handleStepNavigation = async (targetStep: Step) => {
+    // If navigating to rules step, auto-save is enabled, aura hasn't been saved yet, and onSave is available
+    if (targetStep === "rules" && autoSaveBeforeRules && !auraData.id && onSave) {
+      try {
+        setIsAutoSaving(true)
+        await onSave()
+        // After successful save, navigate to the step
+        setStep(targetStep)
+      } catch (error) {
+        console.error("Failed to save aura before navigating to rules:", error)
+        // Don't navigate if save failed
+        return
+      } finally {
+        setIsAutoSaving(false)
+      }
+    } else {
+      setStep(targetStep)
+    }
+  }
+
   const steps = [
     { id: "senses", label: "Senses", icon: Heart },
     { id: "details", label: "Personality", icon: Sparkles },
@@ -133,7 +156,7 @@ export function AuraConfigurationForm({
   ] as const
 
   const currentStepIndex = steps.findIndex(s => s.id === step)
-  const canGoNext = step === "senses" ? auraData.senses.length > 0 : step === "details" ? auraData.name : true
+  const canGoNext = step === "details" ? auraData.name : true
   const canGoPrev = currentStepIndex > 0
 
   return (
@@ -158,7 +181,7 @@ export function AuraConfigurationForm({
               return (
                 <div key={stepInfo.id} className="flex items-center">
                   <button
-                    onClick={() => setStep(stepInfo.id as Step)}
+                    onClick={() => handleStepNavigation(stepInfo.id as Step)}
                     className={cn(
                       "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
                       isActive
@@ -277,14 +300,16 @@ export function AuraConfigurationForm({
               </p>
             </div>
 
-            <RuleBuilder
-              auraId={auraData.id || "temp"}
-              availableSenses={auraData.senses}
-              existingRules={auraData.rules || []}
-              onAddRule={(rule) => updateRules([...(auraData.rules || []), rule])}
-              onDeleteRule={(ruleId) => updateRules((auraData.rules || []).filter(r => r.id !== ruleId))}
-              onToggleRule={(ruleId, enabled) => updateRules((auraData.rules || []).map(r => r.id === ruleId ? { ...r, enabled } : r))}
-            />
+            {auraData.id && (
+              <RuleBuilder
+                auraId={auraData.id}
+                availableSenses={auraData.senses}
+                existingRules={auraData.rules || []}
+                onAddRule={(rule) => updateRules([...(auraData.rules || []), rule])}
+                onDeleteRule={(ruleId) => updateRules((auraData.rules || []).filter(r => r.id !== ruleId))}
+                onToggleRule={(ruleId, enabled) => updateRules((auraData.rules || []).map(r => r.id === ruleId ? { ...r, enabled } : r))}
+              />
+            )}
           </div>
         )}
       </div>
@@ -295,7 +320,7 @@ export function AuraConfigurationForm({
           {showStepNavigation && canGoPrev && currentStepIndex > 0 && (
             <Button
               variant="outline"
-              onClick={() => setStep(steps[currentStepIndex - 1]?.id as Step)}
+              onClick={() => handleStepNavigation(steps[currentStepIndex - 1]?.id as Step)}
             >
               Previous
             </Button>
@@ -305,12 +330,21 @@ export function AuraConfigurationForm({
         <div className="flex gap-4">
           {showStepNavigation && currentStepIndex < steps.length - 1 && currentStepIndex + 1 < steps.length ? (
             <Button
-              onClick={() => setStep(steps[currentStepIndex + 1]?.id as Step)}
-              disabled={!canGoNext}
+              onClick={() => handleStepNavigation(steps[currentStepIndex + 1]?.id as Step)}
+              disabled={!canGoNext || isAutoSaving}
               className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
             >
-              Next
-              <ArrowRight className="w-4 h-4 ml-2" />
+              {isAutoSaving && steps[currentStepIndex + 1]?.id === "rules" ? (
+                <>
+                  <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                  Saving...
+                </>
+              ) : (
+                <>
+                  Next
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </>
+              )}
             </Button>
           ) : showSaveButton && onSave ? (
             <Button

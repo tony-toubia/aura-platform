@@ -29,6 +29,7 @@ import {
   Gift,
   Star,
   ArrowLeft,
+  Edit,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Personality } from "@/types"
@@ -36,16 +37,19 @@ import { useAsync, useFormSubmit } from "@/hooks/use-async"
 import { auraApi } from "@/lib/api/client"
 import { getCurrentUserId } from "@/lib/oauth/token-storage"
 
-type DigitalStep = "welcome" | "senses" | "details" | "rules" | "review"
+type DigitalStep = "details" | "senses" | "rules" | "review"
 
 export function AuraCreatorDigital() {
   const router = useRouter()
-  const [step, setStep] = useState<DigitalStep>("welcome")
+  const [step, setStep] = useState<DigitalStep>("details")
   const [error, setError] = useState<string | null>(null)
+  const [isEditingName, setIsEditingName] = useState(true)
+  const [editingRule, setEditingRule] = useState<BehaviorRule | null>(null)
 
-  // Refs for scrolling
+  // Refs for scrolling and preventing duplicate saves
   const containerRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
+  const isSavingRef = useRef(false)
 
   // Location configurations for location-aware senses
   const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>({})
@@ -111,31 +115,53 @@ export function AuraCreatorDigital() {
         personality: data.personality,
         rules: data.rules,
         senses: senseCodes,
-        locationConfigs
-      })
-
-      const response = await auraApi.createAura({
-        userId,
-        name: data.name,
-        vesselType: data.vesselType,
-        vesselCode: data.vesselCode,
-        personality: data.personality,
-        senses: senseCodes,
-        rules: data.rules.filter((r) => r.name && r.name.trim()),
-        locationInfo: data.locationInfo,
-        newsType: data.newsType,
         locationConfigs,
+        isUpdate: !!data.id
       })
 
-      if (!response.success) {
-        throw new Error(response.error || "Failed to create Aura")
+      let response
+      
+      if (data.id) {
+        // Update existing aura
+        console.log(`Updating existing aura with ID: ${data.id}`)
+        response = await auraApi.updateAura(data.id, {
+          name: data.name,
+          personality: data.personality,
+          senses: senseCodes,
+          rules: data.rules.filter((r) => r.name && r.name.trim()),
+          locationConfigs,
+        })
+      } else {
+        // Create new aura
+        console.log("Creating new aura")
+        response = await auraApi.createAura({
+          userId,
+          name: data.name,
+          vesselType: data.vesselType,
+          vesselCode: data.vesselCode,
+          personality: data.personality,
+          senses: senseCodes,
+          rules: data.rules.filter((r) => r.name && r.name.trim()),
+          locationInfo: data.locationInfo,
+          newsType: data.newsType,
+          locationConfigs,
+        })
       }
 
-      console.log("Digital Aura saved successfully:", response.data?.auraId)
-      setAuraData((prev) => ({
-        ...prev,
-        id: response.data?.auraId || "",
-      }))
+      if (!response.success) {
+        throw new Error(response.error || `Failed to ${data.id ? 'update' : 'create'} Aura`)
+      }
+
+      const auraId = response.data?.auraId || response.data?.id || data.id
+      console.log(`Digital Aura ${data.id ? 'updated' : 'created'} successfully:`, auraId)
+      
+      // Only update the ID if we don't have one yet (for new auras)
+      if (!data.id && auraId) {
+        setAuraData((prev) => ({
+          ...prev,
+          id: auraId,
+        }))
+      }
 
       return response.data
     },
@@ -161,14 +187,14 @@ export function AuraCreatorDigital() {
   const toggleSense = (senseId: SenseId) => {
     const newSenses = auraData.senses.includes(senseId)
       ? auraData.senses.filter(id => id !== senseId)
-      : [...auraData.senses, senseId]
+      : [...auraData.senses, senseId];
     
     setAuraData(prev => ({
       ...prev,
       senses: newSenses,
-      availableSenses: newSenses
-    }))
-  }
+      availableSenses: newSenses,
+    }));
+  };
 
   const handleLocationConfig = (senseId: SenseId, config: LocationConfig) => {
     setLocationConfigs(prev => ({ ...prev, [senseId]: config }))
@@ -178,8 +204,59 @@ export function AuraCreatorDigital() {
     setAuraData(prev => ({ ...prev, rules }))
   }
 
+  const handleEditRule = (rule: BehaviorRule | null) => {
+    setEditingRule(rule)
+  }
+
+  const handleSaveEditedRule = (updatedRule: BehaviorRule) => {
+    const updatedRules = auraData.rules.map(r => r.id === updatedRule.id ? updatedRule : r)
+    updateRules(updatedRules)
+    setEditingRule(null)
+  }
+
+  // Shared save function with duplicate prevention
+  const performSave = async (caller: string) => {
+    const timestamp = new Date().toISOString()
+    console.log(`[${timestamp}] performSave called by: ${caller}`)
+    
+    if (isSavingRef.current) {
+      console.log(`[${timestamp}] Already saving, ignoring duplicate call from: ${caller}`)
+      return
+    }
+    
+    isSavingRef.current = true
+    try {
+      console.log(`[${timestamp}] Calling saveAura from: ${caller} (${auraData.id ? 'update' : 'create'})`)
+      await saveAura(auraData)
+    } finally {
+      isSavingRef.current = false
+    }
+  }
+
   const handleSave = async () => {
-    await saveAura(auraData)
+    await performSave('handleSave')
+  }
+
+  const handleStepNavigation = async (targetStep: DigitalStep) => {
+    if (step === "details" && !auraData.name.trim()) return
+
+    const timestamp = new Date().toISOString()
+    console.log(`[${timestamp}] handleStepNavigation called - targetStep: ${targetStep}, auraData.id: ${auraData.id}`)
+    
+    // If navigating to rules step and aura hasn't been saved yet, save it first
+    if (targetStep === "rules" && !auraData.id) {
+      try {
+        await performSave('handleStepNavigation')
+        // After successful save, the auraData.id should be set by the saveAura function
+        setStep(targetStep)
+      } catch (error) {
+        console.error("Failed to save aura before navigating to rules:", error)
+        // Don't navigate if save failed
+        return
+      }
+    } else {
+      setStep(targetStep)
+    }
   }
 
   const navigateToAura = () => {
@@ -189,26 +266,25 @@ export function AuraCreatorDigital() {
   }
 
   const steps = [
-    { id: "welcome", label: "Welcome", icon: Rocket },
-    { id: "senses", label: "Senses", icon: Heart },
     { id: "details", label: "Personality", icon: Sparkles },
+    { id: "senses", label: "Senses", icon: Heart },
     { id: "rules", label: "Rules", icon: CheckCircle },
     { id: "review", label: "Complete", icon: Star },
   ] as const
 
   const currentStepIndex = steps.findIndex(s => s.id === step)
-  const canGoNext = step === "senses" ? auraData.senses.length > 0 : step === "details" ? auraData.name : true
+  const canGoNext = step === "details" ? !!auraData.name.trim() : true
   const canGoPrev = currentStepIndex > 0
 
   return (
     <div ref={containerRef} className="container mx-auto py-8 px-4">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Step Navigation */}
-        {step !== "welcome" && step !== "review" && (
+        {step !== "review" && (
           <div className="flex justify-center">
             <div className="flex items-center space-x-4">
-              {steps.slice(1, -1).map((stepInfo, index) => {
-                const actualIndex = index + 1 // Adjust for skipping welcome
+              {steps.slice(0, -1).map((stepInfo, index) => {
+                const actualIndex = index // Adjust for skipping welcome
                 const isActive = stepInfo.id === step
                 const isCompleted = actualIndex < currentStepIndex
                 const Icon = stepInfo.icon
@@ -216,14 +292,16 @@ export function AuraCreatorDigital() {
                 return (
                   <div key={stepInfo.id} className="flex items-center">
                     <button
-                      onClick={() => setStep(stepInfo.id as DigitalStep)}
+                      onClick={() => handleStepNavigation(stepInfo.id as DigitalStep)}
+                      disabled={step === "details" && !auraData.name.trim()}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
                         isActive
                           ? "bg-purple-100 text-purple-700 border-2 border-purple-300"
                           : isCompleted
                           ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-gray-100 text-gray-500 hover:bg-gray-200"
+                          : "bg-gray-100 text-gray-500 hover:bg-gray-200",
+                        step === "details" && !auraData.name.trim() && "cursor-not-allowed opacity-50"
                       )}
                     >
                       <Icon className="w-4 h-4" />
@@ -265,69 +343,67 @@ export function AuraCreatorDigital() {
 
         {/* Step Content */}
         <div ref={stepContentRef}>
-          {step === "welcome" && (
-            <div className="text-center space-y-8">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mb-6">
-                <Rocket className="w-10 h-10 text-white" />
-              </div>
-              
-              <div>
-                <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                  Create Your Digital Aura
-                </h1>
-                <p className="text-xl text-gray-600 max-w-2xl mx-auto mb-6">
-                  Welcome to the future of AI companions! Your digital Aura will be a powerful, 
-                  personalized AI that lives in the cloud and can connect to all your digital life.
+          {step === "details" && (
+            <div className="space-y-8">
+              <div className="text-center">
+                <h2 className="mb-2 text-3xl font-bold">
+                  Shape Their Digital Personality
+                </h2>
+                <p className="text-gray-600 max-w-2xl mx-auto">
+                  Give your digital Aura a unique character that will shine through every interaction. 
+                  This personality will be preserved when you upgrade to physical vessels.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-3xl mx-auto">
-                <Card className="text-center p-6">
-                  <Heart className="w-8 h-8 text-purple-600 mx-auto mb-3" />
-                  <h3 className="font-semibold mb-2">Always Available</h3>
-                  <p className="text-sm text-gray-600">Access your Aura from any device, anywhere in the world</p>
-                </Card>
-                <Card className="text-center p-6">
-                  <Sparkles className="w-8 h-8 text-blue-600 mx-auto mb-3" />
-                  <h3 className="font-semibold mb-2">Fully Personalized</h3>
-                  <p className="text-sm text-gray-600">Customize personality, connect your data, and create unique responses</p>
-                </Card>
-                <Card className="text-center p-6">
-                  <Gift className="w-8 h-8 text-green-600 mx-auto mb-3" />
-                  <h3 className="font-semibold mb-2">Completely Free</h3>
-                  <p className="text-sm text-gray-600">Launch special - digital Auras are free during our initial release</p>
-                </Card>
-              </div>
-
-              <Button
-                onClick={() => setStep("senses")}
-                size="lg"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 px-8 py-6 text-lg"
-              >
-                Let's Get Started
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-
-              {/* Coming Soon Preview */}
-              <Card className="bg-gradient-to-r from-orange-50 to-pink-50 border-orange-200 mt-12">
-                <CardContent className="p-6">
-                  <div className="text-center mb-6">
-                    <Gift className="w-8 h-8 text-orange-600 mx-auto mb-3" />
-                    <h3 className="text-lg font-semibold text-gray-900 mb-2">Physical Vessels Coming Soon</h3>
-                    <p className="text-gray-600 text-sm">
-                      Start with digital now, transfer to physical vessels when they launch!
-                    </p>
-                  </div>
-                  <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {COMING_SOON_VESSELS.map((vessel) => (
-                      <div key={vessel.id} className="text-center p-3 bg-white/60 rounded-lg">
-                        <div className="text-2xl mb-1">{vessel.icon}</div>
-                        <div className="text-xs font-medium text-gray-700">{vessel.name}</div>
+              {/* Name Input */}
+              <Card className="relative overflow-hidden bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg animate-shimmer">
+                <CardHeader>
+                  <CardTitle className="flex items-center gap-2 text-white">
+                    <Sparkles className="w-5 h-5" />
+                    Basic Information
+                  </CardTitle>
+                  <CardDescription className="text-purple-200">
+                    Start with the fundamentals of your Aura's digital identity
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div>
+                    <label htmlFor="aura-name" className="block text-sm font-medium text-purple-100 mb-2">
+                      Aura Name
+                    </label>
+                    {isEditingName ? (
+                      <div className="flex items-center gap-2">
+                        <Input
+                          id="aura-name"
+                          value={auraData.name}
+                          onChange={(e) => setAuraData(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Enter a name for your digital Aura..."
+                          className="text-lg bg-white text-black placeholder-gray-500 border-gray-300 focus:ring-purple-500"
+                        />
+                        <Button onClick={() => setIsEditingName(false)} disabled={!auraData.name.trim()}>
+                          Save
+                        </Button>
                       </div>
-                    ))}
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <p className="text-lg font-semibold">{auraData.name}</p>
+                        <Button variant="ghost" size="sm" onClick={() => setIsEditingName(true)}>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Edit
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
+
+              <PersonalityMatrix
+                personality={auraData.personality}
+                vesselCode="digital-only"
+                vesselType="digital"
+                auraName={auraData.name}
+                onChange={updatePersonality}
+              />
             </div>
           )}
 
@@ -358,55 +434,6 @@ export function AuraCreatorDigital() {
             </div>
           )}
 
-          {step === "details" && (
-            <div className="space-y-8">
-              <div className="text-center">
-                <h2 className="mb-2 text-3xl font-bold">
-                  Shape Their Digital Personality
-                </h2>
-                <p className="text-gray-600 max-w-2xl mx-auto">
-                  Give your digital Aura a unique character that will shine through every interaction. 
-                  This personality will be preserved when you upgrade to physical vessels.
-                </p>
-              </div>
-
-              {/* Name Input */}
-              <Card>
-                <CardHeader>
-                  <CardTitle className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5 text-purple-600" />
-                    Basic Information
-                  </CardTitle>
-                  <CardDescription>
-                    Start with the fundamentals of your Aura's digital identity
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  <div>
-                    <label htmlFor="aura-name" className="block text-sm font-medium text-gray-700 mb-2">
-                      Aura Name
-                    </label>
-                    <Input
-                      id="aura-name"
-                      value={auraData.name}
-                      onChange={(e) => setAuraData(prev => ({ ...prev, name: e.target.value }))}
-                      placeholder="Enter a name for your digital Aura..."
-                      className="text-lg"
-                    />
-                  </div>
-                </CardContent>
-              </Card>
-
-              <PersonalityMatrix
-                personality={auraData.personality}
-                vesselCode="digital-only"
-                vesselType="digital"
-                auraName={auraData.name}
-                onChange={updatePersonality}
-              />
-            </div>
-          )}
-
           {step === "rules" && (
             <div className="space-y-8">
               <div className="text-center">
@@ -420,9 +447,14 @@ export function AuraCreatorDigital() {
               </div>
 
               <RuleBuilder
-                auraId={auraData.id || "temp"}
-                availableSenses={auraData.senses}
+                auraId={auraData.id}
+                vesselType="digital"
+                vesselCode="digital-only"
+                availableSenses={auraData.availableSenses}
                 existingRules={auraData.rules}
+                editingRule={editingRule}
+                onEditRule={handleEditRule}
+                onSaveEditedRule={handleSaveEditedRule}
                 onAddRule={(rule) => updateRules([...auraData.rules, rule])}
                 onDeleteRule={(ruleId) => updateRules(auraData.rules.filter(r => r.id !== ruleId))}
                 onToggleRule={(ruleId, enabled) => updateRules(auraData.rules.map(r => r.id === ruleId ? { ...r, enabled } : r))}
@@ -504,7 +536,7 @@ export function AuraCreatorDigital() {
         </div>
 
         {/* Navigation */}
-        {step !== "welcome" && step !== "review" && (
+        {step !== "review" && (
           <div className="flex items-center justify-between pt-8 border-t border-gray-200">
             <div className="flex gap-4">
               {canGoPrev && (
@@ -512,7 +544,7 @@ export function AuraCreatorDigital() {
                   variant="outline"
                   onClick={() => {
                     const prevStep = steps[currentStepIndex - 1]?.id as DigitalStep
-                    if (prevStep) setStep(prevStep)
+                    if (prevStep) handleStepNavigation(prevStep)
                   }}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
@@ -545,13 +577,22 @@ export function AuraCreatorDigital() {
                 <Button
                   onClick={() => {
                     const nextStep = steps[currentStepIndex + 1]?.id as DigitalStep
-                    if (nextStep) setStep(nextStep)
+                    if (nextStep) handleStepNavigation(nextStep)
                   }}
-                  disabled={!canGoNext}
+                  disabled={!canGoNext || isSaving}
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                 >
-                  Next
-                  <ArrowRight className="w-4 h-4 ml-2" />
+                  {isSaving && steps[currentStepIndex + 1]?.id === "rules" ? (
+                    <>
+                      <Sparkles className="w-4 h-4 mr-2 animate-spin" />
+                      Saving...
+                    </>
+                  ) : (
+                    <>
+                      Next
+                      <ArrowRight className="w-4 h-4 ml-2" />
+                    </>
+                  )}
                 </Button>
               )}
             </div>

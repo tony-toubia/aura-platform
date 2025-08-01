@@ -62,7 +62,7 @@ export function VesselProductCard({
       )}
     >
       {/* Badge */}
-      <div className="absolute top-3 right-3 z-10">
+      <div className="absolute top-3 right-3 z-10 flex flex-col gap-1">
         <Badge
           variant="secondary"
           className={cn(
@@ -75,6 +75,9 @@ export function VesselProductCard({
             ? product.licenseTag
             : product.type.charAt(0).toUpperCase() + product.type.slice(1)
           }
+        </Badge>
+        <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5">
+          Coming Soon
         </Badge>
       </div>
 
@@ -209,43 +212,35 @@ export function VesselProductCard({
               {product.isLicensed ? "Limited Edition" : "+ shipping"}
             </span>
           </div>
-          <Link href={href} className="block w-full">
-            <Button
-              size="lg"
-              className={cn(
-                "w-full text-white bg-gradient-to-r",
-                product.isLicensed
-                  ? "from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600"
-                  : isPlantSensor
-                  ? "from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
-                  : typeConfig.gradient
-              )}
-            >
-              {product.isLicensed ? (
-                <>
-                  <Award className="w-4 h-4 mr-2" />
-                  Get {product.name.split(" ")[0]}
-                </>
-              ) : (
-                <>
-                  <ShoppingBag className="w-4 h-4 mr-2" />
-                  <span className="truncate">
-                    {selectedAnimal
-                      ? `Buy ${selectedAnimal.label} ${
-                          isPlantSensor
-                            ? "Guardian"
-                            : product.name.includes("Plush")
-                            ? "Plush"
-                            : product.name.includes("Figurine")
-                            ? "Figurine"
-                            : "Bracelet"
-                        }`
-                      : "Buy Now"}
-                  </span>
-                </>
-              )}
-            </Button>
-          </Link>
+          <Button
+            size="lg"
+            disabled
+            className="w-full text-gray-400 bg-gray-200 cursor-not-allowed"
+          >
+            {product.isLicensed ? (
+              <>
+                <Award className="w-4 h-4 mr-2" />
+                Get {product.name.split(" ")[0]}
+              </>
+            ) : (
+              <>
+                <ShoppingBag className="w-4 h-4 mr-2" />
+                <span className="truncate">
+                  {selectedAnimal
+                    ? `Buy ${selectedAnimal.label} ${
+                        isPlantSensor
+                          ? "Guardian"
+                          : product.name.includes("Plush")
+                          ? "Plush"
+                          : product.name.includes("Figurine")
+                          ? "Figurine"
+                          : "Bracelet"
+                      }`
+                    : "Buy Now"}
+                </span>
+              </>
+            )}
+          </Button>
         </div>
       </CardContent>
     </Card>

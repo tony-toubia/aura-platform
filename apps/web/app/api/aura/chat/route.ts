@@ -112,6 +112,7 @@ export async function POST(req: NextRequest) {
     }
     
     finalConversationId = newConversation.id
+    console.log('Created new conversation:', finalConversationId)
   } else {
     // Verify conversation exists and belongs to user's aura
     const { data: existingConv, error: convCheckError } = await supabase
@@ -127,27 +128,54 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Insert messages
-  const { error: messageError } = await supabase
+  // Insert messages (try most common role values first)
+  const { data: insertedMessages, error: messageError } = await supabase
     .from('messages')
     .insert([
       { 
         conversation_id: finalConversationId, 
-        role: 'user', 
+        role: 'human', 
         content: userMessage,
         metadata: {} 
       },
       { 
         conversation_id: finalConversationId, 
-        role: 'aura', 
+        role: 'assistant', 
         content: reply,
         metadata: metadata
       },
     ])
+    .select()
   
   if (messageError) {
     console.error('Failed to save messages:', messageError)
-    return NextResponse.json({ error: 'Failed to save messages' }, { status: 500 })
+    // Try alternative role values
+    const { data: altMessages, error: altError } = await supabase
+      .from('messages')
+      .insert([
+        { 
+          conversation_id: finalConversationId, 
+          role: 'user', 
+          content: userMessage,
+          metadata: {} 
+        },
+        { 
+          conversation_id: finalConversationId, 
+          role: 'aura', 
+          content: reply,
+          metadata: metadata
+        },
+      ])
+      .select()
+    
+    if (altError) {
+      console.error('Failed to save messages with alternative roles:', altError)
+      return NextResponse.json({ error: 'Failed to save messages', details: altError }, { status: 500 })
+    }
+    
+    console.log('Messages saved with alternative roles:', altMessages?.length || 0)
+  } else {
+    console.log('Messages saved with standard roles:', insertedMessages?.length || 0)
   }
 
   // Update conversation's last activity timestamp

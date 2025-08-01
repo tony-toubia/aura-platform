@@ -21,14 +21,23 @@ model User {
 }
 
 model Subscription {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  user      User     @relation(fields: [userId], references: [id])
-  tier      Tier     @default(FREE)
-  status    Status   @default(ACTIVE)
-  expiresAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                      String    @id @default(cuid())
+  userId                  String    @unique
+  user                    User      @relation(fields: [userId], references: [id])
+  tier                    Tier      @default(FREE)
+  status                  Status    @default(ACTIVE)
+  expiresAt               DateTime?
+  createdAt               DateTime  @default(now())
+  updatedAt               DateTime  @updatedAt
+
+  // Stripe fields
+  stripeCustomerId        String?   @unique
+  stripeSubscriptionId    String?   @unique
+  stripePriceId           String?
+  stripeCurrentPeriodEnd  DateTime?
+
+  @@index([stripeCustomerId])
+  @@index([stripeSubscriptionId])
 }
 
 model Aura {
@@ -114,6 +123,25 @@ model Message {
   @@index([conversationId])
 }
 
+model Knowledge {
+  id        String   @id @default(cuid())
+  auraId    String
+  aura      Aura     @relation(fields: [auraId], references: [id])
+  source    String
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Analytics {
+  id        String   @id @default(cuid())
+  auraId    String   @unique
+  aura      Aura     @relation(fields: [auraId], references: [id])
+  data      Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
 // Enums
 enum Tier {
   FREE
@@ -129,6 +157,7 @@ enum Status {
 }
 
 enum VesselType {
+  DIGITAL
   TERRA
   COMPANION
   MEMORY

@@ -29,7 +29,7 @@ import { cn } from "@/lib/utils"
 interface SenseLocationModalProps {
   open: boolean
   onOpenChange: (open: boolean) => void
-  senseType: 'weather' | 'air_quality' | 'news'
+  senseType: 'weather' | 'air_quality' | 'news' | 'global_news'
   vesselName?: string
   onLocationSet: (config: LocationConfig) => void
 }
@@ -106,6 +106,11 @@ export function SenseLocationModal({
       icon: Newspaper,
       title: "News Preference",
       description: "What news should your Aura stay informed about?",
+    },
+    global_news: {
+      icon: Newspaper,
+      title: "Global News Preference",
+      description: "Configure global news settings for your Aura",
     },
   }[senseType]
 

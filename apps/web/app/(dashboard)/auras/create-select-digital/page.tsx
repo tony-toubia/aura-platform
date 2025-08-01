@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
 import {
   Bot,
   Settings,
@@ -66,8 +67,9 @@ export default function CreateSelectDigitalPage() {
   ]
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-6xl mx-auto">
+    <SubscriptionGuard feature="maxAuras">
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-6xl mx-auto">
         {/* Header */}
         <div className="text-center mb-12">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mb-6">
@@ -219,7 +221,8 @@ export default function CreateSelectDigitalPage() {
             </div>
           </CardContent>
         </Card>
+        </div>
       </div>
-    </div>
+    </SubscriptionGuard>
   )
 }

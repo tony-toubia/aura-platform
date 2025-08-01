@@ -12,7 +12,18 @@ interface UpgradePromptProps {
   currentTier: string
 }
 
+// Map technical feature names to user-friendly messages
+const FEATURE_MESSAGES: Record<string, string> = {
+  maxAuras: 'Creating additional Auras',
+  maxConversations: 'Having unlimited conversations',
+  advancedFeatures: 'Advanced features',
+  premiumSupport: 'Premium support',
+  // Add more mappings as needed
+}
+
 export function UpgradePrompt({ feature, requiredTier, currentTier }: UpgradePromptProps) {
+  const friendlyFeatureName = FEATURE_MESSAGES[feature] || feature
+  
   return (
     <Card className="border-amber-200 bg-amber-50">
       <CardContent className="p-6">
@@ -23,7 +34,7 @@ export function UpgradePrompt({ feature, requiredTier, currentTier }: UpgradePro
           <div className="flex-1">
             <h3 className="font-semibold text-amber-900">Upgrade Required</h3>
             <p className="text-sm text-amber-700 mt-1">
-              {feature} requires a {requiredTier} subscription or higher.
+              {friendlyFeatureName} requires a {requiredTier} subscription or higher.
               You're currently on the {currentTier} plan.
             </p>
             <Link href="/subscription">

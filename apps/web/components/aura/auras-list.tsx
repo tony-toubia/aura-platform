@@ -6,14 +6,16 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
 import { EmptyState } from '@/components/ui/empty-state'
+import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
-import { 
-  Plus, 
-  Brain, 
-  Edit3, 
-  GitBranch, 
-  Sparkles, 
+import {
+  Plus,
+  Brain,
+  Edit3,
+  GitBranch,
+  Sparkles,
   Heart,
   Zap,
   Trash2,
@@ -33,24 +35,24 @@ export function AurasList({ initialAuras }: AurasListProps) {
   const router = useRouter()
 
   return (
-    <div className="max-w-7xl mx-auto">
-      {/* Enhanced Header */}
-      <div className="mb-10">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
-            <Brain className="w-4 h-4" />
-            Aura Collection
+    <div className="w-full">
+      {/* Enhanced Header - Only show when auras exist */}
+      {initialAuras.length > 0 && (
+        <div className="mb-10">
+          <div className="text-center mb-8">
+            <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <Brain className="w-4 h-4" />
+              Aura Collection
+            </div>
+            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              My Auras
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Manage and interact with your digital AI companions
+            </p>
           </div>
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            My Auras
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Manage and interact with your digital AI companions
-          </p>
-        </div>
 
-        {/* Stats Overview */}
-        {initialAuras.length > 0 && (
+          {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-purple-700">{initialAuras.length}</div>
@@ -75,51 +77,95 @@ export function AurasList({ initialAuras }: AurasListProps) {
               <div className="text-sm text-amber-600">Total Rules</div>
             </div>
           </div>
-        )}
 
-        {/* Create Button */}
-        <div className="text-center">
-          <Button 
-            onClick={() => router.push('/auras/create-select-enhanced')} 
-            size="lg"
-            className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg"
-          >
-            <Sparkles className="w-5 h-5 mr-2" />
-            Create New Aura
-          </Button>
+          {/* Create Button */}
+          <div className="text-center">
+            <SubscriptionGuard feature="maxAuras">
+              <Button
+                onClick={() => router.push('/auras/create-select-enhanced')}
+                size="lg"
+                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg"
+              >
+                <Sparkles className="w-5 h-5 mr-2" />
+                Create New Aura
+              </Button>
+            </SubscriptionGuard>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Content */}
       {initialAuras.length === 0 ? (
-        <EmptyState
-          icon={Brain}
-          iconGradient="from-purple-500 to-blue-500"
-          title="Ready to Create Magic?"
-          description="You haven't created any digital Auras yet. Start your journey by bringing your first AI companion to life!"
-          primaryAction={{
-            label: "Create Your First Aura",
-            onClick: () => router.push('/auras/create-select-enhanced'),
-            icon: Sparkles
-          }}
-          secondaryText="✨ Start with a digital companion - physical vessels coming soon!"
-        >
-          {/* Feature Preview */}
-          <div className="mt-12 grid grid-cols-1 md:grid-cols-3 gap-4 text-left">
-            {Object.entries(VESSEL_TYPE_CONFIG).slice(0, 3).map(([key, config]) => (
-              <div key={key} className="bg-white border border-gray-200 rounded-xl p-4">
-                <div className={cn(
-                  "w-8 h-8 bg-gradient-to-r rounded-lg flex items-center justify-center mb-3",
-                  config.color
-                )}>
-                  <span className="text-white text-lg">{config.icon}</span>
-                </div>
-                <h4 className="font-semibold mb-1">{config.name}</h4>
-                <p className="text-sm text-gray-600">{config.description}</p>
+        <SubscriptionGuard feature="maxAuras">
+          <EmptyState
+            icon={Brain}
+            iconGradient="from-purple-500 to-blue-500"
+            title="Create Your Digital Aura"
+            description="Welcome to the future of AI companions! Your digital Aura will be a powerful,
+                    personalized AI that lives in the cloud and can connect to all your digital life."
+            primaryAction={{
+              label: "Create Your First Aura",
+              onClick: () => router.push('/auras/create-select-enhanced'),
+              icon: Sparkles
+            }}
+          >
+          {/* Vessel Types Preview */}
+          <div className="mt-12 relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
+            <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-10 mx-4">
+              <h3 className="text-2xl font-bold text-center mb-10 text-purple-800">
+                A Vessel for Every Aura
+              </h3>
+              <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-16 text-center max-w-7xl mx-auto">
+                {[
+                  { key: 'digital', available: true },
+                  { key: 'terra', available: false },
+                  { key: 'companion', available: false },
+                  { key: 'memory', available: false }
+                ].map(({ key, available }) => {
+                  const config = VESSEL_TYPE_CONFIG[key as keyof typeof VESSEL_TYPE_CONFIG]
+                  if (!config) return null
+                  
+                  return (
+                    <div key={key} className="space-y-3 relative">
+                      {/* Coming Soon Badge for non-digital vessels */}
+                      {!available && (
+                        <div className="absolute -top-2 -right-2 z-10">
+                          <Badge className="bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5">
+                            Coming Soon
+                          </Badge>
+                        </div>
+                      )}
+                      
+                      <div
+                        className={cn(
+                          "w-16 h-16 mx-auto bg-gradient-to-r rounded-full flex items-center justify-center text-white text-2xl shadow-lg transition-all duration-300",
+                          available ? config.color : "from-gray-400 to-gray-500",
+                          available && "hover:scale-110 cursor-pointer"
+                        )}
+                        onClick={available ? () => router.push('/auras/create-select-enhanced') : undefined}
+                      >
+                        {config.icon}
+                      </div>
+                      <h3 className={cn(
+                        "font-semibold",
+                        available ? "text-purple-700" : "text-gray-500"
+                      )}>
+                        {config.name}
+                      </h3>
+                      <p className={cn(
+                        "text-sm",
+                        available ? "text-gray-600" : "text-gray-400"
+                      )}>
+                        {config.description}
+                      </p>
+                    </div>
+                  )
+                })}
               </div>
-            ))}
+            </div>
           </div>
-        </EmptyState>
+          </EmptyState>
+        </SubscriptionGuard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {initialAuras.map((aura) => {
@@ -233,34 +279,12 @@ export function AurasList({ initialAuras }: AurasListProps) {
                         <Edit3 className="w-4 h-4" />
                       </Button>
 
-                      {/* Rules Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/auras/${aura.id}/rules`)}
-                        className="hover:bg-blue-50 hover:text-blue-600"
-                        title="Manage Rules"
-                      >
-                        <GitBranch className="w-4 h-4" />
-                      </Button>
-
-                      {/* Settings Button */}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => router.push(`/auras/${aura.id}/edit`)}
-                        className="hover:bg-gray-50 hover:text-gray-600"
-                        title="Settings"
-                      >
-                        <Settings className="w-4 h-4" />
-                      </Button>
-
                       {/* Delete Button */}
                       <form action={deleteAuraAction} className="inline">
                         <input type="hidden" name="auraId" value={aura.id} />
-                        <Button 
-                          type="submit" 
-                          variant="ghost" 
+                        <Button
+                          type="submit"
+                          variant="ghost"
                           size="sm"
                           className="hover:bg-red-50 hover:text-red-600"
                           title="Delete Aura"
@@ -280,29 +304,58 @@ export function AurasList({ initialAuras }: AurasListProps) {
         </div>
       )}
 
-      {/* Quick Actions Footer */}
+      {/* Enhanced Footer CTA */}
       {initialAuras.length > 0 && (
-        <div className="mt-16 text-center">
-          <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-8">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Ready to expand your collection?
-            </h3>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button 
-                onClick={() => router.push('/auras/create-select-enhanced')}
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-              >
-                <Plus className="w-4 h-4 mr-2" />
-                Create Another Aura
-              </Button>
-              <Button 
-                variant="outline"
-                onClick={() => router.push('/vessels')}
-                className="border-2 border-purple-200 hover:border-purple-400 hover:bg-purple-50"
-              >
-                <Zap className="w-4 h-4 mr-2" />
-                Browse Vessels
-              </Button>
+        <div className="mt-16">
+          <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 rounded-3xl p-8 text-white text-center">
+            <div className="max-w-3xl mx-auto">
+              <h2 className="text-3xl font-bold mb-4">
+                Ready to Expand Your Collection?
+              </h2>
+              <p className="text-xl mb-8 opacity-90">
+                Your journey with AI companions is just beginning. Explore new possibilities!
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+                <SubscriptionGuard
+                  feature="maxAuras"
+                  fallback={
+                    <div className="inline-flex items-center gap-2 text-sm text-white/90 bg-white/20 px-6 py-4 rounded-lg border border-white/30 h-12">
+                      <span>Upgrade to create more auras</span>
+                      <Button asChild size="sm" className="bg-white text-purple-600 hover:bg-gray-100">
+                        <Link href="/subscription">
+                          View Plans
+                        </Link>
+                      </Button>
+                    </div>
+                  }
+                >
+                  <Button
+                    onClick={() => router.push('/auras/create-select-enhanced')}
+                    size="lg"
+                    className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8 h-12"
+                  >
+                    <Plus className="w-5 h-5 mr-2" />
+                    Create Another Aura
+                  </Button>
+                </SubscriptionGuard>
+                <div className="relative">
+                  <Button
+                    size="lg"
+                    variant="outline"
+                    disabled
+                    className="border-2 border-white text-gray-400 cursor-not-allowed px-8 h-12"
+                  >
+                    <Zap className="w-5 h-5 mr-2" />
+                    Browse Vessels
+                  </Button>
+                  <Badge className="absolute -top-2 -right-2 bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5">
+                    Coming Soon
+                  </Badge>
+                </div>
+              </div>
+              <div className="mt-6 text-sm opacity-75">
+                ✨ Join thousands creating magical AI relationships
+              </div>
             </div>
           </div>
         </div>

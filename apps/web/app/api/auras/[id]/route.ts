@@ -11,9 +11,17 @@ type RouteParams = {
 }
 
 export async function PUT(req: NextRequest, context: RouteParams) {
+  const timestamp = new Date().toISOString()
   const { id: auraId } = await context.params
   const body = await req.json()
   const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, locationConfigs } = body
+  
+  console.log(`[${timestamp}] PUT /api/auras/${auraId} called with:`, {
+    name,
+    sensesCount: senses?.length || 0,
+    hasPersonality: !!personality,
+    hasLocationConfigs: !!locationConfigs
+  })
 
   // Basic validation
   if (

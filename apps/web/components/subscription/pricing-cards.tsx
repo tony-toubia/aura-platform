@@ -90,11 +90,36 @@ export function PricingCards({
     { key: 'hasDataExport', label: 'Data Export', format: (v) => v },
   ]
 
-  const handleUpgrade = (tierId: string) => {
+  const handleUpgrade = async (tierId: string) => {
     if (onSelectTier) {
       onSelectTier(tierId)
-    } else {
-      router.push(`/subscription/upgrade?tier=${tierId}`)
+      return
+    }
+
+    // For free tier, just redirect to dashboard
+    if (tierId === 'free') {
+      router.push('/dashboard')
+      return
+    }
+
+    try {
+      const response = await fetch('/api/stripe/checkout', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ tierId }),
+      })
+
+      const data = await response.json()
+
+      if (data.url) {
+        window.location.href = data.url
+      } else {
+        console.error('No checkout URL received')
+      }
+    } catch (error) {
+      console.error('Failed to create checkout session:', error)
     }
   }
 

@@ -417,6 +417,7 @@ export default function CreateAuraWithAgentPage() {
 
             <AuraConfigurationForm
               auraData={{
+                id: configuration.id,
                 name: configuration.name,
                 vesselType: configuration.vesselType,
                 vesselCode: configuration.vesselCode,
@@ -430,6 +431,7 @@ export default function CreateAuraWithAgentPage() {
               onAuraDataChange={handleConfigurationChange}
               onLocationConfigChange={handleLocationConfigChange}
               onSave={handleManualSave}
+              autoSaveBeforeRules={true}
               showStepNavigation={true}
               showSaveButton={true}
               saveButtonText={isSaving ? "Saving..." : "Save Configuration"}

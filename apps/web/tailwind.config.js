@@ -122,6 +122,10 @@ export default {
             boxShadow: '0 0 40px rgba(255, 215, 0, 0.5)',
           },
         },
+        shimmer: {
+          '0%, 100%': { backgroundPosition: '200% center' },
+          '50%': { backgroundPosition: '-200% center' },
+        },
       },
       animation: {
         'accordion-down': 'accordion-down 0.2s ease-out',
@@ -129,6 +133,7 @@ export default {
         // Sentient Systems animations
         'pulse-slow': 'pulse-slow 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
         'glow': 'glow 2s ease-in-out infinite',
+        shimmer: 'shimmer 3s ease-in-out infinite',
       },
       backgroundImage: {
         // Sentient Systems gradients

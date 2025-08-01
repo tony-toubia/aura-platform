@@ -25,6 +25,7 @@ import {
   Shield,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { SubscriptionGuard } from "@/components/subscription/subscription-guard"
 
 // derive the element type from your constant
 export type AvailableSense = typeof AVAILABLE_SENSES[number]
@@ -157,7 +158,7 @@ export function SenseSelector({
 
   const handleLocationSet = (config: LocationConfig) => {
     if (configuringSense) {
-      // Enable the sense
+      // Enable the sense (news will always use 'news' ID regardless of location type)
       onToggle(configuringSense as SenseId)
       
       // Save the location configuration
@@ -314,16 +315,35 @@ export function SenseSelector({
               const needsLocation = LOCATION_AWARE_SENSES.includes(sense.id as SenseId)
               
               return (
-                <button
+                <SubscriptionGuard
                   key={sense.id}
-                  onClick={() => handleSenseToggle(sense.id as SenseId)}
-                  className={cn(
-                    "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
-                    active
-                      ? "border-green-400 bg-gradient-to-br from-green-50 to-blue-50 shadow-md"
-                      : cn("border-gray-200 hover:border-green-300 bg-white", tierInfo.bgColor)
-                  )}
+                  feature="availableSenses"
+                  fallback={
+                    <div className="group relative p-5 rounded-2xl border-2 border-gray-200 bg-gray-50 text-left opacity-60">
+                      <div className="absolute top-3 right-3">
+                        <Lock className="w-5 h-5 text-gray-400" />
+                      </div>
+                      <div className="flex items-start gap-4">
+                        <div className="p-3 rounded-xl bg-gray-300 text-gray-500">
+                          <Icon className="w-6 h-6" />
+                        </div>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-gray-500 mb-1">{sense.name}</h4>
+                          <p className="text-sm text-gray-400 mb-2">{sense.category}</p>
+                        </div>
+                      </div>
+                    </div>
+                  }
                 >
+                  <button
+                    onClick={() => handleSenseToggle(sense.id as SenseId)}
+                    className={cn(
+                      "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
+                      active
+                        ? "border-green-400 bg-gradient-to-br from-green-50 to-blue-50 shadow-md"
+                        : cn("border-gray-200 hover:border-green-300 bg-white", tierInfo.bgColor)
+                    )}
+                  >
                   {active && (
                     <div className="absolute top-3 right-3">
                       <CheckCircle2 className="w-5 h-5 text-green-600" />
@@ -372,8 +392,10 @@ export function SenseSelector({
                           "text-xs px-2 py-1 rounded-full transition-all font-medium",
                           active 
                             ? "bg-green-100 text-green-700" 
-                            : locationDisplay
+                            : locationDisplay 
                             ? "bg-blue-100 text-blue-700"
+                            : needsLocation 
+                            ? "bg-gray-100 text-gray-600 group-hover:bg-green-50 group-hover:text-green-600"
                             : "bg-gray-100 text-gray-600 group-hover:bg-green-50 group-hover:text-green-600"
                         )}>
                           {active 
@@ -388,6 +410,7 @@ export function SenseSelector({
                     </div>
                   </div>
                 </button>
+                </SubscriptionGuard>
               )
             })}
           </div>

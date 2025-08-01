@@ -289,6 +289,16 @@ export const SENSOR_CONFIGS: Record<string, SensorMetadata> = {
     icon: '🚶',
     category: 'personal',
     operators: ['==', '!=']
+  },
+  
+  // News sensors - supporting different news configurations
+  'news': {
+    id: 'news',
+    name: 'News Feed',
+    type: 'text',
+    icon: '📰',
+    category: 'digital',
+    operators: ['contains']
   }
 }
 
@@ -322,13 +332,17 @@ export interface RuleTrigger {
 }
 
 export interface RuleAction {
-  type: 'notify' | 'alert' | 'respond' | 'log' | 'webhook' | 'prompt'
+  type: 'notify' | 'alert' | 'respond' | 'log' | 'webhook' | 'prompt' | 'prompt_respond'
   message?: string
   defaultMessage?: string
   severity?: 'info' | 'warning' | 'critical'
   template?: string
   webhookUrl?: string
   metadata?: Record<string, any>
+  // AI response properties
+  promptGuidelines?: string
+  responseTones?: string[]
+  responseType?: 'prompt' | 'template'
 }
 
 export interface Sense {
@@ -344,7 +358,7 @@ export interface Message {
   id: string
   role: 'user' | 'aura' | 'system'
   content: string
-  timestamp: Date
+  created_at: string
   metadata?: {
     influences?: string[]
     senseData?: { sense: string; timestamp: string | Date }[]

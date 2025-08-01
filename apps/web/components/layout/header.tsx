@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { MobileNav } from '@/components/mobile-nav'
+import { SignOutButton } from '@/components/layout/sign-out-button'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -11,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Sparkles, ChevronDown, User, Settings, CreditCard, LogOut } from 'lucide-react'
+import { Sparkles, ChevronDown, User, Settings, CreditCard } from 'lucide-react'
 import { signOut } from '@/app/actions/auth'  // pull in the server action
 
 export default async function Header() {
@@ -166,12 +167,7 @@ export default async function Header() {
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
                   <DropdownMenuItem asChild>
-                    <form action={signOut} className="w-full">
-                      <button type="submit" className="flex w-full items-center text-red-600 hover:text-red-700">
-                        <LogOut className="mr-2 h-4 w-4" />
-                        <span>Sign Out</span>
-                      </button>
-                    </form>
+                    <SignOutButton />
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

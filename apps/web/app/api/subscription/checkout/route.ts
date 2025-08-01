@@ -34,24 +34,61 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // fetch or create Stripe customer
-    const { data: subRow } = await supabase
+    // fetch or create subscription record and Stripe customer
+    let { data: subRow } = await supabase
       .from("subscriptions")
       .select("stripe_customer_id")
       .eq("user_id", user.id)
       .single()
 
     let customerId = subRow?.stripe_customer_id
+
+    if (!subRow) {
+      // Create subscription record if it doesn't exist
+      console.log('Creating new subscription record for user:', user.id)
+      const { data: newSub, error: insertError } = await supabase
+        .from("subscriptions")
+        .insert({
+          user_id: user.id,
+          tier: "free",
+          status: "active",
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString(),
+        })
+        .select("stripe_customer_id")
+        .single()
+
+      if (insertError) {
+        console.error('Failed to create subscription record:', insertError)
+        return NextResponse.json(
+          { error: "Failed to create subscription" },
+          { status: 500 }
+        )
+      }
+      subRow = newSub
+    }
+
     if (!customerId) {
+      // Create Stripe customer
+      console.log('Creating Stripe customer for user:', user.id)
       const customer = await stripe.customers.create({
         email: user.email!,
         metadata: { supabase_user_id: user.id },
       })
       customerId = customer.id
-      await supabase
+      
+      // Update subscription record with customer ID
+      const { error: updateError } = await supabase
         .from("subscriptions")
-        .update({ stripe_customer_id: customerId })
+        .update({
+          stripe_customer_id: customerId,
+          updated_at: new Date().toISOString(),
+        })
         .eq("user_id", user.id)
+
+      if (updateError) {
+        console.error('Failed to update subscription with customer ID:', updateError)
+      }
     }
 
     // create checkout session

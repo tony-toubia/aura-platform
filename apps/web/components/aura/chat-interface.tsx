@@ -17,7 +17,7 @@ import {
   Zap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { ConversationService } from "@/lib/services/conversation-service"
+
 import { SenseDataService } from "@/lib/services/sense-data-service"
 import { SenseStatus } from "@/components/chat/sense-status"
 import { MessageInfluence } from "@/components/chat/message-influence"
@@ -46,14 +46,15 @@ export function ChatInterface({
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
   }, [messages])
 
-  // Create conversation
+  // Note: Conversation creation is now handled by the chat API
+  // This prevents duplicate conversation creation
+
+  // Load existing conversation messages if conversationId is provided
   useEffect(() => {
-    if (!conversationId) {
-      ConversationService.createConversation(aura.id)
-        .then(setConversationId)
-        .catch(console.error)
+    if (conversationId) {
+      loadConversationMessages(conversationId)
     }
-  }, [aura.id, conversationId])
+  }, [conversationId])
 
   // Load sense data periodically
   useEffect(() => {
@@ -61,6 +62,31 @@ export function ChatInterface({
     const interval = setInterval(loadSenseData, CHAT_REFRESH_INTERVAL)
     return () => clearInterval(interval)
   }, [aura.senses])
+
+  const loadConversationMessages = async (convId: string) => {
+    try {
+      console.log('Loading conversation messages for:', convId)
+      const response = await fetch(`/api/conversations/${convId}/messages`)
+      if (!response.ok) {
+        throw new Error('Failed to load conversation')
+      }
+      const data = await response.json()
+      console.log('Loaded conversation data:', data)
+      
+      // Transform the messages to match our Message interface
+      const transformedMessages: Message[] = (data.messages || []).map((msg: any) => ({
+        id: msg.id,
+        role: msg.role,
+        content: msg.content,
+        created_at: msg.created_at,
+        metadata: msg.metadata || {}
+      }))
+      
+      setMessages(transformedMessages)
+    } catch (error) {
+      console.error('Failed to load conversation messages:', error)
+    }
+  }
 
   async function loadSenseData() {
     setIsLoadingSenses(true)
@@ -79,13 +105,14 @@ export function ChatInterface({
   }
 
   const handleSend = async () => {
-    if (!input.trim() || !conversationId) return
+    console.log('handleSend called', { input: input.trim(), conversationId })
+    if (!input.trim()) return
     
     const userMsg: Message = {
       id: Date.now().toString(),
       role: "user",
       content: input,
-      timestamp: new Date(),
+      created_at: new Date().toISOString(),
     }
     
     setMessages((m) => [...m, userMsg])
@@ -107,11 +134,16 @@ export function ChatInterface({
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || "Chat failed")
       
+      // Update conversationId if it was created by the API
+      if (json.conversationId && !conversationId) {
+        setConversationId(json.conversationId)
+      }
+      
       const auraMsg: Message = {
         id: Date.now().toString() + "_aura",
         role: "aura",
         content: json.reply as string,
-        timestamp: new Date(),
+        created_at: new Date().toISOString(),
         metadata: {
           influences: json.influences || json.metadata?.influences || [],
           triggeredRule: json.triggeredRule || json.metadata?.triggeredRule,
@@ -130,7 +162,7 @@ export function ChatInterface({
           id: Date.now().toString() + "_err",
           role: "aura",
           content: "I'm having trouble connecting right now. Please try again.",
-          timestamp: new Date(),
+          created_at: new Date().toISOString(),
           metadata: { isError: true },
         },
       ])
@@ -172,7 +204,7 @@ export function ChatInterface({
 
         <p className="text-xs mt-3 opacity-60 flex items-center gap-1">
           <span>
-            {message.timestamp.toLocaleTimeString([], {
+            {new Date(message.created_at).toLocaleTimeString([], {
               hour: "2-digit",
               minute: "2-digit",
             })}
@@ -343,15 +375,19 @@ export function ChatInterface({
         >
           <Input
             value={input}
-            onChange={(e) => setInput(e.target.value)}
+            onChange={(e) => {
+              console.log('Input changed:', e.target.value)
+              setInput(e.target.value)
+            }}
             placeholder={`Message ${aura.name}...`}
             className="flex-1 py-6 text-lg border-2 border-purple-200 focus:border-purple-400 rounded-xl"
-            disabled={!conversationId || isTyping}
+            disabled={isTyping}
           />
           <Button
             type="submit"
             size="lg"
-            disabled={!conversationId || isTyping || !input.trim()}
+            disabled={isTyping || !input.trim()}
+            onClick={() => console.log('Button clicked', { isTyping, inputTrim: input.trim() })}
             className="px-6 py-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-xl shadow-lg"
           >
             <Send className="w-5 h-5" />

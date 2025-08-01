@@ -39,6 +39,7 @@ import { cn } from "@/lib/utils"
 import { RuleCard } from "@/components/rules/rule-card"
 import { SensorValueInput } from "@/components/rules/sensor-value-input"
 import { CooldownConfig } from "@/components/rules/cooldown-config"
+import { SubscriptionGuard } from "@/components/subscription/subscription-guard"
 import { useCooldownConfig } from "@/hooks/use-cooldown-config"
 import { useRulePreview } from "@/hooks/use-rule-preview"
 import { 
@@ -127,11 +128,18 @@ export function RuleBuilder({
   // Get available sensor configs
   const availableSensorConfigs = useMemo(() => {
     return Object.values(SENSOR_CONFIGS).filter(sensor => {
-      const baseKey = sensor.id.split('.')[0]
-      if (!baseKey) return false
-      return availableSenses.includes(sensor.id) || availableSenses.includes(baseKey)
-    })
-  }, [availableSenses])
+      const baseKey = sensor.id.split('.')[0];
+      if (!baseKey) return false;
+      
+      // Handle news sensor
+      if (sensor.id === 'news') {
+        return availableSenses.includes('news');
+      }
+      
+      // Handle other sensors with dot notation (e.g., weather.temperature, fitness.steps)
+      return availableSenses.includes(sensor.id) || availableSenses.includes(baseKey);
+    });
+  }, [availableSenses]);
 
   // Group sensors by category
   const sensorsByCategory = useMemo(() => {
@@ -276,6 +284,13 @@ export function RuleBuilder({
     // Validate based on response type
     if (responseType === 'template' && !actionMessage) return
     if (responseType === 'prompt' && !responseGuidelines) return
+
+    // Check if auraId is valid (not "temp" or empty)
+    if (!auraId || auraId === "temp") {
+      console.error("Cannot save rule: Invalid aura ID. The aura should have been saved automatically.")
+      // This shouldn't happen with auto-save, but keeping as safety check
+      return
+    }
 
     const cooldownPayload = cooldownConfig.getCooldownPayload()
 
@@ -919,34 +934,41 @@ export function RuleBuilder({
             <CooldownConfig cooldownConfig={cooldownConfig} />
           </div>
 
+
+
           {/* Action Buttons */}
           <div className="flex gap-3 pt-4">
-            <Button
-              onClick={handleAddOrSave}
-              className={cn(
-                "flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r",
-                isEditing
-                  ? "from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
-                  : "from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-              )}
-              disabled={
-                !ruleName || 
-                !selectedSensor || 
-                sensorValue === null || 
-                (responseType === 'prompt' && !responseGuidelines) ||
-                (responseType === 'template' && !actionMessage)
-              }
-            >
-              {isEditing ? (
-                <>
-                  <Save className="w-5 h-5 mr-2" /> Save Changes
-                </>
-              ) : (
-                <>
+            {isEditing ? (
+              <Button
+                onClick={handleAddOrSave}
+                className="flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
+                disabled={
+                  !ruleName || 
+                  !selectedSensor || 
+                  sensorValue === null || 
+                  (responseType === 'prompt' && !responseGuidelines) ||
+                  (responseType === 'template' && !actionMessage)
+                }
+              >
+                <Save className="w-5 h-5 mr-2" /> Save Changes
+              </Button>
+            ) : (
+              <SubscriptionGuard feature="maxRulesPerAura">
+                <Button
+                  onClick={handleAddOrSave}
+                  className="flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                  disabled={
+                    !ruleName || 
+                    !selectedSensor || 
+                    sensorValue === null || 
+                    (responseType === 'prompt' && !responseGuidelines) ||
+                    (responseType === 'template' && !actionMessage)
+                  }
+                >
                   <Plus className="w-5 h-5 mr-2" /> Create Rule
-                </>
-              )}
-            </Button>
+                </Button>
+              </SubscriptionGuard>
+            )}
             {isEditing && (
               <Button variant="outline" onClick={clearForm} className="px-6 py-6">
                 <X className="w-5 h-5 mr-2" /> Cancel

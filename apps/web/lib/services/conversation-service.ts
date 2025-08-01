@@ -128,7 +128,7 @@ export class ConversationService {
         id:        savedMessage.id,
         role:      'aura',
         content:   savedMessage.content,
-        timestamp: new Date(savedMessage.created_at),
+        created_at: savedMessage.created_at,
         metadata:  savedMessage.metadata,
       }
     }
@@ -175,7 +175,7 @@ export class ConversationService {
       id:        saved.id,
       role:      'aura',
       content,
-      timestamp: new Date(saved.created_at),
+      created_at: saved.created_at,
       metadata:  { senseData: metaSenseData },
     }
   }

@@ -12,6 +12,7 @@ import { ErrorDisplay } from "@/components/ui/error-boundary";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { SubscriptionGuard } from "@/components/subscription/subscription-guard";
 import {
   Bot,
   Sparkles,
@@ -300,8 +301,9 @@ export default function CreateAuraWithAgentPage() {
   const progressInfo = getConfigurationProgress();
 
   return (
-    <div className="container mx-auto py-8 px-4">
-      <div className="max-w-6xl mx-auto">
+    <SubscriptionGuard feature="maxAuras">
+      <div className="container mx-auto py-8 px-4">
+        <div className="max-w-6xl mx-auto">
         {mode === "agent" && (
           <>
             <div className="text-center mb-8">
@@ -424,6 +426,7 @@ export default function CreateAuraWithAgentPage() {
 
             <AuraConfigurationForm
               auraData={{
+                id: configuration.id,
                 name: configuration.name,
                 vesselType: configuration.vesselType,
                 vesselCode: configuration.vesselCode,
@@ -437,6 +440,7 @@ export default function CreateAuraWithAgentPage() {
               onAuraDataChange={handleConfigurationChange}
               onLocationConfigChange={handleLocationConfigChange}
               onSave={handleManualSave}
+              autoSaveBeforeRules={true}
               showStepNavigation={true}
               showSaveButton={true}
               saveButtonText={isSaving ? "Saving..." : "Save Configuration"}
@@ -571,7 +575,8 @@ export default function CreateAuraWithAgentPage() {
               🚨 Force Save (Debug)
             </button>
           )}
+        </div>
       </div>
-    </div>
+    </SubscriptionGuard>
   );
 }

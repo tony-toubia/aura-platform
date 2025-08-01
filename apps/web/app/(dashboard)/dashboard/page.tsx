@@ -28,16 +28,36 @@ export default async function DashboardPage() {
   const { count: aurasCount } = await supabase
     .from('auras')
     .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
 
-  // Get conversations count
-  const { count: conversationsCount } = await supabase
+  // Get user's aura IDs for filtering conversations
+  const { data: userAuras } = await supabase
+    .from('auras')
+    .select('id')
+    .eq('user_id', user.id)
+  
+  const userAuraIds = userAuras?.map(aura => aura.id) || []
+
+  // Get conversations count (filter by user's auras)
+  const { count: conversationsCount, error: conversationsError } = await supabase
     .from('conversations')
-    .select('*', { count: 'exact', head: true })
+    .select('id', { count: 'exact', head: true })
+    .in('aura_id', userAuraIds)
+
+  // Debug logging
+  console.log('Dashboard stats:', { 
+    aurasCount, 
+    conversationsCount, 
+    conversationsError,
+    userId: user.id,
+    userAuraIds: userAuraIds.length > 0 ? userAuraIds : 'No auras found'
+  })
 
   // Get user's subscription
   const { data: subscription } = await supabase
     .from('subscriptions')
     .select('tier')
+    .eq('user_id', user.id)
     .single()
 
   // FIX: Cast the imported component to explicitly tell TypeScript it accepts the 'stats' prop.

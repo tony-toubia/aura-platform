@@ -3,7 +3,7 @@ import path from "path";
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  reactStrictMode: true,
+  reactStrictMode: true, // Re-enabled after fixing duplicate aura creation
 
   // If you ever switch to Turbopack:
   turbopack: {

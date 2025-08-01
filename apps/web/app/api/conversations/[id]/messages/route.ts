@@ -14,6 +14,7 @@ export async function GET(
     }
 
     const { id: conversationId } = await params
+    console.log('Fetching conversation details for:', conversationId, 'user:', user.id)
 
     // First verify the user owns this conversation
     const { data: conversation, error: convError } = await supabase
@@ -26,6 +27,8 @@ export async function GET(
       .eq('auras.user_id', user.id)
       .single()
 
+    console.log('Conversation query result:', { conversation, error: convError })
+
     if (convError || !conversation) {
       return NextResponse.json({ error: 'Conversation not found' }, { status: 404 })
     }
@@ -37,11 +40,17 @@ export async function GET(
         id,
         role,
         content,
-        timestamp,
+        created_at,
         metadata
       `)
       .eq('conversation_id', conversationId)
-      .order('timestamp', { ascending: true })
+      .order('created_at', { ascending: true })
+
+    console.log('Messages query result:', { 
+      messagesCount: messages?.length || 0, 
+      error: messagesError,
+      firstMessage: messages?.[0]
+    })
 
     if (messagesError) {
       console.error('Error fetching messages:', messagesError)

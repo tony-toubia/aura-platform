@@ -61,9 +61,10 @@ export function AuraCreator() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  // Refs for scrolling
+  // Refs for scrolling and preventing duplicate creation
   const containerRef = useRef<HTMLDivElement>(null)
   const stepContentRef = useRef<HTMLDivElement>(null)
+  const isCreatingRef = useRef(false)
 
   // Manual entry + focus state
   const [manualInput, setManualInput] = useState("")
@@ -198,6 +199,12 @@ export function AuraCreator() {
   }
 
   const handleCreate = async () => {
+    console.log('handleCreate called - starting aura creation (full)')
+    if (loading || isCreatingRef.current) {
+      console.log('Already creating aura, ignoring duplicate call')
+      return
+    }
+    isCreatingRef.current = true
     setLoading(true)
     setError(null)
     try {
@@ -220,13 +227,16 @@ export function AuraCreator() {
         }),
       })
       const body = await resp.json()
+      console.log('Aura creation response (full):', { status: resp.status, body })
       if (!resp.ok) throw new Error(body.error || "Failed to create Aura")
       setAuraData((prev: AuraFormData) => ({ ...prev, id: body.id }))
+      console.log('Aura created successfully with ID (full):', body.id)
       setStep("rules")
     } catch (err: any) {
       setError(err.message)
     } finally {
       setLoading(false)
+      isCreatingRef.current = false
     }
   }
 

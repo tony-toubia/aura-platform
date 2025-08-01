@@ -122,13 +122,24 @@ export function useFormSubmit<T = any>(
   const { onSuccess, onError, resetOnSuccess = false } = options
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const isSubmittingRef = useRef(false)
 
   const submit = useCallback(
     async (formData: any) => {
+      const timestamp = new Date().toISOString()
+      console.log(`[${timestamp}] useFormSubmit.submit called`, { isSubmitting: isSubmittingRef.current })
+      
+      if (isSubmittingRef.current) {
+        console.log(`[${timestamp}] Already submitting, ignoring duplicate call`)
+        return
+      }
+      
+      isSubmittingRef.current = true
       setIsSubmitting(true)
       setError(null)
 
       try {
+        console.log(`[${timestamp}] Calling submitFunction with data:`, formData)
         const result = await submitFunction(formData)
         onSuccess?.(result)
         
@@ -143,6 +154,7 @@ export function useFormSubmit<T = any>(
         onError?.(err instanceof Error ? err : new Error(errorMessage))
         throw err
       } finally {
+        isSubmittingRef.current = false
         setIsSubmitting(false)
       }
     },

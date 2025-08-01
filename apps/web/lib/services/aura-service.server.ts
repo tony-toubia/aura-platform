@@ -2,6 +2,9 @@
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import type { Aura } from '@/types'
 
+// Global lock to prevent concurrent aura creation
+const creationLocks = new Set<string>()
+
 export interface CreateAuraServerInput {
   name: string
   vesselType: 'digital' | 'terra' | 'companion' | 'memory' | 'sage'
@@ -36,7 +39,7 @@ export class AuraServiceServer {
 
     const { data: rows, error } = await supabase
       .from('auras')
-      .select(`*, aura_senses ( sense:senses ( code ) )`)
+      .select(`*, aura_senses ( sense:senses ( code ) ), behavior_rules ( * )`)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -50,7 +53,16 @@ export class AuraServiceServer {
       personality: r.personality,
       senses: r.aura_senses.map((as: any) => as.sense.code),
       avatar: r.avatar ?? this.getAvatarForVessel(r.vessel_type, r.vessel_code),
-      rules: [],
+      rules: (r.behavior_rules || []).map((rule: any) => ({
+        id: rule.id,
+        name: rule.name,
+        trigger: rule.trigger,
+        action: rule.action,
+        priority: rule.priority,
+        enabled: rule.enabled,
+        createdAt: rule.created_at ? new Date(rule.created_at) : undefined,
+        updatedAt: rule.updated_at ? new Date(rule.updated_at) : undefined,
+      })),
       enabled: r.enabled,
       createdAt: new Date(r.created_at),
       updatedAt: new Date(r.updated_at),
@@ -70,7 +82,7 @@ export class AuraServiceServer {
 
     const { data: row, error } = await supabase
       .from('auras')
-      .select(`*, aura_senses ( sense:senses ( code ) )`)
+      .select(`*, aura_senses ( sense:senses ( code ) ), behavior_rules ( * )`)
       .eq('id', id)
       .eq('user_id', user.id)
       .single()
@@ -85,7 +97,16 @@ export class AuraServiceServer {
       personality: row.personality,
       senses: row.aura_senses.map((as: any) => as.sense.code),
       avatar: row.avatar ?? this.getAvatarForVessel(row.vessel_type, row.vessel_code),
-      rules: [],
+      rules: (row.behavior_rules || []).map((rule: any) => ({
+        id: rule.id,
+        name: rule.name,
+        trigger: rule.trigger,
+        action: rule.action,
+        priority: rule.priority,
+        enabled: rule.enabled,
+        createdAt: rule.created_at ? new Date(rule.created_at) : undefined,
+        updatedAt: rule.updated_at ? new Date(rule.updated_at) : undefined,
+      })),
       enabled: row.enabled,
       createdAt: new Date(row.created_at),
       updatedAt: new Date(row.updated_at),
@@ -96,6 +117,9 @@ export class AuraServiceServer {
 
   /** Create a new aura (and link its senses) */
   static async createAura(input: CreateAuraServerInput): Promise<Aura> {
+    const timestamp = new Date().toISOString()
+    console.log(`[${timestamp}] AuraServiceServer.createAura called for: "${input.name}"`)
+    
     const supabase = await createServerSupabase()
     const {
       data: { user },
@@ -103,26 +127,64 @@ export class AuraServiceServer {
     } = await supabase.auth.getUser()
     if (userErr || !user) throw new Error('Not authenticated')
 
+    // Create a unique lock key for this user + aura name
+    const lockKey = `${user.id}:${input.name}`
+    
+    if (creationLocks.has(lockKey)) {
+      console.warn(`[${timestamp}] Aura creation already in progress for: "${input.name}" (user: ${user.id})`)
+      throw new Error(`Aura creation already in progress for "${input.name}"`)
+    }
+    
+    creationLocks.add(lockKey)
+    console.log(`[${timestamp}] Added creation lock for: ${lockKey}`)
+    
+    try {
+
+    console.log(`[${timestamp}] Inserting aura "${input.name}" into database for user: ${user.id}`)
+
+    // Check if aura with same name already exists for this user
+    const { data: existingAura } = await supabase
+      .from('auras')
+      .select('id, name')
+      .eq('user_id', user.id)
+      .eq('name', input.name)
+      .single()
+    
+    if (existingAura) {
+      console.warn(`[${timestamp}] Aura "${input.name}" already exists for user ${user.id}, returning existing aura`)
+      throw new Error(`An aura named "${input.name}" already exists`)
+    }
+
     // Insert the aura row
+    const insertData = {
+      user_id: user.id,
+      name: input.name,
+      vessel_type: input.vesselType,
+      vessel_code: input.vesselCode || null,
+      plant_type: input.plantType || null,
+      personality: input.personality,
+      communication_style: input.communicationStyle ?? 'balanced',
+      voice_profile: input.voiceProfile ?? 'neutral',
+      avatar: this.getAvatarForVessel(input.vesselType, input.vesselCode),
+      selected_study_id: input.selectedStudyId,
+      selected_individual_id: input.selectedIndividualId,
+      location_configs: input.locationConfigs || null,
+    }
+    
+    console.log(`[${timestamp}] About to insert aura data:`, insertData)
+    
     const { data: aura, error: auraError } = await supabase
       .from('auras')
-      .insert({
-        user_id: user.id,
-        name: input.name,
-        vessel_type: input.vesselType,
-        vessel_code: input.vesselCode || null,
-        plant_type: input.plantType || null,
-        personality: input.personality,
-        communication_style: input.communicationStyle ?? 'balanced',
-        voice_profile: input.voiceProfile ?? 'neutral',
-        avatar: this.getAvatarForVessel(input.vesselType, input.vesselCode),
-        selected_study_id: input.selectedStudyId,
-        selected_individual_id: input.selectedIndividualId,
-        location_configs: input.locationConfigs || null,
-      })
+      .insert(insertData)
       .select()
       .single()
-    if (auraError || !aura) throw auraError
+    
+    if (auraError || !aura) {
+      console.error(`[${timestamp}] Failed to create aura "${input.name}":`, auraError)
+      throw auraError
+    }
+    
+    console.log(`[${timestamp}] Successfully created aura "${input.name}" with ID: ${aura.id}`)
 
     // Link senses if provided
     if (input.senses.length) {
@@ -157,6 +219,12 @@ export class AuraServiceServer {
       updatedAt: new Date(aura.updated_at),
       selectedStudyId: aura.selected_study_id ?? null,
       selectedIndividualId: aura.selected_individual_id ?? null,
+    }
+    
+    } finally {
+      // Always clean up the lock
+      creationLocks.delete(lockKey)
+      console.log(`[${timestamp}] Removed creation lock for: ${lockKey}`)
     }
   }
 

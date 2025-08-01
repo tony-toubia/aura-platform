@@ -13,12 +13,10 @@ import {
   ChevronRight,
   Clock,
   User,
-  Bot,
-  Eye
+  Bot
 } from 'lucide-react'
 import Link from 'next/link'
 import { formatDistanceToNow } from 'date-fns'
-import { ConversationDetail } from './conversation-detail'
 
 interface ConversationData {
   id: string
@@ -51,7 +49,19 @@ export function ConversationsContent({ auras, conversations }: ConversationsCont
   const [searchQuery, setSearchQuery] = useState('')
   const [selectedAura, setSelectedAura] = useState<string | null>(null)
   const [filteredConversations, setFilteredConversations] = useState(conversations)
-  const [selectedConversationId, setSelectedConversationId] = useState<string | null>(null)
+
+
+  // Debug logging
+  console.log('ConversationsContent received:', {
+    aurasCount: auras.length,
+    conversationsCount: conversations.length,
+    conversations: conversations.map(c => ({
+      id: c.id,
+      aura: c.aura?.name,
+      messageCount: c.messages?.[0]?.count || 0,
+      session_id: c.session_id
+    }))
+  })
 
   // Filter conversations based on search and aura selection
   useEffect(() => {
@@ -99,15 +109,7 @@ export function ConversationsContent({ auras, conversations }: ConversationsCont
   const totalConversations = conversations.length
   const totalMessages = conversations.reduce((sum, conv) => sum + (conv.messages[0]?.count || 0), 0)
 
-  // If a conversation is selected, show the detail view
-  if (selectedConversationId) {
-    return (
-      <ConversationDetail 
-        conversationId={selectedConversationId}
-        onBack={() => setSelectedConversationId(null)}
-      />
-    )
-  }
+
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
@@ -253,6 +255,9 @@ export function ConversationsContent({ auras, conversations }: ConversationsCont
                             <div className="flex items-center">
                               <MessageCircle className="h-4 w-4 mr-1" />
                               {conversation.messages[0]?.count || 0} messages
+                              {(conversation.messages[0]?.count || 0) === 0 && (
+                                <span className="ml-2 text-xs text-red-500">(Empty conversation)</span>
+                              )}
                             </div>
                             <div className="flex items-center">
                               <Clock className="h-4 w-4 mr-1" />
@@ -266,17 +271,9 @@ export function ConversationsContent({ auras, conversations }: ConversationsCont
                         </div>
                       </div>
                       
-                      <div className="flex items-center space-x-2">
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => setSelectedConversationId(conversation.id)}
-                        >
-                          <Eye className="h-4 w-4 mr-1" />
-                          View Details
-                        </Button>
+                      <div className="flex items-center">
                         <Button asChild variant="ghost" size="sm">
-                          <Link href={`/auras/${conversation.aura.id}/chat?conversation=${conversation.id}`}>
+                          <Link href={`/auras/${conversation.aura.id}?conversation=${conversation.id}`}>
                             Continue Chat
                             <ChevronRight className="h-4 w-4 ml-1" />
                           </Link>

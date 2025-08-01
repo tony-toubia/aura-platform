@@ -55,6 +55,9 @@ class ApiClient {
   }
 
   async post<T = any>(endpoint: string, data?: any): Promise<ApiResponse<T>> {
+    const timestamp = new Date().toISOString()
+    console.log(`[${timestamp}] ApiClient.post called - endpoint: ${endpoint}`)
+    
     return this.request<T>(endpoint, {
       method: 'POST',
       body: data ? JSON.stringify(data) : undefined,
@@ -88,7 +91,11 @@ export const auraApi = {
   // Aura operations
   getAuras: () => apiClient.get('/auras'),
   getAura: (id: string) => apiClient.get(`/auras/${id}`),
-  createAura: (data: any) => apiClient.post('/auras/create-agent-aura', data),
+  createAura: (data: any) => {
+    const timestamp = new Date().toISOString()
+    console.log(`[${timestamp}] auraApi.createAura called with data:`, data)
+    return apiClient.post('/auras/create-agent-aura', data)
+  },
   updateAura: (id: string, data: any) => apiClient.put(`/auras/${id}`, data),
   deleteAura: (id: string) => apiClient.delete(`/auras/${id}`),
   

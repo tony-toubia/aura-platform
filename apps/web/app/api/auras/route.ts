@@ -2,10 +2,15 @@
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import { AuraServiceServer } from '@/lib/services/aura-service.server'
+import { SubscriptionService } from '@/lib/services/subscription-service'
 
 export async function POST(request: Request) {
+  const timestamp = new Date().toISOString()
+  console.log(`[${timestamp}] /api/auras POST called`)
+  
   try {
     // 1. Parse out the payload (including the wildlife selections)
+    const payload = await request.json()
     const {
       name,
       vesselType,
@@ -16,7 +21,13 @@ export async function POST(request: Request) {
       selectedStudyId,
       selectedIndividualId,
       locationConfigs,
-    } = await request.json()
+    } = payload
+    
+    console.log(`[${timestamp}] Creating aura with name: "${name}"`, {
+      vesselType,
+      sensesCount: senses?.length || 0,
+      payload
+    })
 
     // 2. Initialize Supabase with the HTTP‐only cookie
     const supabase = await createServerSupabase()
@@ -30,7 +41,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
     }
 
-    // 4. Delegate to your server‐side service, passing through the new fields
+    // 4. Check subscription limits
+    const canCreateAura = await SubscriptionService.canCreateMoreAuras(user.id)
+    if (!canCreateAura) {
+      const subscription = await SubscriptionService.getUserSubscription(user.id)
+      return NextResponse.json(
+        { 
+          error: 'Aura creation limit reached',
+          currentTier: subscription.id,
+          maxAuras: subscription.features.maxAuras,
+          upgradeRequired: true
+        },
+        { status: 403 }
+      )
+    }
+
+    // 5. Delegate to your server‐side service, passing through the new fields
     //    (No need to send userId - the service uses the Supabase session internally.)
     const aura = await AuraServiceServer.createAura({
       name,

@@ -2,6 +2,7 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase/server.server'
+import { SubscriptionService } from '@/lib/services/subscription-service'
 
 export async function POST(req: NextRequest) {
   try {
@@ -16,6 +17,26 @@ export async function POST(req: NextRequest) {
     }
 
     const supabase = await createServerSupabase()
+    const { data: { user } } = await supabase.auth.getUser()
+
+    if (!user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Check subscription limits for rule creation
+    const canAddRule = await SubscriptionService.canAddMoreRules(user.id, auraId)
+    if (!canAddRule) {
+      const subscription = await SubscriptionService.getUserSubscription(user.id)
+      return NextResponse.json(
+        { 
+          error: 'Rule creation limit reached',
+          currentTier: subscription.id,
+          maxRules: subscription.features.maxRulesPerAura,
+          upgradeRequired: true
+        },
+        { status: 403 }
+      )
+    }
 
     const { data, error } = await supabase
       .from('behavior_rules')
