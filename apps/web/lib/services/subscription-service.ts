@@ -278,10 +278,7 @@ export class SubscriptionService {
               user_id: userId,
               tier: tierId.toUpperCase(), // Convert to enum format (FREE, PERSONAL, etc.)
               status: 'ACTIVE', // Convert to enum format
-              stripe_customer_id: sess.customer as string,
-              stripe_subscription_id: sess.subscription as string,
-              created_at: new Date().toISOString(),
-              updated_at: new Date().toISOString(),
+              // Note: Stripe columns don't exist in database, so we skip them for now
             }
             
             console.log('📝 Subscription data to insert:', subscriptionData)
@@ -303,9 +300,7 @@ export class SubscriptionService {
             const updateData = {
               tier: tierId.toUpperCase(), // Convert to enum format (FREE, PERSONAL, etc.)
               status: 'ACTIVE', // Convert to enum format
-              stripe_customer_id: sess.customer as string,
-              stripe_subscription_id: sess.subscription as string,
-              updated_at: new Date().toISOString(),
+              // Note: Stripe columns don't exist in database, so we skip them for now
             }
             
             console.log('📝 Update data:', updateData)
@@ -348,7 +343,6 @@ export class SubscriptionService {
             .update({
               tier: tierId.toUpperCase(),
               status: sub.status === 'active' ? 'ACTIVE' : 'CANCELLED',
-              updated_at: new Date().toISOString(),
             })
             .eq('user_id', userId)
           
@@ -372,8 +366,6 @@ export class SubscriptionService {
             .update({
               tier: 'FREE',
               status: 'CANCELLED',
-              stripe_subscription_id: null,
-              updated_at: new Date().toISOString(),
             })
             .eq('user_id', userId)
           
@@ -382,23 +374,8 @@ export class SubscriptionService {
           } else {
             console.log('Cancelled subscription for user:', userId)
           }
-        } else if (sub.id) {
-          // Fallback: find by stripe subscription ID
-          const { error } = await supabase
-            .from('subscriptions')
-            .update({
-              tier: 'FREE',
-              status: 'CANCELLED',
-              stripe_subscription_id: null,
-              updated_at: new Date().toISOString(),
-            })
-            .eq('stripe_subscription_id', sub.id)
-          
-          if (error) {
-            console.error('Failed to cancel subscription by stripe ID:', error)
-          } else {
-            console.log('Cancelled subscription by stripe ID:', sub.id)
-          }
+        } else {
+          console.log('No userId found for subscription deletion, skipping database update')
         }
         break
       }
