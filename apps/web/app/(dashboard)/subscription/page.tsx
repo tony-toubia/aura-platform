@@ -59,10 +59,10 @@ export default async function SubscriptionPage() {
       {/* Hero */}
       <header className="text-center space-y-4">
         <h1 className="text-5xl font-extrabold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-          Subscription & Billing
+          Subscription Plans
         </h1>
         <p className="text-lg text-gray-600">
-          Manage your plan, track usage, and upgrade to unlock more magic.
+          Choose the perfect plan for your magical journey and track your usage.
         </p>
       </header>
 

@@ -67,6 +67,22 @@ export function PricingCards({
 }: PricingCardsProps) {
   const router = useRouter()
 
+  // Define tier hierarchy for determining upgrade vs switch
+  const tierHierarchy = ['free', 'personal', 'family', 'business']
+  const currentTierIndex = tierHierarchy.indexOf(currentTier)
+
+  const getButtonText = (tierId: string, tierName: string, price: number) => {
+    if (price === 0) return 'Get Started'
+    
+    const targetTierIndex = tierHierarchy.indexOf(tierId)
+    
+    if (targetTierIndex > currentTierIndex) {
+      return `Upgrade to ${tierName}`
+    } else {
+      return `Switch to ${tierName}`
+    }
+  }
+
   const features: FeatureDef[] = [
     {
       key: 'maxAuras',
@@ -222,7 +238,7 @@ export function PricingCards({
                   className={cn("w-full text-white shadow-lg transition-transform hover:scale-105", config.buttonClass)}
                   onClick={() => handleUpgrade(tierId)}
                 >
-                  {tier.price > 0 ? `Upgrade to ${tier.name}` : 'Get Started'}
+                  {getButtonText(tierId, tier.name, tier.price)}
                 </Button>
               )}
             </CardFooter>

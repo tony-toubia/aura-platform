@@ -107,15 +107,15 @@ export function MobileNav({ navItems, userEmail, signOutAction }: MobileNavProps
                     </Link>
                   </Button>
                   <Button asChild variant="ghost" size="sm" className="w-full justify-start">
-                    <Link href="/settings" onClick={() => setIsOpen(false)}>
+                    <Link href="/subscription" onClick={() => setIsOpen(false)}>
                       <Settings className="h-4 w-4 mr-2" />
-                      Settings
+                      Subscription
                     </Link>
                   </Button>
                   <Button asChild variant="ghost" size="sm" className="w-full justify-start">
-                    <Link href="/subscription" onClick={() => setIsOpen(false)}>
+                    <Link href="/billing" onClick={() => setIsOpen(false)}>
                       <CreditCard className="h-4 w-4 mr-2" />
-                      Subscription
+                      Billing
                     </Link>
                   </Button>
                 </div>

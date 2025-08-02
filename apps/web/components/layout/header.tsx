@@ -154,15 +154,15 @@ export default async function Header() {
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/settings" className="flex items-center">
+                    <Link href="/subscription" className="flex items-center">
                       <Settings className="mr-2 h-4 w-4" />
-                      <span>Settings</span>
+                      <span>Subscription</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>
-                    <Link href="/subscription" className="flex items-center">
+                    <Link href="/billing" className="flex items-center">
                       <CreditCard className="mr-2 h-4 w-4" />
-                      <span>Subscription</span>
+                      <span>Billing</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuSeparator />
