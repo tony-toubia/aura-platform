@@ -55,6 +55,12 @@ export function AuraCreatorDigital() {
 
   // Location configurations for location-aware senses
   const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>({})
+  
+  // OAuth connections for connected senses
+  const [oauthConnections, setOauthConnections] = useState<Record<string, any[]>>({})
+  
+  // News configurations for news sense
+  const [newsConfigurations, setNewsConfigurations] = useState<Record<string, any[]>>({})
 
   const [auraData, setAuraData] = useState<AuraFormData>({
     id: '',
@@ -155,6 +161,8 @@ export function AuraCreatorDigital() {
         rules: data.rules,
         senses: senseCodes,
         locationConfigs,
+        oauthConnections,
+        newsConfigurations,
         isUpdate: !!data.id
       })
 
@@ -169,6 +177,8 @@ export function AuraCreatorDigital() {
           senses: senseCodes,
           rules: data.rules.filter((r) => r.name && r.name.trim()),
           locationConfigs,
+          oauthConnections,
+          newsConfigurations,
         })
       } else {
         // Create new aura
@@ -184,6 +194,8 @@ export function AuraCreatorDigital() {
           locationInfo: data.locationInfo,
           newsType: data.newsType,
           locationConfigs,
+          oauthConnections,
+          newsConfigurations,
         })
       }
 
@@ -237,6 +249,36 @@ export function AuraCreatorDigital() {
 
   const handleLocationConfig = (senseId: SenseId, config: LocationConfig) => {
     setLocationConfigs(prev => ({ ...prev, [senseId]: config }))
+  }
+
+  const handleOAuthConnection = (senseId: SenseId, providerId: string, connectionData: any) => {
+    const newConnection = {
+      id: `${providerId}-${Date.now()}`,
+      name: connectionData.providerName || providerId,
+      type: senseId,
+      connectedAt: new Date(),
+      providerId: providerId,
+      accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+    }
+    
+    setOauthConnections(prev => ({
+      ...prev,
+      [senseId]: [...(prev[senseId] || []), newConnection]
+    }))
+  }
+
+  const handleOAuthDisconnect = (senseId: SenseId, connectionId: string) => {
+    setOauthConnections(prev => ({
+      ...prev,
+      [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
+    }))
+  }
+
+  const handleNewsConfiguration = (senseId: SenseId, locations: any[]) => {
+    setNewsConfigurations(prev => ({
+      ...prev,
+      [senseId]: locations
+    }))
   }
 
   const updateRules = (rules: BehaviorRule[]) => {
@@ -338,6 +380,8 @@ export function AuraCreatorDigital() {
                         senses: JSON.stringify(auraData.senses),
                         rules: JSON.stringify(auraData.rules),
                         locationConfigs: JSON.stringify(locationConfigs),
+                        oauthConnections: JSON.stringify(oauthConnections),
+                        newsConfigurations: JSON.stringify(newsConfigurations),
                       }).toString()
                       window.location.href = `/auras/create-with-agent?${queryParams}`
                     }}
@@ -515,7 +559,7 @@ export function AuraCreatorDigital() {
               </div>
 
               <SenseSelector
-                availableSenses={AVAILABLE_SENSES.filter(sense => 
+                availableSenses={AVAILABLE_SENSES.filter(sense =>
                   VESSEL_SENSE_CONFIG.digital.optionalSenses.includes(sense.id)
                 )}
                 nonToggleableSenses={VESSEL_SENSE_CONFIG.digital.defaultSenses}
@@ -525,6 +569,11 @@ export function AuraCreatorDigital() {
                 auraName={auraData.name}
                 onLocationConfig={handleLocationConfig}
                 locationConfigs={locationConfigs}
+                onOAuthConnection={handleOAuthConnection}
+                onOAuthDisconnect={handleOAuthDisconnect}
+                oauthConnections={oauthConnections}
+                onNewsConfiguration={handleNewsConfiguration}
+                newsConfigurations={newsConfigurations}
               />
             </div>
           )}

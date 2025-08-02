@@ -10,13 +10,15 @@ export interface CreateAuraServerInput {
   vesselType: 'digital' | 'terra' | 'companion' | 'memory' | 'sage'
   vesselCode?: string
   plantType?: string
-  personality: Record<string, number>
+  personality: any // Allow full personality object with all fields
   senses: string[]
   communicationStyle?: string
   voiceProfile?: string
   selectedStudyId?: number | null
   selectedIndividualId?: string | null
   locationConfigs?: Record<string, any> | null
+  oauthConnections?: Record<string, any[]> | null
+  newsConfigurations?: Record<string, any[]> | null
 }
 
 export interface UpdateAuraInput {
@@ -25,6 +27,8 @@ export interface UpdateAuraInput {
   senses?: string[]
   selectedStudyId?: number | null
   selectedIndividualId?: string | null
+  oauthConnections?: Record<string, any[]> | null
+  newsConfigurations?: Record<string, any[]> | null
 }
 
 export class AuraServiceServer {
@@ -39,7 +43,7 @@ export class AuraServiceServer {
 
     const { data: rows, error } = await supabase
       .from('auras')
-      .select(`*, aura_senses ( sense:senses ( code ) ), behavior_rules ( * )`)
+      .select(`*, aura_senses ( sense:senses ( code ), config ), behavior_rules ( * )`)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
@@ -68,6 +72,10 @@ export class AuraServiceServer {
       updatedAt: new Date(r.updated_at),
       selectedStudyId: r.selected_study_id ?? null,
       selectedIndividualId: r.selected_individual_id ?? null,
+      // Extract OAuth connections and configurations from sense configs
+      oauthConnections: this.extractOAuthConnections(r.aura_senses),
+      newsConfigurations: this.extractNewsConfigurations(r.aura_senses),
+      locationConfigs: this.extractLocationConfigs(r.aura_senses),
     }))
   }
 
@@ -82,7 +90,7 @@ export class AuraServiceServer {
 
     const { data: row, error } = await supabase
       .from('auras')
-      .select(`*, aura_senses ( sense:senses ( code ) ), behavior_rules ( * )`)
+      .select(`*, aura_senses ( sense:senses ( code ), config ), behavior_rules ( * )`)
       .eq('id', id)
       .eq('user_id', user.id)
       .single()
@@ -112,6 +120,10 @@ export class AuraServiceServer {
       updatedAt: new Date(row.updated_at),
       selectedStudyId: row.selected_study_id ?? null,
       selectedIndividualId: row.selected_individual_id ?? null,
+      // Extract OAuth connections and configurations from sense configs
+      oauthConnections: this.extractOAuthConnections(row.aura_senses),
+      newsConfigurations: this.extractNewsConfigurations(row.aura_senses),
+      locationConfigs: this.extractLocationConfigs(row.aura_senses),
     }
   }
 
@@ -194,10 +206,32 @@ export class AuraServiceServer {
         .in('code', input.senses)
       if (sensesError || !senses) throw sensesError
 
-      const auraSenses = senses.map((s) => ({
-        aura_id: aura.id,
-        sense_id: s.id,
-      }))
+      const auraSenses = senses.map((s) => {
+        // Build config object for this sense
+        const config: any = {}
+        
+        // Add location config if available
+        if (input.locationConfigs && input.locationConfigs[s.code]) {
+          config.location = input.locationConfigs[s.code]
+        }
+        
+        // Add OAuth connections if available
+        if (input.oauthConnections && input.oauthConnections[s.code]) {
+          config.oauthConnections = input.oauthConnections[s.code]
+        }
+        
+        // Add news configurations if available
+        if (input.newsConfigurations && input.newsConfigurations[s.code]) {
+          config.newsConfigurations = input.newsConfigurations[s.code]
+        }
+
+        return {
+          aura_id: aura.id,
+          sense_id: s.id,
+          config: Object.keys(config).length > 0 ? config : {},
+        }
+      })
+      
       const { error: auraSensesError } = await supabase
         .from('aura_senses')
         .insert(auraSenses)
@@ -270,10 +304,27 @@ export class AuraServiceServer {
           .in('code', input.senses)
         if (sensesError || !senses) throw sensesError
 
-        const auraSenses = senses.map((s) => ({
-          aura_id: id,
-          sense_id: s.id,
-        }))
+        const auraSenses = senses.map((s) => {
+          // Build config object for this sense
+          const config: any = {}
+          
+          // Add OAuth connections if available
+          if (input.oauthConnections && input.oauthConnections[s.code]) {
+            config.oauthConnections = input.oauthConnections[s.code]
+          }
+          
+          // Add news configurations if available
+          if (input.newsConfigurations && input.newsConfigurations[s.code]) {
+            config.newsConfigurations = input.newsConfigurations[s.code]
+          }
+
+          return {
+            aura_id: id,
+            sense_id: s.id,
+            config: Object.keys(config).length > 0 ? config : {},
+          }
+        })
+        
         const { error: auraSensesError } = await supabase
           .from('aura_senses')
           .insert(auraSenses)
@@ -322,5 +373,53 @@ export class AuraServiceServer {
       digital: '🤖',
     }
     return avatars[vesselType] ?? '🤖'
+  }
+
+  /** Extract OAuth connections from aura senses */
+  private static extractOAuthConnections(auraSenses: any[]): Record<string, any[]> {
+    const connections: Record<string, any[]> = {}
+    
+    auraSenses.forEach((auraSense) => {
+      const senseCode = auraSense.sense.code
+      const config = auraSense.config || {}
+      
+      if (config.oauthConnections && Array.isArray(config.oauthConnections)) {
+        connections[senseCode] = config.oauthConnections
+      }
+    })
+    
+    return connections
+  }
+
+  /** Extract news configurations from aura senses */
+  private static extractNewsConfigurations(auraSenses: any[]): Record<string, any[]> {
+    const configurations: Record<string, any[]> = {}
+    
+    auraSenses.forEach((auraSense) => {
+      const senseCode = auraSense.sense.code
+      const config = auraSense.config || {}
+      
+      if (config.newsConfigurations && Array.isArray(config.newsConfigurations)) {
+        configurations[senseCode] = config.newsConfigurations
+      }
+    })
+    
+    return configurations
+  }
+
+  /** Extract location configurations from aura senses */
+  private static extractLocationConfigs(auraSenses: any[]): Record<string, any> {
+    const configurations: Record<string, any> = {}
+    
+    auraSenses.forEach((auraSense) => {
+      const senseCode = auraSense.sense.code
+      const config = auraSense.config || {}
+      
+      if (config.location) {
+        configurations[senseCode] = config.location
+      }
+    })
+    
+    return configurations
   }
 }

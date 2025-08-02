@@ -3,12 +3,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import { v4 as uuidv4 } from 'uuid'
-import { 
-  CreateAuraSchema, 
-  validateApiRequest, 
-  createApiError, 
-  createApiSuccess 
+import {
+  CreateAuraSchema,
+  validateApiRequest,
+  createApiError,
+  createApiSuccess
 } from '@/types/api'
+import { AuraServiceServer } from '@/lib/services/aura-service.server'
 
 // Global request tracking to detect duplicate requests
 const activeRequests = new Map<string, { timestamp: number, requestId: string }>()
@@ -70,6 +71,9 @@ export async function POST(req: NextRequest) {
       rules = [],
       locationInfo,
       newsType,
+      locationConfigs = {},
+      oauthConnections = {},
+      newsConfigurations = {},
     } = validation.data
 
     // Ensure digital vessels have proper vessel code
@@ -102,8 +106,8 @@ export async function POST(req: NextRequest) {
       )
     }
 
-    // Prepare location configs for the aura
-    let locationConfigs: Record<string, any> = {}
+    // Prepare location configs for the aura - merge agent location info with manual configs
+    let finalLocationConfigs: Record<string, any> = { ...locationConfigs }
     if (locationInfo) {
       // Convert agent location info to the expected LocationConfig format
       const locationConfig = {
@@ -118,127 +122,68 @@ export async function POST(req: NextRequest) {
       
       // Set location config for location-dependent senses
       if (senses?.includes('weather')) {
-        locationConfigs['weather'] = locationConfig
+        finalLocationConfigs['weather'] = locationConfig
       }
       if (senses?.includes('air_quality')) {
-        locationConfigs['air_quality'] = locationConfig
+        finalLocationConfigs['air_quality'] = locationConfig
       }
       if (senses?.includes('news') && newsType === 'local') {
-        locationConfigs['news'] = locationConfig
+        finalLocationConfigs['news'] = locationConfig
       }
       
-      console.log('Setting location_configs:', locationConfigs)
+      console.log('Setting location_configs:', finalLocationConfigs)
     }
 
-    // Create Aura
-    const { data: aura, error: auraError } = await supabase
-      .from('auras')
-      .insert({
-        user_id: userId,
+    // Prepare news configurations - merge agent news type with manual configs
+    let finalNewsConfigurations: Record<string, any[]> = { ...newsConfigurations }
+    if (newsType && senses?.includes('news')) {
+      // Convert agent news type to news configuration format
+      if (newsType === 'global') {
+        finalNewsConfigurations['news'] = [{
+          id: 'global',
+          type: 'global',
+          displayName: 'Global News'
+        }]
+      } else if (newsType === 'local' && locationInfo) {
+        finalNewsConfigurations['news'] = [{
+          id: `local-${locationInfo.city}`,
+          type: 'location',
+          name: locationInfo.city,
+          displayName: `${locationInfo.city} News`,
+          country: locationInfo.country || 'USA'
+        }]
+      }
+    }
+
+    // Use AuraServiceServer to create the aura with all configurations
+    try {
+      const aura = await AuraServiceServer.createAura({
         name,
-        vessel_type: vesselType,
-        vessel_code: finalVesselCode,
+        vesselType: vesselType as any,
+        vesselCode: finalVesselCode,
         personality,
         senses: senses || [],
-        communication_style: personality.tone || 'balanced',
-        voice_profile: personality.vocabulary || 'neutral',
-        location_configs: locationConfigs,
-        enabled: true,
+        communicationStyle: personality.tone || 'balanced',
+        voiceProfile: personality.vocabulary || 'neutral',
+        selectedStudyId: null,
+        selectedIndividualId: null,
+        locationConfigs: finalLocationConfigs,
+        oauthConnections,
+        newsConfigurations: finalNewsConfigurations,
       })
-      .select()
-      .single()
 
-    if (auraError || !aura) {
-      console.error('Error creating aura:', {
-        error: auraError,
-        data: { name, vesselType, vesselCode: finalVesselCode }
-      })
+      console.log(`[${timestamp}] Successfully created aura "${name}" - Request ID: ${requestId}`)
+      
       return NextResponse.json(
-        createApiError('Failed to create Aura', auraError?.message || 'Unknown database error'),
+        createApiSuccess({ auraId: aura.id }, `Successfully created ${name}`)
+      )
+    } catch (error) {
+      console.error('Error creating aura via AuraServiceServer:', error)
+      return NextResponse.json(
+        createApiError('Failed to create Aura', error instanceof Error ? error.message : 'Unknown error'),
         { status: 500 }
       )
     }
-
-    console.log('Aura created successfully:', aura.id)
-
-// Link senses if any
-if (senses && senses.length > 0) {
-  // Step 1: Fetch matching sense IDs
-  const { data: matchingSenses, error: lookupError } = await supabase
-    .from('senses')
-    .select('id, code')
-    .in('code', senses)
-
-  if (lookupError) {
-    console.error('Failed to fetch sense UUIDs:', lookupError)
-  }
-
-  if (matchingSenses && matchingSenses.length > 0) {
-    const senseInserts = matchingSenses.map((sense) => {
-      let config = {}
-      
-      // Add news type configuration for news sense
-      if (sense.code === 'news' && newsType) {
-        config = { newsType }
-        console.log(`Configuring news with type: ${newsType}`)
-      }
-      
-      // Location-dependent senses (weather, air_quality) will get their location
-      // from the aura's location_configs field automatically
-      
-      return {
-        aura_id: aura.id,
-        sense_id: sense.id,
-        config,
-        enabled: true,
-      }
-    })
-
-    const { error: sensesError } = await supabase
-      .from('aura_senses')
-      .insert(senseInserts)
-
-    if (sensesError) {
-      console.error('Error linking senses:', sensesError)
-      // Don't fail the whole operation if senses fail
-    }
-  } else {
-    console.warn('No matching senses found for codes:', senses)
-  }
-}
-
-
-    // Insert behavior rules if any
-    if (rules && rules.length > 0) {
-      const validRules = rules.filter(rule => rule.name)
-      
-      if (validRules.length > 0) {
-        const ruleInserts = validRules.map((rule: any) => ({
-          aura_id: aura.id,
-          id: uuidv4(),
-          name: rule.name,
-          trigger: rule.trigger || { type: 'simple', sensor: 'time', operator: '==', value: 'morning' },
-          action: rule.action || { type: 'notify', message: rule.name },
-          priority: rule.priority ?? 5,
-          enabled: rule.enabled ?? true,
-        }))
-
-        const { error: rulesError } = await supabase
-          .from('behavior_rules')
-          .insert(ruleInserts)
-
-        if (rulesError) {
-          console.error('Error creating rules:', rulesError)
-          // Don't fail the whole operation if rules fail
-        }
-      }
-    }
-
-    console.log(`[${timestamp}] Successfully created aura "${name}" - Request ID: ${requestId}`)
-    
-    return NextResponse.json(
-      createApiSuccess({ auraId: aura.id }, `Successfully created ${name}`)
-    )
     
   } catch (error) {
     console.error(`[${timestamp}] Unexpected error in request ${requestId}:`, error)

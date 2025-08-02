@@ -211,7 +211,26 @@ export class StravaOAuth {
     })
 
     if (!response.ok) {
-      throw new Error('Failed to exchange code for token')
+      let errorMessage = 'Failed to exchange code for token'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorData.details || errorMessage
+        
+        // Special handling for redirect URI errors
+        if (errorMessage.includes('redirect_uri') || errorMessage.includes('invalid')) {
+          errorMessage = `Redirect URI mismatch: The redirect URI "${this.config.redirectUri}" doesn't match your Strava application settings. Please check your Strava OAuth application configuration.`
+        }
+        
+        console.error('Strava token exchange failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData,
+          redirectUri: this.config.redirectUri
+        })
+      } catch (parseError) {
+        console.error('Failed to parse error response:', parseError)
+      }
+      throw new Error(errorMessage)
     }
 
     return response.json()

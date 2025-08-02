@@ -61,13 +61,17 @@ export interface Aura {
   plantType?: string   // Add this field for terra vessels
   personality: Personality
   senses: string[]
-  selectedStudyId: string
-  selectedIndividualId: string
+  selectedStudyId: string | null
+  selectedIndividualId: string | null
   avatar: string
   rules: BehaviorRule[]
   enabled: boolean
   createdAt: Date
   updatedAt: Date
+  // OAuth connection configurations
+  oauthConnections?: Record<string, any[]>
+  newsConfigurations?: Record<string, any[]>
+  locationConfigs?: Record<string, any>
 }
 
 export interface AuraConfiguration {

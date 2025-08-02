@@ -77,6 +77,10 @@ export const CreateAuraSchema = z.object({
     country: z.string().optional(),
   }).optional(),
   newsType: z.enum(['local', 'global', 'both']).optional(),
+  // OAuth connections and configurations
+  locationConfigs: z.record(z.string(), z.any()).optional(),
+  oauthConnections: z.record(z.string(), z.array(z.any())).optional(),
+  newsConfigurations: z.record(z.string(), z.array(z.any())).optional(),
 })
 
 export const UpdateAuraSchema = CreateAuraSchema.partial().omit({ userId: true })
