@@ -2,11 +2,12 @@
 
 "use client"
 
-import React, { useState } from "react"
+import React, { useState, useEffect } from "react"
 import { AVAILABLE_SENSES, type SenseId, type VesselTypeId } from "@/lib/constants"
 import { TIER_CONFIG } from "@/lib/ui-constants"
 import { SenseLocationModal, type LocationConfig } from "./sense-location-modal"
-import { OAuthConnectionModal, type PersonalSenseType } from "./oauth-connection-modal"
+import { EnhancedOAuthConnectionModal, type PersonalSenseType, type ConnectedCalendar } from "./enhanced-oauth-connection-modal"
+import { NewsConfigurationModal, type NewsLocation } from "./news-configuration-modal"
 import {
   Cloud,
   Droplets,
@@ -23,6 +24,7 @@ import {
   WifiCog,
   MapPin,
   Shield,
+  Newspaper,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SubscriptionGuard } from "@/components/subscription/subscription-guard"
@@ -35,6 +37,8 @@ export interface ConnectedProvider {
   name: string
   type: PersonalSenseType
   connectedAt: Date
+  providerId?: string
+  accountEmail?: string
 }
 
 interface SenseSelectorProps {
@@ -55,9 +59,15 @@ interface SenseSelectorProps {
   /** Current location configurations */
   locationConfigs?: Record<string, LocationConfig>
   /** Callback for when OAuth connection is completed */
-  onOAuthConnection?: (senseId: SenseId, providerId: string) => void
+  onOAuthConnection?: (senseId: SenseId, providerId: string, connectionData: any) => void
+  /** Callback for when OAuth connection is disconnected */
+  onOAuthDisconnect?: (senseId: SenseId, connectionId: string) => void
   /** Current OAuth connections */
-  oauthConnections?: Record<string, ConnectedProvider>
+  oauthConnections?: Record<string, ConnectedProvider[]>
+  /** Callback for when news configuration is completed */
+  onNewsConfiguration?: (senseId: SenseId, locations: NewsLocation[]) => void
+  /** Current news configurations */
+  newsConfigurations?: Record<string, NewsLocation[]>
 }
 
 // Normalize IDs for matching
@@ -105,12 +115,22 @@ export function SenseSelector({
   onLocationConfig,
   locationConfigs = {},
   onOAuthConnection,
+  onOAuthDisconnect,
   oauthConnections = {},
+  onNewsConfiguration,
+  newsConfigurations = {},
 }: SenseSelectorProps) {
   const [locationModalOpen, setLocationModalOpen] = useState(false)
-  const [configuringSense, setConfiguringSense] = useState<'weather' | 'air_quality' | 'news' | null>(null)
+  const [configuringSense, setConfiguringSense] = useState<'weather' | 'air_quality' | null>(null)
   const [oauthModalOpen, setOauthModalOpen] = useState(false)
   const [connectingSense, setConnectingSense] = useState<PersonalSenseType | null>(null)
+  const [newsModalOpen, setNewsModalOpen] = useState(false)
+  
+  // Local state to track actual connections made during this session
+  const [sessionConnections, setSessionConnections] = useState<Record<string, ConnectedProvider[]>>({})
+  
+  // Local state to track news configurations in case parent doesn't manage them properly
+  const [localNewsConfigurations, setLocalNewsConfigurations] = useState<Record<string, NewsLocation[]>>({})
 
   const normalizedRequired = nonToggleableSenses.map(normalizeSenseId)
   const requiredSenses = availableSenses.filter(s =>
@@ -140,13 +160,19 @@ export function SenseSelector({
   const handleSenseToggle = (senseId: SenseId) => {
     const normalizedId = normalizeSenseId(senseId) as SenseId
     
-    // If enabling a location-aware sense, show configuration modal
-    if (!isSelected(senseId) && LOCATION_AWARE_SENSES.includes(normalizedId)) {
-      setConfiguringSense(normalizedId as 'weather' | 'air_quality' | 'news')
+    // If this is the news sense, show the news configuration modal
+    if (normalizedId === 'news') {
+      setNewsModalOpen(true)
+    }
+    // If enabling a location-aware sense (but not news), show configuration modal
+    else if (!isSelected(senseId) && (normalizedId === 'weather' || normalizedId === 'air_quality')) {
+      setConfiguringSense(normalizedId)
       setLocationModalOpen(true)
     }
-    // If enabling a connected/personal sense, show OAuth modal
-    else if (!isSelected(senseId) && CONNECTED_SENSE_IDS.includes(normalizedId)) {
+    // If this is a connected sense (calendar, fitness, etc.)
+    else if (CONNECTED_SENSE_IDS.includes(normalizedId)) {
+      // Always show the OAuth modal for connected senses, whether they're enabled or not
+      // This allows users to manage existing connections or add new ones
       setConnectingSense(normalizedId as PersonalSenseType)
       setOauthModalOpen(true)
     }
@@ -158,7 +184,7 @@ export function SenseSelector({
 
   const handleLocationSet = (config: LocationConfig) => {
     if (configuringSense) {
-      // Enable the sense (news will always use 'news' ID regardless of location type)
+      // Enable the sense
       onToggle(configuringSense as SenseId)
       
       // Save the location configuration
@@ -171,18 +197,95 @@ export function SenseSelector({
     }
   }
 
-  const handleOAuthComplete = (providerId: string) => {
+  const handleNewsConfiguration = (locations: NewsLocation[]) => {
+    console.log('News configuration completed with locations:', locations)
+    console.log('Current newsConfigurations prop:', newsConfigurations)
+    
+    // Store locally to ensure persistence
+    setLocalNewsConfigurations(prev => ({
+      ...prev,
+      news: locations
+    }))
+    
+    // Enable the news sense if locations are configured
+    if (locations.length > 0 && !isSelected('news')) {
+      onToggle('news' as SenseId)
+    }
+    
+    // Save the news configuration
+    if (onNewsConfiguration) {
+      onNewsConfiguration('news' as SenseId, locations)
+    }
+    
+    setNewsModalOpen(false)
+  }
+
+  const handleNewsCancel = () => {
+    setNewsModalOpen(false)
+  }
+
+  const handleOAuthComplete = (providerId: string, connectionData: any) => {
     if (connectingSense) {
-      // Enable the sense after successful OAuth
-      onToggle(connectingSense as SenseId)
-      
-      // Notify parent component of the OAuth connection
-      if (onOAuthConnection) {
-        onOAuthConnection(connectingSense as SenseId, providerId)
+      // Create a new connection record
+      const newConnection: ConnectedProvider = {
+        id: `${providerId}-${Date.now()}`, // Simple ID generation
+        name: connectionData.providerName || providerId,
+        type: connectingSense,
+        connectedAt: new Date(),
+        providerId: providerId,
+        accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
       }
       
-      setOauthModalOpen(false)
-      setConnectingSense(null)
+      // Add to session connections
+      setSessionConnections(prev => ({
+        ...prev,
+        [connectingSense]: [...(prev[connectingSense] || []), newConnection]
+      }))
+      
+      // Defer state updates to avoid React render cycle conflicts
+      setTimeout(() => {
+        // Only enable the sense if it's not already enabled
+        if (!isSelected(connectingSense)) {
+          onToggle(connectingSense as SenseId)
+        }
+        
+        // Notify parent component of the OAuth connection
+        if (onOAuthConnection) {
+          onOAuthConnection(connectingSense as SenseId, providerId, connectionData)
+        }
+      }, 0)
+      
+      // Don't automatically close the modal - let users manage multiple connections
+      // The modal has a "Done" button for when they're finished
+    }
+  }
+
+  const handleOAuthDisconnect = (connectionId: string) => {
+    if (connectingSense) {
+      // Remove from session connections
+      setSessionConnections(prev => {
+        const senseConnections = prev[connectingSense] || []
+        const updatedConnections = senseConnections.filter(conn => conn.id !== connectionId)
+        
+        // Defer state updates to avoid React render cycle conflicts
+        setTimeout(() => {
+          // If no connections left, disable the sense
+          if (updatedConnections.length === 0 && isSelected(connectingSense)) {
+            onToggle(connectingSense as SenseId)
+          }
+          
+          // Notify parent component of the disconnection
+          const senseId = connectingSense as SenseId
+          if (onOAuthDisconnect) {
+            onOAuthDisconnect(senseId, connectionId)
+          }
+        }, 0)
+        
+        return {
+          ...prev,
+          [connectingSense]: updatedConnections
+        }
+      })
     }
   }
 
@@ -212,8 +315,72 @@ export function SenseSelector({
   }
 
   const getOAuthDisplay = (senseId: string): string | null => {
-    const connection = oauthConnections[senseId]
-    return connection ? connection.name : null
+    // Get connections from both session and props
+    const sessionConns = sessionConnections[senseId] || []
+    const propConns = oauthConnections[senseId] || []
+    const allConnections = [...propConns, ...sessionConns]
+    
+    if (allConnections.length === 0) return null
+    if (allConnections.length === 1) {
+      // For location senses, show device type; for others, show service name
+      if (senseId === 'location') {
+        return allConnections[0]?.name || 'Connected Device'
+      }
+      return allConnections[0]?.name || 'Connected'
+    }
+    
+    // For location senses, show device count; for fitness, show fitness trackers; for others, show calendar count
+    if (senseId === 'location') {
+      return `${allConnections.length} devices connected`
+    }
+    if (senseId === 'fitness') {
+      return `${allConnections.length} fitness tracker${allConnections.length !== 1 ? 's' : ''} connected`
+    }
+    return `${allConnections.length} calendar${allConnections.length !== 1 ? 's' : ''} connected`
+  }
+
+  const getLocationDevices = (senseId: string): ConnectedProvider[] => {
+    // Get connections from both session and props for location sense
+    const sessionConns = sessionConnections[senseId] || []
+    const propConns = oauthConnections[senseId] || []
+    return [...propConns, ...sessionConns]
+  }
+
+  const getNewsDisplay = (senseId: string): string | null => {
+    // Use local state if parent state is empty, otherwise use parent state
+    const parentLocs = newsConfigurations[senseId] || []
+    const localLocs = localNewsConfigurations[senseId] || []
+    const newsLocs = parentLocs.length > 0 ? parentLocs : localLocs
+    console.log(`Getting news display for ${senseId}:`, newsLocs)
+    if (newsLocs.length === 0) return null
+    if (newsLocs.length === 1) return newsLocs[0]?.displayName || 'Configured'
+    return `${newsLocs.length} news sources configured`
+  }
+
+  const getNewsLocations = (senseId: string): NewsLocation[] => {
+    // Use local state if parent state is empty, otherwise use parent state
+    const parentLocs = newsConfigurations[senseId] || []
+    const localLocs = localNewsConfigurations[senseId] || []
+    return parentLocs.length > 0 ? parentLocs : localLocs
+  }
+
+  const getConnectedCalendars = (senseId: string): ConnectedCalendar[] => {
+    // First check session connections (connections made during this session)
+    const sessionConns = sessionConnections[senseId] || []
+    
+    // Then check prop connections (connections from parent/database)
+    const propConns = oauthConnections[senseId] || []
+    
+    // Combine both sources
+    const allConnections = [...propConns, ...sessionConns]
+    
+    return allConnections.map(conn => ({
+      id: conn.id,
+      providerId: conn.providerId || 'unknown',
+      providerName: conn.name,
+      accountEmail: conn.accountEmail,
+      connectedAt: conn.connectedAt,
+    }))
   }
 
   return (
@@ -312,7 +479,9 @@ export function SenseSelector({
               const active = isSelected(sense.id)
               const tierInfo = getTierConfig(sense.tier)
               const locationDisplay = getLocationDisplay(sense.id)
-              const needsLocation = LOCATION_AWARE_SENSES.includes(sense.id as SenseId)
+              const newsDisplay = getNewsDisplay(sense.id)
+              const needsLocation = LOCATION_AWARE_SENSES.includes(sense.id as SenseId) && sense.id !== 'news'
+              const isNewsConfigured = sense.id === 'news' && newsDisplay
               
               return (
                 <SubscriptionGuard
@@ -372,12 +541,52 @@ export function SenseSelector({
                       {locationDisplay && (
                         <div className={cn(
                           "flex items-center gap-1 text-xs mb-2 px-2 py-1 rounded-md",
-                          active 
-                            ? "text-purple-700 bg-purple-50 border border-purple-200" 
+                          active
+                            ? "text-purple-700 bg-purple-50 border border-purple-200"
                             : "text-blue-600 bg-blue-50 border border-blue-200"
                         )}>
                           <MapPin className="w-3 h-3" />
                           <span className="font-medium">{locationDisplay}</span>
+                        </div>
+                      )}
+                      {newsDisplay && (
+                        <div className="space-y-2 mb-2">
+                          <div className={cn(
+                            "flex items-center gap-1 text-xs px-2 py-1 rounded-md",
+                            active
+                              ? "text-purple-700 bg-purple-50 border border-purple-200"
+                              : "text-orange-600 bg-orange-50 border border-orange-200"
+                          )}>
+                            <Newspaper className="w-3 h-3" />
+                            <span className="font-medium">{newsDisplay}</span>
+                          </div>
+                          {/* Show individual news locations */}
+                          <div className="flex flex-wrap gap-1">
+                            {getNewsLocations(sense.id).map((location) => (
+                              <div
+                                key={location.id}
+                                className={cn(
+                                  "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
+                                  location.type === 'global'
+                                    ? active
+                                      ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                      : "bg-blue-50 text-blue-600 border border-blue-100"
+                                    : active
+                                    ? "bg-green-100 text-green-700 border border-green-200"
+                                    : "bg-green-50 text-green-600 border border-green-100"
+                                )}
+                              >
+                                {location.type === 'global' ? (
+                                  <Globe className="w-2.5 h-2.5" />
+                                ) : (
+                                  <MapPin className="w-2.5 h-2.5" />
+                                )}
+                                <span className="font-medium">
+                                  {location.type === 'global' ? 'Global' : location.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       )}
                       <div className="flex items-center justify-between">
@@ -398,12 +607,16 @@ export function SenseSelector({
                             ? "bg-gray-100 text-gray-600 group-hover:bg-green-50 group-hover:text-green-600"
                             : "bg-gray-100 text-gray-600 group-hover:bg-green-50 group-hover:text-green-600"
                         )}>
-                          {active 
-                            ? "Connected" 
-                            : locationDisplay 
-                            ? "Location configured" 
-                            : needsLocation 
-                            ? "Configure location" 
+                          {active
+                            ? "Connected"
+                            : locationDisplay
+                            ? "Location configured"
+                            : isNewsConfigured
+                            ? "News configured"
+                            : needsLocation
+                            ? "Configure location"
+                            : sense.id === 'news'
+                            ? "Configure news sources"
                             : "Click to add"}
                         </div>
                       </div>
@@ -486,9 +699,45 @@ export function SenseSelector({
                       </div>
                       <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
                       {active && oauthProvider && (
-                        <div className="flex items-center gap-1 text-xs text-orange-700 mb-2 px-2 py-1 rounded-md bg-orange-50 border border-orange-200">
-                          <Shield className="w-3 h-3" />
-                          <span className="font-medium">Connected via {oauthProvider}</span>
+                        <div className="space-y-2 mb-2">
+                          <div className="flex items-center gap-1 text-xs text-orange-700 px-2 py-1 rounded-md bg-orange-50 border border-orange-200">
+                            <Shield className="w-3 h-3" />
+                            <span className="font-medium">{oauthProvider}</span>
+                          </div>
+                          {/* Show individual location devices for location sense */}
+                          {sense.id === 'location' && (
+                            <div className="flex flex-wrap gap-1">
+                              {getLocationDevices(sense.id).map((device) => {
+                                const deviceType = device.providerId || 'unknown'
+                                const getDeviceIcon = () => {
+                                  if (deviceType.includes('mobile')) return '📱'
+                                  if (deviceType.includes('tablet')) return '📱'
+                                  if (deviceType.includes('desktop')) return '💻'
+                                  return '📍'
+                                }
+                                
+                                const getDeviceColor = () => {
+                                  if (deviceType.includes('mobile')) return 'bg-green-100 text-green-700 border-green-200'
+                                  if (deviceType.includes('tablet')) return 'bg-purple-100 text-purple-700 border-purple-200'
+                                  if (deviceType.includes('desktop')) return 'bg-blue-100 text-blue-700 border-blue-200'
+                                  return 'bg-gray-100 text-gray-700 border-gray-200'
+                                }
+                                
+                                return (
+                                  <div
+                                    key={device.id}
+                                    className={cn(
+                                      "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border",
+                                      getDeviceColor()
+                                    )}
+                                  >
+                                    <span>{getDeviceIcon()}</span>
+                                    <span className="font-medium">{device.name}</span>
+                                  </div>
+                                )
+                              })}
+                            </div>
+                          )}
                         </div>
                       )}
                       {/* Show location for OAuth senses that might need it */}
@@ -508,11 +757,11 @@ export function SenseSelector({
                         </span>
                         <div className={cn(
                           "text-xs px-2 py-1 rounded-full transition-all",
-                          active 
-                            ? "bg-orange-100 text-orange-700" 
+                          active
+                            ? "bg-orange-100 text-orange-700"
                             : "bg-gray-100 text-gray-600 group-hover:bg-orange-50 group-hover:text-orange-600"
                         )}>
-                          {active ? "Connected" : "Connect service"}
+                          {active ? "Manage connections" : "Connect service"}
                         </div>
                       </div>
                     </div>
@@ -582,16 +831,31 @@ export function SenseSelector({
         />
       )}
 
-      {/* OAuth Connection Modal */}
+      {/* Enhanced OAuth Connection Modal */}
       {connectingSense && (
-        <OAuthConnectionModal
+        <EnhancedOAuthConnectionModal
           open={oauthModalOpen}
           onOpenChange={setOauthModalOpen}
           senseType={connectingSense}
           onConnectionComplete={handleOAuthComplete}
+          onDisconnect={handleOAuthDisconnect}
           onCancel={handleOAuthCancel}
+          existingConnections={getConnectedCalendars(connectingSense)}
         />
       )}
+
+      {/* News Configuration Modal */}
+      <NewsConfigurationModal
+        open={newsModalOpen}
+        onOpenChange={setNewsModalOpen}
+        vesselName={auraName}
+        onConfigurationComplete={handleNewsConfiguration}
+        existingLocations={(() => {
+          const parentLocs = newsConfigurations['news'] || []
+          const localLocs = localNewsConfigurations['news'] || []
+          return parentLocs.length > 0 ? parentLocs : localLocs
+        })()}
+      />
     </div>
   )
 }

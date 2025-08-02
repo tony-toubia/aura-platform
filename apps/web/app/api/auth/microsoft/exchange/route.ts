@@ -1,28 +1,28 @@
-// pages/api/auth/microsoft/exchange.ts
-import type { NextApiRequest, NextApiResponse } from 'next'
+// app/api/auth/microsoft/exchange/route.ts
+import { NextRequest, NextResponse } from 'next/server'
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' })
-  }
-
-  const { code, redirect_uri } = req.body
-
-  if (!code || !redirect_uri) {
-    return res.status(400).json({ error: 'Missing required parameters' })
-  }
-
-  const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID
-  const clientSecret = process.env.MICROSOFT_CLIENT_SECRET
-
-  if (!clientId || !clientSecret) {
-    return res.status(500).json({ error: 'Microsoft OAuth not configured' })
-  }
-
+export async function POST(request: NextRequest) {
   try {
+    const body = await request.json()
+    const { code, redirect_uri } = body
+
+    if (!code || !redirect_uri) {
+      return NextResponse.json(
+        { error: 'Missing required parameters' },
+        { status: 400 }
+      )
+    }
+
+    const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID
+    const clientSecret = process.env.MICROSOFT_CLIENT_SECRET
+
+    if (!clientId || !clientSecret) {
+      return NextResponse.json(
+        { error: 'Microsoft OAuth not configured' },
+        { status: 500 }
+      )
+    }
+
     const tokenResponse = await fetch('https://login.microsoftonline.com/common/oauth2/v2.0/token', {
       method: 'POST',
       headers: {
@@ -42,7 +42,10 @@ export default async function handler(
 
     if (!tokenResponse.ok) {
       console.error('Microsoft token exchange failed:', tokenData)
-      return res.status(400).json({ error: tokenData.error_description || 'Token exchange failed' })
+      return NextResponse.json(
+        { error: tokenData.error_description || 'Token exchange failed' },
+        { status: 400 }
+      )
     }
 
     // In production, you should:
@@ -52,9 +55,12 @@ export default async function handler(
     
     // For now, just return the tokens to the client
     // WARNING: This is not secure for production use
-    res.json(tokenData)
+    return NextResponse.json(tokenData)
   } catch (error) {
     console.error('Microsoft OAuth error:', error)
-    res.status(500).json({ error: 'Internal server error' })
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    )
   }
 }

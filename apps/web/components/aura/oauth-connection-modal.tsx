@@ -430,8 +430,8 @@ export function OAuthConnectionModal({
                           {provider.description}
                         </p>
                         {(provider.id === 'google' || provider.id === 'outlook') && senseType === 'calendar' && (
-                          <p className="text-xs text-blue-600 mt-1">
-                            ✓ Real OAuth integration enabled
+                          <p className="text-xs text-green-600 mt-1 font-medium">
+                            ✓ Full integration available
                           </p>
                         )}
                       </div>

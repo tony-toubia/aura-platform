@@ -110,7 +110,7 @@ export class GoogleCalendarOAuth {
       const handleMessage = async (event: MessageEvent) => {
         if (event.origin !== window.location.origin) return
 
-        if (event.data.type === 'oauth-success' && event.data.code) {
+        if (event.data.type === 'GOOGLE_OAUTH_SUCCESS' && event.data.code) {
           clearInterval(checkClosed)
           popup.close()
           window.removeEventListener('message', handleMessage)
@@ -121,7 +121,7 @@ export class GoogleCalendarOAuth {
           } catch (error) {
             reject(error)
           }
-        } else if (event.data.type === 'oauth-error') {
+        } else if (event.data.type === 'GOOGLE_OAUTH_ERROR') {
           clearInterval(checkClosed)
           popup.close()
           window.removeEventListener('message', handleMessage)
