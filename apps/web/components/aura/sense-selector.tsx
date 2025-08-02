@@ -54,6 +54,8 @@ interface SenseSelectorProps {
   vesselType: VesselTypeId
   /** Aura name for location modal */
   auraName?: string
+  /** Aura ID for associating OAuth connections */
+  auraId?: string
   /** Callback for when location is configured */
   onLocationConfig?: (senseId: SenseId, config: LocationConfig) => void
   /** Current location configurations */
@@ -112,6 +114,7 @@ export function SenseSelector({
   onToggle,
   vesselType,
   auraName = "Your Aura",
+  auraId,
   onLocationConfig,
   locationConfigs = {},
   onOAuthConnection,
@@ -893,6 +896,7 @@ export function SenseSelector({
           onDisconnect={handleOAuthDisconnect}
           onCancel={handleOAuthCancel}
           existingConnections={getConnectedCalendars(connectingSense)}
+          auraId={auraId}
         />
       )}
 

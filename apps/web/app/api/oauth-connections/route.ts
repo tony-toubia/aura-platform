@@ -7,7 +7,7 @@ import type { NextRequest } from "next/server"
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString()
   const body = await req.json()
-  const { provider, sense_type, provider_user_id, access_token, refresh_token, expires_at, scope } = body
+  const { provider, sense_type, provider_user_id, access_token, refresh_token, expires_at, scope, aura_id } = body
   
   console.log(`[${timestamp}] POST /api/oauth-connections called with:`, {
     provider,
@@ -15,6 +15,7 @@ export async function POST(req: NextRequest) {
     provider_user_id: provider_user_id ? '***' : null,
     hasAccessToken: !!access_token,
     hasRefreshToken: !!refresh_token,
+    aura_id,
   })
 
   // Basic validation
@@ -34,15 +35,24 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Check for existing connection to prevent duplicates
-    const { data: existingConnection } = await supabase
+    // Check for existing connection to prevent duplicates (now includes aura_id)
+    let existingConnectionQuery = supabase
       .from("oauth_connections")
       .select("id")
       .eq("user_id", user.id)
       .eq("provider", provider)
       .eq("sense_type", sense_type)
       .eq("provider_user_id", provider_user_id || provider)
-      .single()
+
+    // If aura_id is provided, check for duplicates within that aura
+    if (aura_id) {
+      existingConnectionQuery = existingConnectionQuery.eq("aura_id", aura_id)
+    } else {
+      // If no aura_id, check for user-level connections (legacy support)
+      existingConnectionQuery = existingConnectionQuery.is("aura_id", null)
+    }
+
+    const { data: existingConnection } = await existingConnectionQuery.single()
 
     if (existingConnection) {
       return NextResponse.json(
@@ -63,6 +73,7 @@ export async function POST(req: NextRequest) {
         refresh_token,
         expires_at: expires_at ? new Date(expires_at).toISOString() : null,
         scope,
+        aura_id: aura_id || null, // Associate with specific aura if provided
       })
       .select()
       .single()
@@ -93,10 +104,21 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    const { data: connections, error } = await supabase
+    // Get aura_id from query parameters if provided
+    const { searchParams } = new URL(req.url)
+    const auraId = searchParams.get('aura_id')
+
+    let query = supabase
       .from("oauth_connections")
       .select("*")
       .eq("user_id", user.id)
+
+    // Filter by aura_id if provided
+    if (auraId) {
+      query = query.eq("aura_id", auraId)
+    }
+
+    const { data: connections, error } = await query
       .order("created_at", { ascending: false })
 
     if (error) {

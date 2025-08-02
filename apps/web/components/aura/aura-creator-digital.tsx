@@ -567,6 +567,7 @@ export function AuraCreatorDigital() {
                 onToggle={toggleSense}
                 vesselType="digital"
                 auraName={auraData.name}
+                auraId={undefined} // No aura_id during creation
                 onLocationConfig={handleLocationConfig}
                 locationConfigs={locationConfigs}
                 onOAuthConnection={handleOAuthConnection}

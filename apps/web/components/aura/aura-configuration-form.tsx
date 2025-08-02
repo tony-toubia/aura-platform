@@ -327,6 +327,7 @@ export function AuraConfigurationForm({
               onToggle={toggleSense}
               vesselType={auraData.vesselType}
               auraName={auraData.name}
+              auraId={undefined} // No aura_id during creation
               onLocationConfig={handleLocationConfig}
               locationConfigs={locationConfigs}
             />

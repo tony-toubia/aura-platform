@@ -584,6 +584,7 @@ export function AuraCreator() {
                       onToggle={toggleSense}
                       vesselType={auraData.vesselType as VesselTypeId}
                       auraName={auraData.name || "Your Aura"}
+                      auraId={undefined} // No aura_id during creation
                       onLocationConfig={handleLocationConfig}
                       locationConfigs={locationConfigs}
                     />

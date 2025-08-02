@@ -75,6 +75,7 @@ interface EnhancedOAuthConnectionModalProps {
   onDisconnect: (connectionId: string) => void
   onCancel: () => void
   existingConnections?: ConnectedCalendar[]
+  auraId?: string // Add aura_id to associate connections with specific aura
 }
 
 // OAuth providers for different sense types
@@ -235,6 +236,7 @@ export function EnhancedOAuthConnectionModal({
   onDisconnect,
   onCancel,
   existingConnections = [],
+  auraId,
 }: EnhancedOAuthConnectionModalProps) {
   const [connectionStatus, setConnectionStatus] = useState<Record<string, ConnectionStatus>>({})
   const [locationService] = useState(() => new BrowserLocationService())

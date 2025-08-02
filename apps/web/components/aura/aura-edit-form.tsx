@@ -225,6 +225,7 @@ export function AuraEditForm({
           refresh_token: connectionData.tokens?.refresh_token,
           expires_at: connectionData.tokens?.expires_at,
           scope: connectionData.tokens?.scope,
+          aura_id: auraData.id, // Associate connection with this specific aura
         }),
       })
       
@@ -556,6 +557,7 @@ export function AuraEditForm({
                 onToggle={toggleSense}
                 vesselType={auraData.vesselType}
                 auraName={auraData.name}
+                auraId={auraData.id}
                 onLocationConfig={handleLocationConfig}
                 locationConfigs={locationConfigs}
                 onOAuthConnection={handleOAuthConnection}
