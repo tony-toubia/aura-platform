@@ -30,6 +30,8 @@ import {
   Star,
   ArrowLeft,
   Edit,
+  Bot,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Personality } from "@/types"
@@ -78,11 +80,48 @@ export function AuraCreatorDigital() {
     selectedIndividualId: undefined,
   })
 
-  // Auto-scroll to top when step changes
+  // Auto-scroll to top when step changes and restore form data from URL parameters
   useEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' })
       window.scrollTo({ top: 0, behavior: 'smooth' })
+    }
+
+    // Restore form data from URL parameters if switching from AI mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const name = urlParams.get('name');
+    const vesselType = urlParams.get('vesselType');
+    const vesselCode = urlParams.get('vesselCode');
+    const personalityStr = urlParams.get('personality');
+    const sensesStr = urlParams.get('senses');
+    const rulesStr = urlParams.get('rules');
+    const locationConfigsStr = urlParams.get('locationConfigs');
+
+    if (name || personalityStr || sensesStr || rulesStr) {
+      console.log('Restoring form data from AI mode switch');
+      
+      setAuraData(prev => ({
+        ...prev,
+        name: name || prev.name,
+        vesselType: (vesselType as VesselTypeId) || prev.vesselType,
+        vesselCode: vesselCode || prev.vesselCode,
+        personality: personalityStr ? JSON.parse(personalityStr) : prev.personality,
+        senses: sensesStr ? JSON.parse(sensesStr) : prev.senses,
+        availableSenses: sensesStr ? JSON.parse(sensesStr) : prev.availableSenses,
+        rules: rulesStr ? JSON.parse(rulesStr) : prev.rules,
+      }));
+
+      if (locationConfigsStr) {
+        setLocationConfigs(JSON.parse(locationConfigsStr));
+      }
+
+      // If we have a name, exit editing mode
+      if (name) {
+        setIsEditingName(false);
+      }
+
+      // Clean up URL parameters
+      window.history.replaceState({}, '', window.location.pathname);
     }
   }, [step])
 
@@ -277,43 +316,83 @@ export function AuraCreatorDigital() {
   const canGoPrev = currentStepIndex > 0
 
   return (
-    <div ref={containerRef} className="container mx-auto py-8 px-4">
+    <div ref={containerRef} className="container mx-auto px-4">
       <div className="max-w-4xl mx-auto space-y-8">
-        {/* Step Navigation */}
+        {/* Mode Toggle and Step Navigation */}
         {step !== "review" && (
-          <div className="flex justify-center">
-            <div className="flex items-center space-x-4">
-              {steps.slice(0, -1).map((stepInfo, index) => {
-                const actualIndex = index // Adjust for skipping welcome
-                const isActive = stepInfo.id === step
-                const isCompleted = actualIndex < currentStepIndex
-                const Icon = stepInfo.icon
+          <div className="space-y-4">
+            {/* Mode Toggle */}
+            <div className="flex justify-center">
+              <Card className="p-2">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Navigate to AI mode with current form data preserved
+                      const queryParams = new URLSearchParams({
+                        name: auraData.name || '',
+                        vesselType: auraData.vesselType || 'digital',
+                        vesselCode: auraData.vesselCode || 'digital-only',
+                        personality: JSON.stringify(auraData.personality),
+                        senses: JSON.stringify(auraData.senses),
+                        rules: JSON.stringify(auraData.rules),
+                        locationConfigs: JSON.stringify(locationConfigs),
+                      }).toString()
+                      window.location.href = `/auras/create-with-agent?${queryParams}`
+                    }}
+                    className="flex items-center gap-2"
+                  >
+                    <Bot className="w-4 h-4" />
+                    Switch to AI Assistant
+                  </Button>
+                  <Button
+                    variant="default"
+                    size="sm"
+                    className="flex items-center gap-2"
+                  >
+                    <Settings className="w-4 h-4" />
+                    Manual Configuration
+                  </Button>
+                </div>
+              </Card>
+            </div>
 
-                return (
-                  <div key={stepInfo.id} className="flex items-center">
-                    <button
-                      onClick={() => handleStepNavigation(stepInfo.id as DigitalStep)}
-                      disabled={step === "details" && !auraData.name.trim()}
-                      className={cn(
-                        "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
-                        isActive
-                          ? "bg-purple-100 text-purple-700 border-2 border-purple-300"
-                          : isCompleted
-                          ? "bg-green-100 text-green-700 hover:bg-green-200"
-                          : "bg-gray-100 text-gray-500 hover:bg-gray-200",
-                        step === "details" && !auraData.name.trim() && "cursor-not-allowed opacity-50"
+            {/* Step Navigation */}
+            <div className="flex justify-center">
+              <div className="flex items-center space-x-4">
+                {steps.slice(0, -1).map((stepInfo, index) => {
+                  const actualIndex = index // Adjust for skipping welcome
+                  const isActive = stepInfo.id === step
+                  const isCompleted = actualIndex < currentStepIndex
+                  const Icon = stepInfo.icon
+
+                  return (
+                    <div key={stepInfo.id} className="flex items-center">
+                      <button
+                        onClick={() => handleStepNavigation(stepInfo.id as DigitalStep)}
+                        disabled={stepInfo.id !== "details" && step === "details" && !auraData.name.trim()}
+                        className={cn(
+                          "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+                          isActive
+                            ? "bg-purple-100 text-purple-700 border-2 border-purple-300"
+                            : isCompleted
+                            ? "bg-green-100 text-green-700 hover:bg-green-200"
+                            : "bg-gray-100 text-gray-500 hover:bg-gray-200",
+                          stepInfo.id !== "details" && step === "details" && !auraData.name.trim() && "cursor-not-allowed opacity-50"
+                        )}
+                      >
+                        <Icon className="w-4 h-4" />
+                        <span className="font-medium">{stepInfo.label}</span>
+                        {isCompleted && <CheckCircle className="w-4 h-4" />}
+                      </button>
+                      {actualIndex < steps.length - 2 && (
+                        <ArrowRight className="w-4 h-4 text-gray-400 mx-2" />
                       )}
-                    >
-                      <Icon className="w-4 h-4" />
-                      <span className="font-medium">{stepInfo.label}</span>
-                      {isCompleted && <CheckCircle className="w-4 h-4" />}
-                    </button>
-                    {actualIndex < steps.length - 2 && (
-                      <ArrowRight className="w-4 h-4 text-gray-400 mx-2" />
-                    )}
-                  </div>
-                )
-              })}
+                    </div>
+                  )
+                })}
+              </div>
             </div>
           </div>
         )}
@@ -355,7 +434,7 @@ export function AuraCreatorDigital() {
                 </p>
               </div>
 
-              {/* Name Input */}
+              {/* Name Input with Vessel Type */}
               <Card className="relative overflow-hidden bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg animate-shimmer">
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-white">
@@ -393,6 +472,22 @@ export function AuraCreatorDigital() {
                         </Button>
                       </div>
                     )}
+                  </div>
+                  
+                  {/* Vessel Type Information */}
+                  <div className="pt-4 border-t border-purple-300/30">
+                    <label className="block text-sm font-medium text-purple-100 mb-2">
+                      Vessel Type
+                    </label>
+                    <div className="flex items-center gap-3 p-3 bg-white/10 rounded-lg backdrop-blur-sm">
+                      <div className="text-2xl">✨</div>
+                      <div>
+                        <h3 className="font-semibold text-white">Digital Being</h3>
+                        <p className="text-sm text-purple-100">
+                          Pure consciousness exploring the world through data streams
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </CardContent>
               </Card>

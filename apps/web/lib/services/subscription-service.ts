@@ -200,7 +200,9 @@ export class SubscriptionService {
     userId: string,
     tierId: SubscriptionTier['id'],
     successUrl: string,
-    cancelUrl: string
+    cancelUrl: string,
+    supabase?: any,
+    userEmail?: string
   ) {
     // lazy‐load stripe, only on server
     const Stripe = (await import('stripe')).default as typeof StripeModule
@@ -211,7 +213,38 @@ export class SubscriptionService {
       throw new Error('Invalid tier')
     }
 
-    return stripe.checkout.sessions.create({
+    // Use provided supabase client or fallback to client-side
+    const client = supabase || createClient()
+    
+    // Check if user already has a Stripe customer ID
+    const { data: existingSubscription } = await client
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+
+    let customerId: string | undefined
+    let email = userEmail
+
+    // If no email provided, try to get it from auth
+    if (!email) {
+      const { data: { user } } = await client.auth.getUser()
+      email = user?.email
+    }
+
+    // If user has existing subscription, try to find their Stripe customer
+    if (existingSubscription && email) {
+      const customers = await stripe.customers.list({
+        email: email,
+        limit: 1
+      })
+      
+      if (customers.data.length > 0 && customers.data[0]) {
+        customerId = customers.data[0].id
+      }
+    }
+
+    const sessionConfig: any = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: tier.priceId, quantity: 1 }],
@@ -219,7 +252,102 @@ export class SubscriptionService {
       cancel_url: cancelUrl,
       client_reference_id: userId,
       metadata: { userId, tierId },
+      // Save payment method for future use
+      payment_method_collection: 'if_required',
+      // Allow promotion codes
+      allow_promotion_codes: true,
+    }
+
+    // If we found an existing customer, use it to pre-fill payment details
+    if (customerId) {
+      sessionConfig.customer = customerId
+      // For existing customers, we can use setup mode for subscription changes
+      sessionConfig.customer_update = {
+        address: 'auto',
+        name: 'auto'
+      }
+    } else if (email) {
+      // For new customers, create customer record and save payment method
+      sessionConfig.customer_email = email
+      sessionConfig.customer_creation = 'always'
+    }
+
+    return stripe.checkout.sessions.create(sessionConfig)
+  }
+
+  // New method for subscription changes using saved payment methods
+  static async createSubscriptionChangeSession(
+    userId: string,
+    tierId: SubscriptionTier['id'],
+    successUrl: string,
+    cancelUrl: string,
+    supabase?: any,
+    userEmail?: string
+  ) {
+    const Stripe = (await import('stripe')).default as typeof StripeModule
+    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
+    const tier = SUBSCRIPTION_TIERS[tierId]
+    if (!tier.priceId) {
+      throw new Error('Invalid tier')
+    }
+
+    // Use provided supabase client or fallback to client-side
+    const client = supabase || createClient()
+    let email = userEmail
+
+    // If no email provided, try to get it from auth
+    if (!email) {
+      const { data: { user } } = await client.auth.getUser()
+      email = user?.email
+    }
+    
+    if (!email) {
+      throw new Error('User email not found')
+    }
+
+    // Find existing Stripe customer
+    const customers = await stripe.customers.list({
+      email: email,
+      limit: 1
     })
+
+    if (customers.data.length === 0) {
+      // No existing customer, use regular checkout
+      return this.createCheckoutSession(userId, tierId, successUrl, cancelUrl, supabase, userEmail)
+    }
+
+    const customer = customers.data[0]
+    if (!customer) {
+      // No existing customer, use regular checkout
+      return this.createCheckoutSession(userId, tierId, successUrl, cancelUrl, supabase, userEmail)
+    }
+
+    // Check if customer has saved payment methods
+    const paymentMethods = await stripe.paymentMethods.list({
+      customer: customer.id,
+      type: 'card',
+    })
+
+    if (paymentMethods.data.length === 0) {
+      // No saved payment methods, use regular checkout
+      return this.createCheckoutSession(userId, tierId, successUrl, cancelUrl, supabase, userEmail)
+    }
+
+    // Create checkout session with existing customer (will use saved payment method)
+    return stripe.checkout.sessions.create({
+      mode: 'subscription',
+      payment_method_types: ['card'],
+      line_items: [{ price: tier.priceId, quantity: 1 }],
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      customer: customer.id,
+      client_reference_id: userId,
+      metadata: { userId, tierId },
+      allow_promotion_codes: true,
+      // This will show saved payment methods first
+      payment_method_collection: 'if_required',
+    });
   }
 
   static async handleWebhook(event: StripeModule.Event) {

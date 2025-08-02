@@ -1,7 +1,7 @@
 'use client'
 
 import { Button } from '@/components/ui/button'
-import { ExternalLink } from 'lucide-react'
+import { CreditCard } from 'lucide-react'
 import { openCustomerPortal } from '@/lib/stripe/upgrade'
 
 interface CustomerPortalButtonProps {
@@ -22,8 +22,8 @@ export function CustomerPortalButton({
       onClick={() => openCustomerPortal()}
       className={`inline-flex items-center gap-2 ${className || ''}`}
     >
-      <ExternalLink className="w-5 h-5" />
-      Manage Billing
+      <CreditCard className="w-5 h-5" />
+      Manage Payments
     </Button>
   )
 }

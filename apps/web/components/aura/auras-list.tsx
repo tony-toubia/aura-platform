@@ -82,9 +82,10 @@ export function AurasList({ initialAuras }: AurasListProps) {
           <div className="text-center">
             <SubscriptionGuard feature="maxAuras">
               <Button
-                onClick={() => router.push('/auras/create-select-enhanced')}
+                onClick={() => router.push('/auras/create-select')}
                 size="lg"
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg"
+                data-help="create-aura-button"
               >
                 <Sparkles className="w-5 h-5 mr-2" />
                 Create New Aura
@@ -105,7 +106,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                     personalized AI that lives in the cloud and can connect to all your digital life."
             primaryAction={{
               label: "Create Your First Aura",
-              onClick: () => router.push('/auras/create-select-enhanced'),
+              onClick: () => router.push('/auras/create-select'),
               icon: Sparkles
             }}
           >
@@ -142,7 +143,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                           available ? config.color : "from-gray-400 to-gray-500",
                           available && "hover:scale-110 cursor-pointer"
                         )}
-                        onClick={available ? () => router.push('/auras/create-select-enhanced') : undefined}
+                        onClick={available ? () => router.push('/auras/create-select') : undefined}
                       >
                         {config.icon}
                       </div>
@@ -239,7 +240,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                     ) : (
                       <div className="text-center text-xs text-gray-500">
                         <p className="mb-2">No senses added yet.</p>
-                        <Link href={`/auras/${aura.id}/edit`} className="inline-flex items-center gap-1 text-purple-600 hover:underline font-semibold">
+                        <Link href={`/auras/${aura.id}/edit-select`} className="inline-flex items-center gap-1 text-purple-600 hover:underlafont-semibold">
                           <Plus className="w-3 h-3" />
                           Add Senses
                         </Link>
@@ -272,7 +273,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => router.push(`/auras/${aura.id}/edit`)}
+                        onClick={() => router.push(`/auras/${aura.id}/edit-select`)}
                         className="hover:bg-purple-50 hover:text-purple-600"
                         title="Edit Aura"
                       >
@@ -330,9 +331,10 @@ export function AurasList({ initialAuras }: AurasListProps) {
                   }
                 >
                   <Button
-                    onClick={() => router.push('/auras/create-select-enhanced')}
+                    onClick={() => router.push('/auras/create-select')}
                     size="lg"
                     className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8 h-12"
+                    data-help="create-aura-button"
                   >
                     <Plus className="w-5 h-5 mr-2" />
                     Create Another Aura

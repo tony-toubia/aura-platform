@@ -11,17 +11,19 @@ import {
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { CustomerPortalButton } from "@/components/subscription/customer-portal-button"
-import { 
-  CreditCard, 
-  Calendar, 
-  DollarSign, 
-  Receipt, 
+import {
+  CreditCard,
+  Calendar,
+  DollarSign,
+  Receipt,
   AlertCircle,
   CheckCircle,
   Clock,
-  ExternalLink
+  ExternalLink,
+  Download
 } from "lucide-react"
 import Link from "next/link"
+import Stripe from 'stripe'
 
 // Force this page to revalidate on every request to show fresh billing data
 export const revalidate = 0
@@ -54,8 +56,49 @@ export default async function BillingPage() {
   const subscriptionCreated = subscriptionRow?.created_at
   const subscriptionUpdated = subscriptionRow?.updated_at
 
+  // Get real payment history from Stripe
+  let paymentHistory: any[] = []
+  if (subscription.id !== 'free' && user.email) {
+    try {
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+      
+      // Find the user's Stripe customer
+      const customers = await stripe.customers.list({
+        email: user.email,
+        limit: 1
+      })
+
+      if (customers.data.length > 0) {
+        const customer = customers.data[0]
+        if (customer) {
+          // Get the customer's invoices
+          const invoices = await stripe.invoices.list({
+            customer: customer.id,
+            limit: 5,
+            status: 'paid'
+          })
+
+          paymentHistory = invoices.data.map(invoice => ({
+            id: invoice.id,
+            amount: invoice.amount_paid / 100,
+            currency: invoice.currency.toUpperCase(),
+            status: invoice.status,
+            created: invoice.created,
+            period_start: invoice.period_start,
+            period_end: invoice.period_end,
+            invoice_pdf: invoice.invoice_pdf,
+            hosted_invoice_url: invoice.hosted_invoice_url,
+            description: invoice.lines.data[0]?.description || subscription.name + ' Plan'
+          }))
+        }
+      }
+    } catch (error) {
+      console.error('Error fetching payment history:', error)
+    }
+  }
+
   // Calculate next billing date (mock for now - in real app this would come from Stripe)
-  const nextBillingDate = subscription.id !== 'free' 
+  const nextBillingDate = subscription.id !== 'free'
     ? new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // 30 days from now
     : null
 
@@ -159,21 +202,61 @@ export default async function BillingPage() {
                   </Link>
                 </Button>
               </div>
+            ) : paymentHistory.length === 0 ? (
+              <div className="text-center py-8">
+                <Receipt className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <p className="text-gray-600 mb-4">No payment history found</p>
+                <p className="text-sm text-gray-500">
+                  Your payment history will appear here after your first payment.
+                </p>
+                <div className="mt-4">
+                  <CustomerPortalButton variant="outline" size="sm" />
+                </div>
+              </div>
             ) : (
               <div className="space-y-4">
-                {/* Mock billing history - in real app this would come from Stripe */}
-                <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div>
-                    <p className="font-medium">December 2024</p>
-                    <p className="text-sm text-gray-600">{subscription.name} Plan</p>
+                {paymentHistory.map((payment) => (
+                  <div key={payment.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex-1">
+                      <p className="font-medium">
+                        {new Date(payment.created * 1000).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                      <p className="text-sm text-gray-600">{payment.description}</p>
+                      {payment.period_start && payment.period_end && (
+                        <p className="text-xs text-gray-500">
+                          Service period: {new Date(payment.period_start * 1000).toLocaleDateString()} - {new Date(payment.period_end * 1000).toLocaleDateString()}
+                        </p>
+                      )}
+                    </div>
+                    <div className="text-right flex items-center gap-3">
+                      <div>
+                        <p className="font-medium">${payment.amount.toFixed(2)} {payment.currency}</p>
+                        <Badge variant="outline" className="text-xs text-green-600 border-green-200">
+                          <CheckCircle className="w-3 h-3 mr-1" />
+                          Paid
+                        </Badge>
+                      </div>
+                      {payment.hosted_invoice_url && (
+                        <Button
+                          asChild
+                          variant="ghost"
+                          size="sm"
+                          className="p-2"
+                        >
+                          <a href={payment.hosted_invoice_url} target="_blank" rel="noopener noreferrer">
+                            <Download className="w-4 h-4" />
+                          </a>
+                        </Button>
+                      )}
+                    </div>
                   </div>
-                  <div className="text-right">
-                    <p className="font-medium">${subscription.price}</p>
-                    <Badge variant="outline" className="text-xs">Paid</Badge>
-                  </div>
-                </div>
+                ))}
                 
-                <div className="text-center pt-4">
+                <div className="text-center pt-4 border-t">
                   <CustomerPortalButton variant="outline" size="sm" />
                 </div>
               </div>

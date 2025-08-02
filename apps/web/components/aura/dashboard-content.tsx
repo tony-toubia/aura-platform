@@ -99,7 +99,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {/* AI-Guided Option */}
                 <SubscriptionGuard feature="maxAuras">
-                  <Link href="/auras/create-with-agent" className="block">
+                  <Link href="/auras/create-with-agent" className="block" data-help="create-aura-button">
                     <div className="bg-white/80 backdrop-blur border-2 border-purple-200 rounded-xl p-6 hover:border-purple-400 hover:shadow-lg transition-all cursor-pointer group h-full">
                       <div className="flex flex-col items-center text-center gap-4">
                         <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg">
@@ -198,8 +198,8 @@ export function DashboardContent({ stats }: DashboardContentProps) {
         <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
           {/* Auras Card */}
           <div className={cn(
-            stats.conversations > 0 
-              ? "md:col-span-6 lg:col-span-4" 
+            stats.conversations > 0
+              ? "md:col-span-6 lg:col-span-4"
               : "md:col-span-8 lg:col-span-8"
           )}>
             <DashboardStatCard
@@ -215,7 +215,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                 iconName: "Eye",
               }}
               secondaryAction={{
-                href: "/auras/create-with-agent",
+                href: "/auras/create-unified",
                 iconName: "Plus",
                 requiresSubscription: true,
                 subscriptionFeature: "maxAuras"
@@ -250,8 +250,8 @@ export function DashboardContent({ stats }: DashboardContentProps) {
           <Card
             className={cn(
               "border-2 hover:border-opacity-70 transition-colors shadow-lg hover:shadow-xl group",
-              stats.conversations > 0 
-                ? "md:col-span-12 lg:col-span-4" 
+              stats.conversations > 0
+                ? "md:col-span-12 lg:col-span-4"
                 : "md:col-span-4 lg:col-span-4",
               `border-${subConfig!.color.split('-')[1]}-200`
             )}
@@ -412,7 +412,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                 size="lg"
                 className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8 h-12"
               >
-                <Link href="/auras/create-with-agent">
+                <Link href="/auras/create-unified" data-help="create-aura-button">
                   <Sparkles className="w-5 h-5 mr-2" />
                   {stats.auras === 0 ? "Create Your First Aura" : "Create Another Aura"}
                 </Link>

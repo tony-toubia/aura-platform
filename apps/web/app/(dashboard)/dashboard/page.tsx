@@ -4,6 +4,7 @@ import { createServerSupabase } from '@/lib/supabase/server.server'
 import { redirect } from 'next/navigation'
 import React from 'react' // Import React for type definitions
 import { DashboardContent } from '@/components/aura/dashboard-content'
+import { ContextualHelpProvider } from '@/components/help/contextual-help-provider'
 
 // Force this page to revalidate on every request to show fresh subscription data
 export const revalidate = 0
@@ -67,12 +68,14 @@ export default async function DashboardPage() {
   const TypedDashboardContent = DashboardContent as React.FC<DashboardContentProps>
 
   return (
-    <TypedDashboardContent 
-      stats={{
-        auras: aurasCount || 0,
-        conversations: conversationsCount || 0,
-        subscription: subscription?.tier || 'free'
-      }}
-    />
+    <ContextualHelpProvider>
+      <TypedDashboardContent
+        stats={{
+          auras: aurasCount || 0,
+          conversations: conversationsCount || 0,
+          subscription: subscription?.tier || 'free'
+        }}
+      />
+    </ContextualHelpProvider>
   )
 }

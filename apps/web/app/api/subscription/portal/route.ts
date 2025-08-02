@@ -18,20 +18,41 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const { data: subRow, error } = await supabase
-      .from("subscriptions")
-      .select("stripe_customer_id")
-      .eq("user_id", user.id)
+    // First, try to get the stripe_customer_id from the user's subscription
+    const { data: subscription, error: subscriptionError } = await supabase
+      .from('Subscription')
+      .select('stripeCustomerId')
+      .eq('userId', user.id)
       .single()
 
-    if (error || !subRow?.stripe_customer_id) {
-      return NextResponse.json({ error: "No subscription found" }, { status: 404 })
+    let customerId: string | undefined;
+
+    if (subscription && subscription.stripeCustomerId) {
+      customerId = subscription.stripeCustomerId;
+    } else {
+      // Fallback to searching by email
+      if (!user.email) {
+        return NextResponse.json({ error: "User email not found" }, { status: 400 })
+      }
+  
+      const customers = await stripe.customers.list({
+        email: user.email,
+        limit: 1
+      })
+  
+      if (customers.data.length > 0) {
+        customerId = customers.data[0]?.id;
+      }
+    }
+
+    if (!customerId) {
+      return NextResponse.json({ error: "No Stripe customer found" }, { status: 404 })
     }
 
     const origin = request.headers.get("origin")
     const session = await stripe.billingPortal.sessions.create({
-      customer: subRow.stripe_customer_id,
-      return_url: `${origin}/subscription`,
+      customer: customerId,
+      return_url: `${origin}/billing`,
     })
 
     return NextResponse.json({ url: session.url })

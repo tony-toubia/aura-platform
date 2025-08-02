@@ -67,55 +67,49 @@ export function DashboardContent({ stats }: DashboardContentProps) {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-8">
-        {/* --- TOP ROW (3 CARDS) --- */}
-
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Auras Card */}
-        <div className="md:col-span-6 lg:col-span-4">
-          <DashboardStatCard
-            title="Auras Created"
-            value={stats.auras}
-            description="Auras Created"
-            iconName="Brain"
-            primaryColor="purple"
-            message={getAuraMessage()}
-            primaryAction={{
-              href: "/auras",
-              label: "View Auras",
-              iconName: "Eye",
-            }}
-            secondaryAction={{
-              href: "/auras/create",
-              iconName: "Plus",
-            }}
-          />
-        </div>
+        <DashboardStatCard
+          title="Auras Created"
+          value={stats.auras}
+          description="Auras Created"
+          iconName="Brain"
+          primaryColor="purple"
+          message={getAuraMessage()}
+          primaryAction={{
+            href: "/auras",
+            label: "View Auras",
+            iconName: "Eye",
+          }}
+          secondaryAction={{
+            href: "/auras/create-unified",
+            iconName: "Plus",
+          }}
+        />
 
         {/* Conversations Card */}
-        <div className="md:col-span-6 lg:col-span-4">
-          <DashboardStatCard
-            title="Conversations"
-            value={stats.conversations}
-            description="Conversations"
-            iconName="MessageCircle"
-            primaryColor="blue"
-            message={getConversationMessage()}
-            primaryAction={{
-              href: "/conversations",
-              label: "View Chats",
-              iconName: "MessageCircle",
-            }}
-            secondaryAction={{
-              href: "/auras",
-              iconName: "Heart",
-            }}
-          />
-        </div>
+        <DashboardStatCard
+          title="Conversations"
+          value={stats.conversations}
+          description="Conversations"
+          iconName="MessageCircle"
+          primaryColor="blue"
+          message={getConversationMessage()}
+          primaryAction={{
+            href: "/conversations",
+            label: "View Chats",
+            iconName: "MessageCircle",
+          }}
+          secondaryAction={{
+            href: "/auras",
+            iconName: "Heart",
+          }}
+        />
 
         {/* Subscription Card */}
         <Card
           className={cn(
-            "border-2 hover:border-opacity-70 transition-colors shadow-lg hover:shadow-xl group md:col-span-12 lg:col-span-4",
+            "border-2 hover:border-opacity-70 transition-colors shadow-lg hover:shadow-xl group h-full",
             `border-${subConfig!.color.split('-')[1]}-200`
           )}
         >
@@ -165,159 +159,158 @@ export function DashboardContent({ stats }: DashboardContentProps) {
             </div>
           </CardContent>
         </Card>
+      </div>
 
-        {/* --- MIDDLE ROW (2 CARDS) --- */}
+      {/* --- MIDDLE ROW (2 CARDS) --- */}
 
-        {/* Activity or Empty State Card */}
-        {stats.auras === 0 ? (
-          <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50 md:col-span-6">
-            <CardContent className="p-8 text-center flex flex-col justify-center items-center h-full">
-              <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
-                <Sparkles className="w-10 h-10 text-white" />
-              </div>
-              <h3 className="text-2xl font-bold text-gray-800 mb-4">
-                Create Your First Aura
-              </h3>
-              <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-                Bring your first AI personality to life! Choose from plant
-                companions, wildlife spirits, or digital beings.
-              </p>
-              <Button
-                asChild
-                size="lg"
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-              >
-                <Link href="/auras/create">
-                  <Plus className="w-5 h-5 mr-2" />
-                  Start Creating Magic
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-        ) : (
-          <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-sky-50 md:col-span-6">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <TrendingUp className="w-5 h-5 text-blue-600" />
-                Recent Activity
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-100">
-                  <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
-                    <Brain className="w-4 h-4 text-white" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-medium text-sm">Auras created</div>
-                    <div className="text-xs text-gray-500">
-                      Your magical collection
-                    </div>
-                  </div>
-                  <div className="text-lg font-bold text-purple-600">
-                    {stats.auras}
-                  </div>
-                </div>
-
-                {stats.conversations > 0 && (
-                  <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-100">
-                    <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-sky-500 rounded-lg flex items-center justify-center">
-                      <MessageCircle className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <div className="font-medium text-sm">Conversations</div>
-                      <div className="text-xs text-gray-500">
-                        Magical interactions
-                      </div>
-                    </div>
-                    <div className="text-lg font-bold text-blue-600">
-                      {stats.conversations}
-                    </div>
-                  </div>
-                )}
-                <Button
-                  asChild
-                  variant="outline"
-                  className="w-full border-2 border-blue-200 hover:border-blue-400"
-                >
-                  <Link href="/analytics">
-                    <TrendingUp className="w-4 h-4 mr-2" />
-                    View Analytics
-                  </Link>
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Explore Vessels */}
-        <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 md:col-span-6">
+      {stats.auras === 0 ? (
+        <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-blue-50 md:col-span-6">
           <CardContent className="p-8 text-center flex flex-col justify-center items-center h-full">
-            <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
-              <ShoppingBag className="w-10 h-10 text-white" />
+            <div className="w-20 h-20 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6">
+              <Sparkles className="w-10 h-10 text-white" />
             </div>
             <h3 className="text-2xl font-bold text-gray-800 mb-4">
-              Explore Vessels
+              Create Your First Aura
             </h3>
             <p className="text-gray-600 mb-6 max-w-sm mx-auto">
-              Discover physical vessels to house your Auras. From smart plant
-              pots to wildlife trackers!
+              Bring your first AI personality to life! Choose from plant
+              companions, wildlife spirits, or digital beings.
             </p>
+            <Button
+              asChild
+              size="lg"
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            >
+              <Link href="/auras/create-unified">
+                <Plus className="w-5 h-5 mr-2" />
+                Start Creating Magic
+              </Link>
+            </Button>
+          </CardContent>
+        </Card>
+      ) : (
+        <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-sky-50 md:col-span-6">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-blue-600" />
+              Recent Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-100">
+                <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
+                  <Brain className="w-4 h-4 text-white" />
+                </div>
+                <div className="flex-1">
+                  <div className="font-medium text-sm">Auras created</div>
+                  <div className="text-xs text-gray-500">
+                    Your magical collection
+                  </div>
+                </div>
+                <div className="text-lg font-bold text-purple-600">
+                  {stats.auras}
+                </div>
+              </div>
+
+              {stats.conversations > 0 && (
+                <div className="flex items-center gap-3 p-3 bg-white rounded-lg border border-blue-100">
+                  <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-sky-500 rounded-lg flex items-center justify-center">
+                    <MessageCircle className="w-4 h-4 text-white" />
+                  </div>
+                  <div className="flex-1">
+                    <div className="font-medium text-sm">Conversations</div>
+                    <div className="text-xs text-gray-500">
+                      Magical interactions
+                    </div>
+                  </div>
+                  <div className="text-lg font-bold text-blue-600">
+                    {stats.conversations}
+                  </div>
+                </div>
+              )}
+              <Button
+                asChild
+                variant="outline"
+                className="w-full border-2 border-blue-200 hover:border-blue-400"
+              >
+                <Link href="/analytics">
+                  <TrendingUp className="w-4 h-4 mr-2" />
+                  View Analytics
+                </Link>
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Explore Vessels */}
+      <Card className="border-2 border-green-200 bg-gradient-to-br from-green-50 to-emerald-50 md:col-span-6">
+        <CardContent className="p-8 text-center flex flex-col justify-center items-center h-full">
+          <div className="w-20 h-20 bg-gradient-to-r from-green-500 to-emerald-500 rounded-full flex items-center justify-center mx-auto mb-6">
+            <ShoppingBag className="w-10 h-10 text-white" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-800 mb-4">
+            Explore Vessels
+          </h3>
+          <p className="text-gray-600 mb-6 max-w-sm mx-auto">
+            Discover physical vessels to house your Auras. From smart plant
+            pots to wildlife trackers!
+          </p>
+          <div className="relative">
+            <Button
+              size="lg"
+              disabled
+              className="bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+            >
+              <ShoppingBag className="w-5 h-5 mr-2" />
+              Browse Vessel Shop
+            </Button>
+            <Badge className="absolute -top-2 -right-2 bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5">
+              Coming Soon
+            </Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* --- BOTTOM ROW (1 CARD) --- */}
+
+      {/* Enhanced Footer CTA */}
+      <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 rounded-3xl p-8 text-white text-center md:col-span-12">
+        <div className="max-w-3xl mx-auto">
+          <h2 className="text-3xl font-bold mb-4">Ready for More Magic?</h2>
+          <p className="text-xl mb-8 opacity-90">
+            Your journey with AI companions is just beginning. Explore new
+            possibilities!
+          </p>
+          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+            <Button
+              asChild
+              size="lg"
+              className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8"
+            >
+              <Link href="/auras/create-unified">
+                <Sparkles className="w-5 h-5 mr-2" />
+                Create Another Aura
+              </Link>
+            </Button>
             <div className="relative">
               <Button
                 size="lg"
+                variant="outline"
                 disabled
-                className="bg-gray-400 hover:bg-gray-400 cursor-not-allowed"
+                className="border-2 border-white text-gray-400 cursor-not-allowed px-8"
               >
-                <ShoppingBag className="w-5 h-5 mr-2" />
-                Browse Vessel Shop
+                <Star className="w-5 h-5 mr-2" />
+                Explore Vessels
               </Button>
               <Badge className="absolute -top-2 -right-2 bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5">
                 Coming Soon
               </Badge>
             </div>
-          </CardContent>
-        </Card>
-
-        {/* --- BOTTOM ROW (1 CARD) --- */}
-
-        {/* Enhanced Footer CTA */}
-        <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 rounded-3xl p-8 text-white text-center md:col-span-12">
-          <div className="max-w-3xl mx-auto">
-            <h2 className="text-3xl font-bold mb-4">Ready for More Magic?</h2>
-            <p className="text-xl mb-8 opacity-90">
-              Your journey with AI companions is just beginning. Explore new
-              possibilities!
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Button
-                asChild
-                size="lg"
-                className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8"
-              >
-                <Link href="/auras/create">
-                  <Sparkles className="w-5 h-5 mr-2" />
-                  Create Another Aura
-                </Link>
-              </Button>
-              <div className="relative">
-                <Button
-                  size="lg"
-                  variant="outline"
-                  disabled
-                  className="border-2 border-white text-gray-400 cursor-not-allowed px-8"
-                >
-                  <Star className="w-5 h-5 mr-2" />
-                  Explore Vessels
-                </Button>
-                <Badge className="absolute -top-2 -right-2 bg-orange-500 hover:bg-orange-500 text-white text-xs px-2 py-0.5">
-                  Coming Soon
-                </Badge>
-              </div>
-            </div>
-            <div className="mt-6 text-sm opacity-75">
-              ✨ Join thousands creating magical AI relationships
-            </div>
+          </div>
+          <div className="mt-6 text-sm opacity-75">
+            ✨ Join thousands creating magical AI relationships
           </div>
         </div>
       </div>

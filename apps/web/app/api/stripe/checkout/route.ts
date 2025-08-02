@@ -21,12 +21,35 @@ export async function POST(request: NextRequest) {
     const successUrl = `${origin}/subscription?success=true`
     const cancelUrl = `${origin}/subscription?canceled=true`
 
-    const session = await SubscriptionService.createCheckoutSession(
-      user.id,
-      tierId,
-      successUrl,
-      cancelUrl
-    )
+    // Check if this is a subscription change (user already has a subscription)
+    const { data: existingSubscription } = await supabase
+      .from('subscriptions')
+      .select('tier')
+      .eq('user_id', user.id)
+      .single()
+
+    let session
+    if (existingSubscription && existingSubscription.tier !== 'free') {
+      // User has existing paid subscription, use subscription change flow
+      session = await SubscriptionService.createSubscriptionChangeSession(
+        user.id,
+        tierId,
+        successUrl,
+        cancelUrl,
+        supabase,
+        user.email
+      )
+    } else {
+      // New subscription, use regular checkout
+      session = await SubscriptionService.createCheckoutSession(
+        user.id,
+        tierId,
+        successUrl,
+        cancelUrl,
+        supabase,
+        user.email
+      )
+    }
 
     return NextResponse.json({ url: session.url })
   } catch (error) {

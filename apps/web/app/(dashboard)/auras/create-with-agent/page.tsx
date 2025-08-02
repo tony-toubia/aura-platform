@@ -75,15 +75,82 @@ export default function CreateAuraWithAgentPage() {
 
   const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>({});
 
+  // Track if we came from manual mode to hide header
+  const [cameFromManual, setCameFromManual] = useState(false);
+  const [isEditMode, setIsEditMode] = useState(false);
+
   useEffect(() => {
     setIsMounted(true);
+    
+    // Restore form data from URL parameters if switching from manual mode
+    const urlParams = new URLSearchParams(window.location.search);
+    const name = urlParams.get('name');
+    const vesselType = urlParams.get('vesselType');
+    const vesselCode = urlParams.get('vesselCode');
+    const personalityStr = urlParams.get('personality');
+    const sensesStr = urlParams.get('senses');
+    const rulesStr = urlParams.get('rules');
+    const locationConfigsStr = urlParams.get('locationConfigs');
+
+    if (name || personalityStr || sensesStr || rulesStr) {
+      console.log('Restoring form data from manual mode switch');
+      setCameFromManual(true);
+      
+      const editMode = urlParams.get('editMode');
+      const auraId = urlParams.get('auraId');
+      
+      // Set edit mode flag
+      if (editMode === 'true') {
+        setIsEditMode(true);
+      }
+      
+      setConfiguration(prev => ({
+        ...prev,
+        id: auraId || prev.id,
+        name: name || prev.name,
+        vesselType: (vesselType as VesselTypeId) || prev.vesselType,
+        vesselCode: vesselCode || prev.vesselCode,
+        personality: personalityStr ? JSON.parse(personalityStr) : prev.personality,
+        senses: sensesStr ? JSON.parse(sensesStr) : prev.senses,
+        availableSenses: sensesStr ? JSON.parse(sensesStr) : prev.availableSenses,
+        rules: rulesStr ? JSON.parse(rulesStr) : prev.rules,
+      }));
+
+      if (locationConfigsStr) {
+        setLocationConfigs(JSON.parse(locationConfigsStr));
+      }
+
+      // If in edit mode, start directly in AI mode for editing
+      if (editMode === 'true') {
+        setMode('agent');
+      }
+
+      // Clean up URL parameters
+      window.history.replaceState({}, '', window.location.pathname);
+    }
   }, []);
 
 
 
   const handleSwitchToManual = useCallback(() => {
-    setMode("manual");
-  }, []);
+    // Navigate to manual mode with current form data preserved
+    const queryParams = new URLSearchParams({
+      name: configuration.name || '',
+      vesselType: configuration.vesselType || 'digital',
+      vesselCode: configuration.vesselCode || 'digital-only',
+      personality: JSON.stringify(configuration.personality),
+      senses: JSON.stringify(configuration.senses),
+      rules: JSON.stringify(configuration.rules),
+      locationConfigs: JSON.stringify(locationConfigs),
+    }).toString()
+    
+    // If we have an aura ID or are in edit mode, go to edit mode, otherwise go to create mode
+    if (configuration.id || isEditMode) {
+      window.location.href = `/auras/${configuration.id}/edit?${queryParams}`
+    } else {
+      window.location.href = `/auras/create?${queryParams}`
+    }
+  }, [configuration, locationConfigs, isEditMode]);
 
   const handleBackToAgent = useCallback(() => {
     setMode("agent");
@@ -116,8 +183,11 @@ export default function CreateAuraWithAgentPage() {
   const navigateToAura = useCallback(() => {
     if (configuration.id) {
       router.push(`/auras/${configuration.id}`);
+    } else if (isEditMode) {
+      // If in edit mode but no ID yet, go back to auras list
+      router.push('/auras');
     }
-  }, [configuration.id, router]);
+  }, [configuration.id, router, isEditMode]);
 
   // Use the new form submission hook
   const {
@@ -151,39 +221,68 @@ export default function CreateAuraWithAgentPage() {
         rulesCount: config.rules.length,
         personality: config.personality,
         rules: config.rules,
-        senses: senseCodes
-      });
-
-      const response = await auraApi.createAura({
-        userId,
-        name: config.name,
-        vesselType: config.vesselType,
-        vesselCode:
-          config.vesselCode ||
-          (config.vesselType === "digital" ? "digital-only" : ""),
-        personality: config.personality,
         senses: senseCodes,
-        rules: config.rules.filter((r) => r.name && r.name.trim()),
-        // Pass location and news type information
-        locationInfo: config.locationInfo,
-        newsType: config.newsType,
+        isEditMode,
+        auraId: config.id
       });
 
-      if (!response.success) {
-        throw new Error(response.error || "Failed to create Aura");
+      let response;
+      
+      if (isEditMode && config.id) {
+        // Update existing aura
+        console.log("Updating existing aura:", config.id);
+        const updateResponse = await fetch(`/api/auras/${config.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            name: config.name,
+            personality: config.personality,
+            senses: senseCodes,
+            rules: config.rules.filter((r) => r.name && r.name.trim()),
+            locationInfo: config.locationInfo,
+            newsType: config.newsType,
+          }),
+        });
+        
+        const updateBody = await updateResponse.json();
+        if (!updateResponse.ok) {
+          throw new Error(updateBody.error || "Failed to update Aura");
+        }
+        
+        response = { success: true, data: { auraId: config.id } };
+      } else {
+        // Create new aura
+        response = await auraApi.createAura({
+          userId,
+          name: config.name,
+          vesselType: config.vesselType,
+          vesselCode:
+            config.vesselCode ||
+            (config.vesselType === "digital" ? "digital-only" : ""),
+          personality: config.personality,
+          senses: senseCodes,
+          rules: config.rules.filter((r) => r.name && r.name.trim()),
+          // Pass location and news type information
+          locationInfo: config.locationInfo,
+          newsType: config.newsType,
+        });
+
+        if (!response.success) {
+          throw new Error(response.error || "Failed to create Aura");
+        }
       }
 
       console.log("Aura saved successfully:", response.data?.auraId);
       setConfiguration((prev) => ({
         ...prev,
-        id: response.data?.auraId || "",
+        id: response.data?.auraId || config.id || "",
       }));
 
       return response.data;
     },
     {
       onSuccess: () => {
-        console.log("Aura creation successful");
+        console.log(isEditMode ? "Aura update successful" : "Aura creation successful");
       },
       onError: (error) => {
         console.error("Save error:", error);
@@ -306,22 +405,30 @@ export default function CreateAuraWithAgentPage() {
         <div className="max-w-6xl mx-auto">
         {mode === "agent" && (
           <>
-            <div className="text-center mb-8">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mb-6">
-                <Bot className="w-8 h-8 text-white" />
-              </div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-4">
-                Create Your Digital Aura with AI
-              </h1>
-              <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-4">
-                Let our AI assistant guide you through creating the perfect digital companion. 
-                Your Aura will live in the cloud and be accessible from anywhere.
-              </p>
-              <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
-                <Sparkles className="w-4 h-4" />
-                Launch Special: Digital Auras are completely free
-              </div>
-            </div>
+            {!cameFromManual && (
+              <>
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mb-6">
+                    <Bot className="w-8 h-8 text-white" />
+                  </div>
+                  <h1 className="text-4xl font-bold text-gray-900 mb-4">
+                    {isEditMode ? `Enhance ${configuration.name || 'Your Aura'} with AI` : 'Create Your Digital Aura with AI'}
+                  </h1>
+                  <p className="text-xl text-gray-600 max-w-3xl mx-auto mb-4">
+                    {isEditMode
+                      ? `Let our AI assistant help you refine and enhance ${configuration.name || 'your Aura'}. Make adjustments to personality, behaviors, and more.`
+                      : 'Let our AI assistant guide you through creating the perfect digital companion. Your Aura will live in the cloud and be accessible from anywhere.'
+                    }
+                  </p>
+                  {!isEditMode && (
+                    <div className="inline-flex items-center gap-2 bg-blue-50 text-blue-700 px-4 py-2 rounded-full text-sm font-medium">
+                      <Sparkles className="w-4 h-4" />
+                      Launch Special: Digital Auras are completely free
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
 
             <div className="flex justify-center mb-8">
               <Card className="p-2">
@@ -352,6 +459,7 @@ export default function CreateAuraWithAgentPage() {
               onConfigurationUpdate={handleAgentConfigUpdate}
               initialConfig={configuration}
               availableSenses={AVAILABLE_SENSES}
+              isEditMode={isEditMode}
             />
 
             {saveError && (
@@ -454,11 +562,13 @@ export default function CreateAuraWithAgentPage() {
           <>
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-4">
-                Your Aura is Ready!
+                {isEditMode ? 'Your Aura Has Been Updated!' : 'Your Aura is Ready!'}
               </h1>
               <p className="text-gray-600">
-                {configuration.name} has been created and is ready to start
-                their journey with you.
+                {isEditMode
+                  ? `${configuration.name} has been successfully updated with your changes.`
+                  : `${configuration.name} has been created and is ready to start their journey with you.`
+                }
               </p>
             </div>
 
@@ -515,12 +625,12 @@ export default function CreateAuraWithAgentPage() {
               </Button>
               <Button
                 onClick={navigateToAura}
-                disabled={!configuration.id}
+                disabled={!configuration.id && !isEditMode}
                 size="lg"
                 className="flex items-center gap-2 bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
               >
                 <Heart className="w-4 h-4" />
-                Chat with {configuration.name}
+                {isEditMode ? `Continue with ${configuration.name}` : `Chat with ${configuration.name}`}
                 <ArrowRight className="w-4 h-4" />
               </Button>
             </div>

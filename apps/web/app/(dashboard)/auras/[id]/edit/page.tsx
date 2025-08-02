@@ -81,7 +81,7 @@ export default async function EditAuraPage({ params }: PageProps) {
   })
 
   return (
-    <div className="container py-8">
+    <div className="container py-0">
       <AuraEditForm 
         initialAura={initialAura} 
         initialLocationConfigs={locationConfigs}

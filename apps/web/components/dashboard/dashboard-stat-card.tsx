@@ -128,46 +128,23 @@ export function DashboardStatCard({
             {message}
           </p>
           {primaryAction && (
-            <div className="space-y-3">
-              <div className="flex gap-2">
-                <Button asChild className={cn("flex-1 bg-gradient-to-r", colorMap[primaryColor])}>
-                  <Link href={primaryAction.href}>
-                    {PrimaryIcon && <PrimaryIcon className="w-4 h-4 mr-2" />}
-                    {primaryAction.label}
-                  </Link>
-                </Button>
-                {SecondaryIcon && secondaryAction && !secondaryAction.requiresSubscription && (
-                  <Button
-                    asChild
-                    variant="outline"
-                    className={`border-2 border-${primaryColor}-200 hover:border-${primaryColor}-400`}
-                  >
-                    <Link href={secondaryAction.href}>
-                      <SecondaryIcon className="w-4 h-4" />
-                    </Link>
-                  </Button>
-                )}
-              </div>
-              {SecondaryIcon && secondaryAction && secondaryAction.requiresSubscription && (
+            <div className="flex gap-2 items-center">
+              <Button asChild className={cn("flex-grow bg-gradient-to-r text-sm px-3", colorMap[primaryColor])}>
+                <Link href={primaryAction.href}>
+                  {PrimaryIcon && <PrimaryIcon className="w-4 h-4 mr-1" />}
+                  {primaryAction.label}
+                </Link>
+              </Button>
+              {SecondaryIcon && secondaryAction && (
                 <SubscriptionGuard
                   feature={secondaryAction.subscriptionFeature as any}
-                  fallback={
-                    <div className="text-center">
-                      <div className="text-xs text-amber-600 mb-2">
-                        Upgrade to create more auras
-                      </div>
-                      <Button asChild size="sm" variant="outline" className="border-amber-300 text-amber-700 hover:bg-amber-50">
-                        <Link href="/subscription">
-                          View Plans
-                        </Link>
-                      </Button>
-                    </div>
-                  }
+                  fallback={<div></div>} // Empty fallback, as we don't want to show anything if the user can't create more auras
                 >
                   <Button
                     asChild
                     variant="outline"
-                    className={`border-2 border-${primaryColor}-200 hover:border-${primaryColor}-400`}
+                    size="sm"
+                    className={`flex-shrink-0 border-2 border-${primaryColor}-200 hover:border-${primaryColor}-400 w-10 h-10 p-0`}
                   >
                     <Link href={secondaryAction.href}>
                       <SecondaryIcon className="w-4 h-4" />

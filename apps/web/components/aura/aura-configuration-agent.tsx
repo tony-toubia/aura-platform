@@ -59,13 +59,15 @@ interface AuraConfigurationAgentProps {
   onConfigurationUpdate?: (config: Partial<AuraConfiguration>) => void
   initialConfig?: Partial<AuraConfiguration>
   availableSenses: string[]
+  isEditMode?: boolean
 }
 
 export function AuraConfigurationAgent({
   onConfigurationComplete,
   onConfigurationUpdate,
   initialConfig,
-  availableSenses
+  availableSenses,
+  isEditMode = false
 }: AuraConfigurationAgentProps) {
   const [messages, setMessages] = useState<AgentMessage[]>([])
   const [userInput, setUserInput] = useState('')
@@ -178,23 +180,57 @@ export function AuraConfigurationAgent({
   // Initialize conversation
   useEffect(() => {
     if (messages.length === 0) {
-      const welcomeMessage: AgentMessage = {
-        id: `agent-${Date.now()}`,
-        role: 'agent',
-        content: "Hello! I'm your Aura Configuration Assistant. I'm here to help you create a personalized AI companion that perfectly matches your needs and personality. Let's start by getting to know what you're looking for.\n\nWhat kind of AI companion are you hoping to create? Are you looking for someone to help with daily motivation, creative projects, productivity, or something else entirely?",
-        timestamp: new Date(),
-        metadata: {
-          step: 'introduction',
-          requiresUserInput: true,
-          suggestedActions: [
-            "I want a productivity assistant",
-            "I need emotional support",
-            "I'm interested in wellness coaching",
-            "Show me character options"
-          ]
-        }
+      let welcomeMessage: AgentMessage;
+      
+      if (isEditMode && initialConfig?.name) {
+        // Edit mode - context-aware welcome message
+        const existingFeatures = [];
+        if (initialConfig.personality?.persona) existingFeatures.push(`personality: ${initialConfig.personality.persona}`);
+        if (initialConfig.rules && initialConfig.rules.length > 0) existingFeatures.push(`${initialConfig.rules.length} behavior rules`);
+        if (initialConfig.availableSenses && initialConfig.availableSenses.length > 0) existingFeatures.push(`${initialConfig.availableSenses.length} connected senses`);
+        
+        const featuresText = existingFeatures.length > 0 ? `\n\nI can see ${initialConfig.name} currently has: ${existingFeatures.join(', ')}.` : '';
+        
+        welcomeMessage = {
+          id: `agent-${Date.now()}`,
+          role: 'agent',
+          content: `Hello! I'm here to help you enhance and refine ${initialConfig.name}. I can see you're editing an existing aura, and I'm ready to help you make any adjustments or improvements you'd like.${featuresText}\n\nWhat would you like to work on today? Would you like to adjust their personality, add new behaviors, connect more senses, or something else entirely?`,
+          timestamp: new Date(),
+          metadata: {
+            step: 'personality_discovery', // Skip introduction for edit mode
+            requiresUserInput: true,
+            suggestedActions: [
+              "Adjust their personality",
+              "Add new behavior rules",
+              "Connect more senses",
+              "Review everything and make changes"
+            ]
+          }
+        };
+        
+        // Set appropriate step for editing
+        setCurrentStep('personality_discovery');
+      } else {
+        // Create mode - original welcome message
+        welcomeMessage = {
+          id: `agent-${Date.now()}`,
+          role: 'agent',
+          content: "Hello! I'm your Aura Configuration Assistant. I'm here to help you create a personalized AI companion that perfectly matches your needs and personality. Let's start by getting to know what you're looking for.\n\nWhat kind of AI companion are you hoping to create? Are you looking for someone to help with daily motivation, creative projects, productivity, or something else entirely?",
+          timestamp: new Date(),
+          metadata: {
+            step: 'introduction',
+            requiresUserInput: true,
+            suggestedActions: [
+              "I want a productivity assistant",
+              "I need emotional support",
+              "I'm interested in wellness coaching",
+              "Show me character options"
+            ]
+          }
+        };
       }
-      setMessages([welcomeMessage])
+      
+      setMessages([welcomeMessage]);
       
       // Focus input and scroll to bottom on initial load
       setTimeout(() => {
@@ -204,7 +240,7 @@ export function AuraConfigurationAgent({
         }
       }, 100)
     }
-  }, [])
+  }, [isEditMode, initialConfig])
 
   // Apply any initial configuration
   useEffect(() => {

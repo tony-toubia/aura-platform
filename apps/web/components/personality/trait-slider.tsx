@@ -49,21 +49,21 @@ export function TraitSlider({ trait, value, onChange }: TraitSliderProps) {
       {/* Enhanced Slider */}
       <div className="space-y-3">
         <div className="flex items-center gap-4">
-          <span className="text-sm text-gray-600 w-20 text-right font-medium">{trait.low}</span>
+          <span className="text-sm text-gray-600 w-24 text-right font-medium">{trait.low}</span>
           <div className="flex-1">
-            <Slider 
-              value={[value]} 
-              onValueChange={([v]) => onChange(v!)} 
-              max={100} 
+            <Slider
+              value={[value]}
+              onValueChange={([v]) => onChange(v!)}
+              max={100}
               step={1}
               className="w-full"
             />
           </div>
-          <span className="text-sm text-gray-600 w-20 font-medium">{trait.high}</span>
+          <span className="text-sm text-gray-600 w-24 font-medium">{trait.high}</span>
         </div>
         
         {/* Value indicators */}
-        <div className="flex justify-between text-xs text-gray-400 px-20">
+        <div className="flex justify-between text-xs text-gray-400 px-24">
           <span>0</span>
           <span>25</span>
           <span>50</span>

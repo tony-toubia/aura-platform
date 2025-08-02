@@ -27,6 +27,10 @@ import { COMING_SOON_VESSELS } from '@/lib/constants'
 export default function CreateSelectDigitalPage() {
   const router = useRouter()
 
+  // Check for form data from AI mode switch
+  const urlParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null
+  const hasFormData = urlParams && (urlParams.get('name') || urlParams.get('personality') || urlParams.get('senses') || urlParams.get('rules'))
+
   const creationMethods = [
     {
       id: 'agent',
@@ -61,7 +65,15 @@ export default function CreateSelectDigitalPage() {
       ],
       time: '10-20 minutes',
       difficulty: 'Advanced',
-      action: () => router.push('/auras/create'),
+      action: () => {
+        // Pass form data if switching from AI mode
+        if (hasFormData && urlParams) {
+          const queryString = urlParams.toString()
+          router.push(`/auras/create?${queryString}`)
+        } else {
+          router.push('/auras/create')
+        }
+      },
       badge: 'Pro'
     }
   ]

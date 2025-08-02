@@ -196,7 +196,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                     ) : (
                       <div className="text-center text-xs text-gray-500">
                         <p className="mb-2">No senses added yet.</p>
-                        <Link href={`/auras/${aura.id}/edit`} className="inline-flex items-center gap-1 text-purple-600 hover:underline font-semibold">
+                        <Link href={`/auras/${aura.id}/edit-select`} className="inline-flex items-center gap-1 text-purple-600 hover:underline font-semibold">
                           <Plus className="w-3 h-3" />
                           Add Senses
                         </Link>
@@ -229,7 +229,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => router.push(`/auras/${aura.id}/edit`)}
+                        onClick={() => router.push(`/auras/${aura.id}/edit-select`)}
                         className="hover:bg-purple-50 hover:text-purple-600"
                         title="Edit Aura"
                       >
@@ -251,7 +251,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => router.push(`/auras/${aura.id}/edit`)}
+                        onClick={() => router.push(`/auras/${aura.id}/edit-select`)}
                         className="hover:bg-gray-50 hover:text-gray-600"
                         title="Settings"
                       >

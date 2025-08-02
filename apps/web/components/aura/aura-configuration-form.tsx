@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
 import { RuleBuilder } from "./rule-builder"
+import { EnhancedRuleBuilder } from "./rule-builder/enhanced-rule-builder"
 import { type LocationConfig } from "./sense-location-modal"
 import { VESSEL_SENSE_CONFIG, AVAILABLE_SENSES } from "@/lib/constants"
 import type { VesselTypeId, SenseId } from "@/lib/constants"
@@ -19,6 +20,8 @@ import {
   ArrowRight,
   CheckCircle,
   Save,
+  Settings,
+  Edit,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Aura, Personality } from "@/types"
@@ -68,6 +71,95 @@ function normalizeSenseId(senseId: string): SenseId {
     .replace(/\./g, '_')
     .replace(/([a-z])([A-Z])/g, '$1_$2')
     .toLowerCase() as SenseId
+}
+
+interface NameInputCardProps {
+  name: string
+  onNameChange: (name: string) => void
+}
+
+function NameInputCard({ name, onNameChange }: NameInputCardProps) {
+  const [isEditingName, setIsEditingName] = useState(!name) // Start editing if no name
+  const [tempName, setTempName] = useState(name)
+
+  const handleSave = () => {
+    if (tempName.trim()) {
+      onNameChange(tempName.trim())
+      setIsEditingName(false)
+    }
+  }
+
+  const handleEdit = () => {
+    setTempName(name)
+    setIsEditingName(true)
+  }
+
+  const handleCancel = () => {
+    setTempName(name)
+    setIsEditingName(false)
+  }
+
+  const handleKeyPress = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave()
+    } else if (e.key === 'Escape') {
+      handleCancel()
+    }
+  }
+
+  return (
+    <Card className="relative overflow-hidden bg-gradient-to-r from-purple-500 to-blue-500 text-white shadow-lg animate-shimmer">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2 text-white">
+          <Sparkles className="w-5 h-5" />
+          Basic Information
+        </CardTitle>
+        <CardDescription className="text-purple-200">
+          Update the fundamentals of your Aura's identity
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div>
+          <label htmlFor="aura-name" className="block text-sm font-medium text-purple-100 mb-2">
+            Aura Name
+          </label>
+          {isEditingName ? (
+            <div className="flex items-center gap-2">
+              <Input
+                id="aura-name"
+                value={tempName}
+                onChange={(e) => setTempName(e.target.value)}
+                onKeyDown={handleKeyPress}
+                placeholder="Enter a name for your Aura..."
+                className="text-lg bg-white text-black placeholder-gray-500 border-gray-300 focus:ring-purple-500"
+                autoFocus
+              />
+              <Button
+                onClick={handleSave}
+                disabled={!tempName.trim()}
+                className="bg-white text-purple-600 hover:bg-gray-100"
+              >
+                Save
+              </Button>
+            </div>
+          ) : (
+            <div className="flex items-center justify-between">
+              <p className="text-lg font-semibold">{name}</p>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleEdit}
+                className="text-white hover:bg-white/20"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit
+              </Button>
+            </div>
+          )}
+        </div>
+      </CardContent>
+    </Card>
+  )
 }
 
 export function AuraConfigurationForm({
@@ -150,8 +242,8 @@ export function AuraConfigurationForm({
   }
 
   const steps = [
-    { id: "senses", label: "Senses", icon: Heart },
     { id: "details", label: "Personality", icon: Sparkles },
+    { id: "senses", label: "Senses", icon: Heart },
     { id: "rules", label: "Rules", icon: CheckCircle },
   ] as const
 
@@ -253,31 +345,10 @@ export function AuraConfigurationForm({
             </div>
 
             {/* Name Input */}
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-600" />
-                  Basic Information
-                </CardTitle>
-                <CardDescription>
-                  Start with the fundamentals of your Aura's identity
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label htmlFor="aura-name" className="block text-sm font-medium text-gray-700 mb-2">
-                    Aura Name
-                  </label>
-                  <Input
-                    id="aura-name"
-                    value={auraData.name}
-                    onChange={(e) => onAuraDataChange({ name: e.target.value })}
-                    placeholder="Enter a name for your Aura..."
-                    className="text-lg"
-                  />
-                </div>
-              </CardContent>
-            </Card>
+            <NameInputCard
+              name={auraData.name}
+              onNameChange={(name) => onAuraDataChange({ name })}
+            />
 
             <PersonalityMatrix
               personality={auraData.personality}
@@ -300,15 +371,70 @@ export function AuraConfigurationForm({
               </p>
             </div>
 
-            {auraData.id && (
-              <RuleBuilder
+            {auraData.id ? (
+              <EnhancedRuleBuilder
                 auraId={auraData.id}
+                vesselType={auraData.vesselType}
+                vesselCode={auraData.vesselCode}
                 availableSenses={auraData.senses}
-                existingRules={auraData.rules || []}
-                onAddRule={(rule) => updateRules([...(auraData.rules || []), rule])}
-                onDeleteRule={(ruleId) => updateRules((auraData.rules || []).filter(r => r.id !== ruleId))}
-                onToggleRule={(ruleId, enabled) => updateRules((auraData.rules || []).map(r => r.id === ruleId ? { ...r, enabled } : r))}
+                existingRules={(auraData.rules || []).map(rule => ({
+                  id: rule.id || `rule-${Date.now()}-${Math.random()}`,
+                  name: rule.name,
+                  trigger: rule.trigger,
+                  action: rule.action,
+                  priority: rule.priority || 1,
+                  enabled: rule.enabled,
+                  auraId: auraData.id!,
+                  createdAt: rule.createdAt || new Date(),
+                  updatedAt: rule.updatedAt || new Date()
+                }))}
+                onAddRule={(rule: BehaviorRule) => {
+                  const newRule = {
+                    id: rule.id || `rule-${Date.now()}-${Math.random()}`,
+                    name: rule.name,
+                    trigger: rule.trigger,
+                    action: rule.action,
+                    priority: rule.priority || 1,
+                    enabled: rule.enabled,
+                    auraId: auraData.id!,
+                    createdAt: new Date(),
+                    updatedAt: new Date()
+                  }
+                  updateRules([...(auraData.rules || []), newRule])
+                }}
+                onEditRule={(rule: BehaviorRule | null) => {
+                  // Handle rule editing
+                  if (rule) {
+                    console.log('Edit rule:', rule)
+                  }
+                }}
+                onDeleteRule={(ruleId: string) => updateRules((auraData.rules || []).filter(r => r.id !== ruleId))}
+                onToggleRule={(ruleId: string, enabled: boolean) => updateRules((auraData.rules || []).map(r => r.id === ruleId ? { ...r, enabled } : r))}
+                onSaveEditedRule={(editedRule: BehaviorRule) => {
+                  const updatedRule = {
+                    id: editedRule.id,
+                    name: editedRule.name,
+                    trigger: editedRule.trigger,
+                    action: editedRule.action,
+                    priority: editedRule.priority || 1,
+                    enabled: editedRule.enabled,
+                    auraId: auraData.id!,
+                    createdAt: editedRule.createdAt || new Date(),
+                    updatedAt: new Date()
+                  }
+                  updateRules((auraData.rules || []).map(r => r.id === editedRule.id ? updatedRule : r))
+                }}
+                showVisualBuilder={true}
+                showTemplateLibrary={true}
               />
+            ) : (
+              <div className="text-center py-8 bg-gray-50 rounded-lg border-2 border-dashed border-gray-200">
+                <AlertCircle className="w-12 h-12 text-gray-400 mx-auto mb-4" />
+                <h4 className="text-lg font-medium text-gray-600 mb-2">Save Required</h4>
+                <p className="text-gray-500">
+                  Please save your Aura configuration before adding rules.
+                </p>
+              </div>
             )}
           </div>
         )}
