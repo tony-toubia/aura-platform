@@ -265,6 +265,18 @@ export function AuraCreatorDigital() {
       return
     }
     
+    // Check if this connection already exists to prevent duplicates
+    const existingConnections = oauthConnections[senseId] || []
+    const isDuplicate = existingConnections.some(conn =>
+      conn.providerId === providerId &&
+      conn.accountEmail === (connectionData.accountEmail || connectionData.providerName)
+    )
+    
+    if (isDuplicate) {
+      console.log('⚠️ Connection already exists, skipping duplicate')
+      return
+    }
+    
     try {
       const requestBody = {
         provider: providerId,
@@ -295,7 +307,7 @@ export function AuraCreatorDigital() {
         const savedConnection = await response.json()
         console.log('✅ Successfully saved OAuth connection:', savedConnection)
         
-        // Update local state with the saved connection
+        // Only add to local state if API save was successful
         const newConnection = {
           id: savedConnection.id,
           name: connectionData.providerName || providerId,
@@ -317,25 +329,27 @@ export function AuraCreatorDigital() {
           error: errorData
         })
         
-        // Still update local state for UI feedback
-        const newConnection = {
-          id: `${providerId}-${Date.now()}`,
-          name: connectionData.providerName || providerId,
-          type: senseId,
-          connectedAt: new Date(),
-          providerId: providerId,
-          accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+        // Only add to local state if it's not a duplicate error
+        if (response.status !== 409) { // 409 = Conflict (duplicate)
+          const newConnection = {
+            id: `${providerId}-${Date.now()}`,
+            name: connectionData.providerName || providerId,
+            type: senseId,
+            connectedAt: new Date(),
+            providerId: providerId,
+            accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+          }
+          
+          setOauthConnections(prev => ({
+            ...prev,
+            [senseId]: [...(prev[senseId] || []), newConnection]
+          }))
         }
-        
-        setOauthConnections(prev => ({
-          ...prev,
-          [senseId]: [...(prev[senseId] || []), newConnection]
-        }))
       }
     } catch (error) {
       console.error('❌ Failed to save OAuth connection - Network/Parse error:', error)
       
-      // Still update local state for UI feedback
+      // Still update local state for UI feedback (only if not duplicate)
       const newConnection = {
         id: `${providerId}-${Date.now()}`,
         name: connectionData.providerName || providerId,
