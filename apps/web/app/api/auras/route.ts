@@ -4,6 +4,40 @@ import { createServerSupabase } from '@/lib/supabase/server.server'
 import { AuraServiceServer } from '@/lib/services/aura-service.server'
 import { SubscriptionService } from '@/lib/services/subscription-service'
 
+export async function GET() {
+  try {
+    const supabase = await createServerSupabase()
+    const {
+      data: { user },
+      error: userErr,
+    } = await supabase.auth.getUser()
+
+    if (userErr || !user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    // Get user's auras
+    const { data: auras, error } = await supabase
+      .from('auras')
+      .select('id, name, created_at')
+      .eq('user_id', user.id)
+      .order('created_at', { ascending: false })
+
+    if (error) {
+      console.error('Failed to fetch auras:', error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
+    }
+
+    return NextResponse.json(auras)
+  } catch (err: any) {
+    console.error('API /auras GET error:', err)
+    return NextResponse.json(
+      { error: err.message || 'Unexpected server error' },
+      { status: 500 }
+    )
+  }
+}
+
 export async function POST(request: Request) {
   const timestamp = new Date().toISOString()
   console.log(`[${timestamp}] /api/auras POST called`)

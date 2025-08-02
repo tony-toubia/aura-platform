@@ -274,7 +274,7 @@ export function EnhancedOAuthConnectionModal({
 
         const googleOAuth = new GoogleCalendarOAuth({
           clientId,
-          redirectUri: `${window.location.origin}/api/auth/google/callback`,
+          redirectUri: `${window.location.origin}/auth/google/callback`,
           scopes: [
             'https://www.googleapis.com/auth/calendar.readonly',
             'https://www.googleapis.com/auth/calendar.events.readonly'
@@ -308,7 +308,7 @@ export function EnhancedOAuthConnectionModal({
 
         const microsoftOAuth = new MicrosoftOutlookOAuth({
           clientId,
-          redirectUri: `${window.location.origin}/api/auth/microsoft/callback`,
+          redirectUri: `${window.location.origin}/auth/microsoft/callback`,
           scopes: [
             'https://graph.microsoft.com/calendars.read',
             'https://graph.microsoft.com/user.read',
@@ -390,7 +390,7 @@ export function EnhancedOAuthConnectionModal({
 
         const googleFitOAuth = new GoogleFitOAuth({
           clientId,
-          redirectUri: `${window.location.origin}/api/auth/google-fit/callback`,
+          redirectUri: `${window.location.origin}/auth/google-fit/callback`,
           scopes: [
             'https://www.googleapis.com/auth/fitness.activity.read',
             'https://www.googleapis.com/auth/fitness.heart_rate.read',

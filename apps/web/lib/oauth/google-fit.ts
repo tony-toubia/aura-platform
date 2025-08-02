@@ -142,6 +142,8 @@ export class GoogleFitOAuth {
   async initiateOAuth(): Promise<GoogleFitTokenResponse> {
     return new Promise((resolve, reject) => {
       const authUrl = this.getAuthUrl()
+      console.log('🔗 Opening OAuth popup with URL:', authUrl)
+      
       const popup = window.open(
         authUrl,
         'google-fit-oauth',
@@ -149,31 +151,44 @@ export class GoogleFitOAuth {
       )
 
       if (!popup) {
-        reject(new Error('Failed to open popup window'))
+        console.error('❌ Failed to open popup window - likely blocked by browser')
+        reject(new Error('Failed to open popup window - please allow popups for this site'))
         return
       }
+      
+      console.log('✅ OAuth popup opened successfully')
 
       // Check if popup was closed manually
       const checkClosed = setInterval(() => {
         if (popup.closed) {
           clearInterval(checkClosed)
+          console.log('❌ OAuth popup was closed by user')
           reject(new Error('OAuth cancelled by user'))
         }
       }, 1000)
 
       // Listen for OAuth callback
       const handleMessage = async (event: MessageEvent) => {
-        if (event.origin !== window.location.origin) return
+        console.log('📨 Received message from popup:', event.data)
+        
+        if (event.origin !== window.location.origin) {
+          console.log('❌ Message origin mismatch:', event.origin, 'vs', window.location.origin)
+          return
+        }
 
         if (event.data.type === 'GOOGLE_FIT_OAUTH_SUCCESS' && event.data.code) {
+          console.log('✅ OAuth success message received with code')
           clearInterval(checkClosed)
           popup.close()
           window.removeEventListener('message', handleMessage)
 
           try {
+            console.log('🔄 Exchanging code for token...')
             const tokenResponse = await this.exchangeCodeForToken(event.data.code)
+            console.log('✅ Token exchange successful')
             resolve(tokenResponse)
           } catch (error) {
+            console.error('❌ Token exchange failed:', error)
             reject(error)
           }
         } else if (event.data.type === 'GOOGLE_FIT_OAUTH_ERROR') {
