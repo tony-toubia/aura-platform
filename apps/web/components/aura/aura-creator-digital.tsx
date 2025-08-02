@@ -259,77 +259,63 @@ export function AuraCreatorDigital() {
       auraId: auraData.id
     })
     
-    // Save to database via API if we have an aura ID
-    if (auraData.id) {
-      try {
-        const requestBody = {
-          provider: providerId,
-          sense_type: senseId,
-          provider_user_id: connectionData.accountEmail || connectionData.providerName,
-          access_token: connectionData.tokens?.access_token || 'placeholder',
-          refresh_token: connectionData.tokens?.refresh_token,
-          expires_at: connectionData.tokens?.expires_at,
-          scope: connectionData.tokens?.scope,
-          aura_id: auraData.id, // Associate connection with this specific aura
+    // We should always have an aura ID at this point since we auto-save when transitioning to senses
+    if (!auraData.id) {
+      console.error('❌ No aura ID available - this should not happen after auto-save implementation')
+      return
+    }
+    
+    try {
+      const requestBody = {
+        provider: providerId,
+        sense_type: senseId,
+        provider_user_id: connectionData.accountEmail || connectionData.providerName,
+        access_token: connectionData.tokens?.access_token || 'placeholder',
+        refresh_token: connectionData.tokens?.refresh_token,
+        expires_at: connectionData.tokens?.expires_at,
+        scope: connectionData.tokens?.scope,
+        aura_id: auraData.id, // Associate connection with this specific aura
+      }
+      
+      console.log('📤 Making API request to save OAuth connection:', requestBody)
+      
+      const response = await fetch('/api/oauth-connections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(requestBody),
+      })
+      
+      console.log('📥 API response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
+      })
+      
+      if (response.ok) {
+        const savedConnection = await response.json()
+        console.log('✅ Successfully saved OAuth connection:', savedConnection)
+        
+        // Update local state with the saved connection
+        const newConnection = {
+          id: savedConnection.id,
+          name: connectionData.providerName || providerId,
+          type: senseId,
+          connectedAt: new Date(savedConnection.created_at),
+          providerId: providerId,
+          accountEmail: connectionData.accountEmail || connectionData.providerName,
         }
         
-        console.log('📤 Making API request to save OAuth connection:', requestBody)
-        
-        const response = await fetch('/api/oauth-connections', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(requestBody),
-        })
-        
-        console.log('📥 API response:', {
-          ok: response.ok,
+        setOauthConnections(prev => ({
+          ...prev,
+          [senseId]: [...(prev[senseId] || []), newConnection]
+        }))
+      } else {
+        const errorData = await response.json()
+        console.error('❌ Failed to save OAuth connection - API error:', {
           status: response.status,
-          statusText: response.statusText
+          statusText: response.statusText,
+          error: errorData
         })
-        
-        if (response.ok) {
-          const savedConnection = await response.json()
-          console.log('✅ Successfully saved OAuth connection:', savedConnection)
-          
-          // Update local state with the saved connection
-          const newConnection = {
-            id: savedConnection.id,
-            name: connectionData.providerName || providerId,
-            type: senseId,
-            connectedAt: new Date(savedConnection.created_at),
-            providerId: providerId,
-            accountEmail: connectionData.accountEmail || connectionData.providerName,
-          }
-          
-          setOauthConnections(prev => ({
-            ...prev,
-            [senseId]: [...(prev[senseId] || []), newConnection]
-          }))
-        } else {
-          const errorData = await response.json()
-          console.error('❌ Failed to save OAuth connection - API error:', {
-            status: response.status,
-            statusText: response.statusText,
-            error: errorData
-          })
-          
-          // Still update local state for UI feedback
-          const newConnection = {
-            id: `${providerId}-${Date.now()}`,
-            name: connectionData.providerName || providerId,
-            type: senseId,
-            connectedAt: new Date(),
-            providerId: providerId,
-            accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
-          }
-          
-          setOauthConnections(prev => ({
-            ...prev,
-            [senseId]: [...(prev[senseId] || []), newConnection]
-          }))
-        }
-      } catch (error) {
-        console.error('❌ Failed to save OAuth connection - Network/Parse error:', error)
         
         // Still update local state for UI feedback
         const newConnection = {
@@ -346,10 +332,10 @@ export function AuraCreatorDigital() {
           [senseId]: [...(prev[senseId] || []), newConnection]
         }))
       }
-    } else {
-      // If no aura ID yet (during creation), just update local state
-      // The connections will be saved when the aura is created
-      console.log('⏳ No aura ID yet, storing connection locally for later save')
+    } catch (error) {
+      console.error('❌ Failed to save OAuth connection - Network/Parse error:', error)
+      
+      // Still update local state for UI feedback
       const newConnection = {
         id: `${providerId}-${Date.now()}`,
         name: connectionData.providerName || providerId,
@@ -455,14 +441,16 @@ export function AuraCreatorDigital() {
     const timestamp = new Date().toISOString()
     console.log(`[${timestamp}] handleStepNavigation called - targetStep: ${targetStep}, auraData.id: ${auraData.id}`)
     
-    // If navigating to rules step and aura hasn't been saved yet, save it first
-    if (targetStep === "rules" && !auraData.id) {
+    // If navigating from details to senses and aura hasn't been saved yet, save it first
+    // This ensures we have an aura_id before users can add OAuth connections
+    if (step === "details" && targetStep === "senses" && !auraData.id) {
       try {
-        await performSave('handleStepNavigation')
+        console.log('🚀 Auto-saving aura before allowing sensor connections...')
+        await performSave('handleStepNavigation-details-to-senses')
         // After successful save, the auraData.id should be set by the saveAura function
         setStep(targetStep)
       } catch (error) {
-        console.error("Failed to save aura before navigating to rules:", error)
+        console.error("Failed to save aura before navigating to senses:", error)
         // Don't navigate if save failed
         return
       }
@@ -858,10 +846,10 @@ export function AuraCreatorDigital() {
                   disabled={!canGoNext || isSaving}
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                 >
-                  {isSaving && steps[currentStepIndex + 1]?.id === "rules" ? (
+                  {isSaving && (step === "details" || steps[currentStepIndex + 1]?.id === "rules") ? (
                     <>
                       <Sparkles className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
+                      {step === "details" ? "Saving..." : "Saving..."}
                     </>
                   ) : (
                     <>
