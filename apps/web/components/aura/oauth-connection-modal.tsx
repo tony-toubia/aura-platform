@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { GoogleCalendarOAuth } from "@/lib/oauth/google-calendar"
+import { MicrosoftOutlookOAuth } from "@/lib/oauth/microsoft-outlook"
 
 export type PersonalSenseType = 'calendar' | 'fitness' | 'sleep' | 'location'
 
@@ -255,6 +256,41 @@ export function OAuthConnectionModal({
           onOpenChange(false)
         }, 1000)
         
+      } else if (providerId === 'outlook' && senseType === 'calendar') {
+        // Real Microsoft Outlook OAuth
+        const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID
+        
+        if (!clientId) {
+          throw new Error('Microsoft Client ID not configured. Please add NEXT_PUBLIC_MICROSOFT_CLIENT_ID to your environment variables.')
+        }
+
+        const microsoftOAuth = new MicrosoftOutlookOAuth({
+          clientId,
+          redirectUri: `${window.location.origin}/api/auth/microsoft/callback`,
+          scopes: [
+            'https://graph.microsoft.com/calendars.read',
+            'https://graph.microsoft.com/user.read',
+            'offline_access'
+          ]
+        })
+
+        // Initiate OAuth flow and get tokens
+        const tokenResponse = await microsoftOAuth.initiateOAuth()
+        
+        // Log success (remove sensitive data in production)
+        console.log('Microsoft Outlook connected successfully!', {
+          access_token: tokenResponse.access_token?.substring(0, 10) + '...',
+          expires_in: tokenResponse.expires_in,
+          scope: tokenResponse.scope
+        })
+        
+        setConnectionStatus(prev => ({ ...prev, [providerId]: 'connected' }))
+        
+        setTimeout(() => {
+          onConnectionComplete(providerId)
+          onOpenChange(false)
+        }, 1000)
+        
       } else {
         // Simulate other providers
         await new Promise(resolve => setTimeout(resolve, 2000))
@@ -393,7 +429,7 @@ export function OAuthConnectionModal({
                         <p className="text-sm text-gray-600">
                           {provider.description}
                         </p>
-                        {provider.id === 'google' && senseType === 'calendar' && (
+                        {(provider.id === 'google' || provider.id === 'outlook') && senseType === 'calendar' && (
                           <p className="text-xs text-blue-600 mt-1">
                             ✓ Real OAuth integration enabled
                           </p>
