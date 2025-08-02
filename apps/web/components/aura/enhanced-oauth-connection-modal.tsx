@@ -415,7 +415,11 @@ export function EnhancedOAuthConnectionModal({
         // Reset connection status to idle after successful connection
         setConnectionStatus(prev => ({ ...prev, [providerId]: 'idle' }))
         
-        console.log('📞 Calling onConnectionComplete...')
+        console.log('📞 Calling onConnectionComplete with:', {
+          providerId,
+          connectionData,
+          auraId
+        })
         onConnectionComplete(providerId, connectionData)
         
       } else if (providerId === 'fitbit' && senseType === 'fitness') {

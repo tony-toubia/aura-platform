@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>OAuth Flow Test</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        button { padding: 10px 20px; margin: 10px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        .log { background: #f8f9fa; border: 1px solid #dee2e6; padding: 10px; margin: 10px 0; border-radius: 4px; font-family: monospace; white-space: pre-wrap; }
+        .error { background: #f8d7da; border-color: #f5c6cb; }
+        .success { background: #d4edda; border-color: #c3e6cb; }
+    </style>
+</head>
+<body>
+    <h1>OAuth Connection Test</h1>
+    <p>This page will help test the OAuth connection flow without going through the full UI.</p>
+    
+    <button onclick="testGoogleFitOAuth()">Test Google Fit OAuth</button>
+    <button onclick="testAPIDirectly()">Test API Directly</button>
+    <button onclick="clearLogs()">Clear Logs</button>
+    
+    <div id="logs"></div>
+
+    <script>
+        function log(message, type = 'info') {
+            const logs = document.getElementById('logs');
+            const logDiv = document.createElement('div');
+            logDiv.className = `log ${type}`;
+            logDiv.textContent = `[${new Date().toISOString()}] ${message}`;
+            logs.appendChild(logDiv);
+            console.log(message);
+        }
+
+        function clearLogs() {
+            document.getElementById('logs').innerHTML = '';
+        }
+
+        async function testGoogleFitOAuth() {
+            log('🧪 Starting Google Fit OAuth test...');
+            
+            try {
+                // Import the GoogleFitOAuth class (this assumes the module is available)
+                const { GoogleFitOAuth } = await import('/lib/oauth/google-fit.js');
+                
+                const clientId = 'YOUR_GOOGLE_CLIENT_ID'; // Replace with actual client ID
+                const googleFitOAuth = new GoogleFitOAuth({
+                    clientId,
+                    redirectUri: `${window.location.origin}/api/auth/google-fit/callback`,
+                    scopes: [
+                        'https://www.googleapis.com/auth/fitness.activity.read',
+                        'https://www.googleapis.com/auth/fitness.heart_rate.read'
+                    ]
+                });
+
+                log('🚀 Initiating OAuth flow...');
+                const tokenResponse = await googleFitOAuth.initiateOAuth();
+                
+                log('✅ OAuth completed successfully!', 'success');
+                log(`Token response: ${JSON.stringify(tokenResponse, null, 2)}`);
+                
+                // Now test saving to API
+                await testSaveConnection(tokenResponse);
+                
+            } catch (error) {
+                log(`❌ OAuth test failed: ${error.message}`, 'error');
+                log(`Error details: ${error.stack}`, 'error');
+            }
+        }
+
+        async function testSaveConnection(tokenResponse) {
+            log('💾 Testing API save...');
+            
+            const testData = {
+                provider: 'google_fit',
+                sense_type: 'fitness',
+                provider_user_id: 'test@example.com',
+                access_token: tokenResponse.access_token,
+                refresh_token: tokenResponse.refresh_token,
+                expires_at: new Date(Date.now() + (tokenResponse.expires_in * 1000)).toISOString(),
+                scope: tokenResponse.scope,
+                aura_id: 'test-aura-id' // You'll need to replace this with a real aura ID
+            };
+
+            try {
+                const response = await fetch('/api/oauth-connections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    log('✅ API save successful!', 'success');
+                    log(`Saved connection: ${JSON.stringify(result, null, 2)}`);
+                } else {
+                    log(`❌ API save failed: ${result.error}`, 'error');
+                    log(`Status: ${response.status} ${response.statusText}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ API request failed: ${error.message}`, 'error');
+            }
+        }
+
+        async function testAPIDirectly() {
+            log('🔧 Testing API endpoint directly...');
+            
+            const testData = {
+                provider: 'google_fit',
+                sense_type: 'fitness',
+                provider_user_id: 'test@example.com',
+                access_token: 'test_access_token_123',
+                refresh_token: 'test_refresh_token_456',
+                expires_at: new Date(Date.now() + 3600000).toISOString(),
+                scope: 'https://www.googleapis.com/auth/fitness.activity.read',
+                aura_id: null // Test without aura_id first
+            };
+
+            try {
+                log(`📤 Sending request: ${JSON.stringify(testData, null, 2)}`);
+                
+                const response = await fetch('/api/oauth-connections', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(testData)
+                });
+
+                const result = await response.json();
+                
+                log(`📥 Response status: ${response.status} ${response.statusText}`);
+                log(`📋 Response body: ${JSON.stringify(result, null, 2)}`);
+                
+                if (response.ok) {
+                    log('✅ Direct API test successful!', 'success');
+                } else {
+                    log(`❌ Direct API test failed: ${result.error}`, 'error');
+                }
+            } catch (error) {
+                log(`❌ Direct API test error: ${error.message}`, 'error');
+            }
+        }
+
+        // Log when page loads
+        log('🏁 OAuth test page loaded. Open browser console for additional logs.');
+    </script>
+</body>
+</html>

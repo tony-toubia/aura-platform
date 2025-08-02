@@ -9,13 +9,14 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
   const { provider, sense_type, provider_user_id, access_token, refresh_token, expires_at, scope, aura_id } = body
   
-  console.log(`[${timestamp}] POST /api/oauth-connections called with:`, {
+  console.log(`[${timestamp}] 🚀 POST /api/oauth-connections called with:`, {
     provider,
     sense_type,
     provider_user_id: provider_user_id ? '***' : null,
     hasAccessToken: !!access_token,
     hasRefreshToken: !!refresh_token,
     aura_id,
+    bodyKeys: Object.keys(body)
   })
 
   // Basic validation
@@ -59,28 +60,36 @@ export async function POST(req: NextRequest) {
     }
 
     // Insert new OAuth connection
+    const insertData = {
+      user_id: user.id,
+      provider,
+      provider_user_id: provider_user_id || provider,
+      sense_type,
+      access_token,
+      refresh_token,
+      expires_at: expires_at ? new Date(expires_at).toISOString() : null,
+      scope,
+      aura_id: aura_id || null, // Associate with specific aura if provided
+    }
+    
+    console.log(`[${timestamp}] 💾 Inserting OAuth connection:`, {
+      ...insertData,
+      access_token: '***',
+      refresh_token: insertData.refresh_token ? '***' : null
+    })
+    
     const { data: connection, error: insertError } = await supabase
       .from("oauth_connections")
-      .insert({
-        user_id: user.id,
-        provider,
-        provider_user_id: provider_user_id || provider,
-        sense_type,
-        access_token,
-        refresh_token,
-        expires_at: expires_at ? new Date(expires_at).toISOString() : null,
-        scope,
-        aura_id: aura_id || null, // Associate with specific aura if provided
-      })
+      .insert(insertData)
       .select()
       .single()
 
     if (insertError) {
-      console.error("Failed to create OAuth connection:", insertError)
+      console.error(`[${timestamp}] ❌ Failed to create OAuth connection:`, insertError)
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
-    console.log(`[${timestamp}] Successfully created OAuth connection with ID: ${connection.id}`)
+    console.log(`[${timestamp}] ✅ Successfully created OAuth connection with ID: ${connection.id}`)
     return NextResponse.json(connection, { status: 201 })
   } catch (error: any) {
     console.error("Unexpected error creating OAuth connection:", error)
