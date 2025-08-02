@@ -276,8 +276,8 @@ export class SubscriptionService {
             console.log('➕ Creating new subscription record...')
             const subscriptionData = {
               user_id: userId,
-              tier: tierId.toUpperCase(), // Convert to enum format (FREE, PERSONAL, etc.)
-              status: 'ACTIVE', // Convert to enum format
+              tier: tierId.toLowerCase(), // Convert to database format (free, personal, etc.)
+              status: 'active', // Convert to database format
               // Note: Stripe columns don't exist in database, so we skip them for now
             }
             
@@ -298,8 +298,8 @@ export class SubscriptionService {
           } else {
             console.log('🔄 Updating existing subscription...')
             const updateData = {
-              tier: tierId.toUpperCase(), // Convert to enum format (FREE, PERSONAL, etc.)
-              status: 'ACTIVE', // Convert to enum format
+              tier: tierId.toLowerCase(), // Convert to database format (free, personal, etc.)
+              status: 'active', // Convert to database format
               // Note: Stripe columns don't exist in database, so we skip them for now
             }
             
@@ -341,8 +341,8 @@ export class SubscriptionService {
           const { error } = await supabase
             .from('subscriptions')
             .update({
-              tier: tierId.toUpperCase(),
-              status: sub.status === 'active' ? 'ACTIVE' : 'CANCELLED',
+              tier: tierId.toLowerCase(),
+              status: sub.status === 'active' ? 'active' : 'cancelled',
             })
             .eq('user_id', userId)
           
@@ -364,8 +364,8 @@ export class SubscriptionService {
           const { error } = await supabase
             .from('subscriptions')
             .update({
-              tier: 'FREE',
-              status: 'CANCELLED',
+              tier: 'free',
+              status: 'cancelled',
             })
             .eq('user_id', userId)
           
