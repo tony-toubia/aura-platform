@@ -212,25 +212,44 @@ export function AuraEditForm({
   }
 
   const handleOAuthConnection = async (senseId: SenseId, providerId: string, connectionData: any) => {
+    console.log('🔗 handleOAuthConnection called:', {
+      senseId,
+      providerId,
+      connectionData,
+      auraId: auraData.id
+    })
+    
     // Save to database via API
     try {
+      const requestBody = {
+        provider: providerId,
+        sense_type: senseId,
+        provider_user_id: connectionData.accountEmail || connectionData.providerName,
+        access_token: connectionData.tokens?.access_token || 'placeholder',
+        refresh_token: connectionData.tokens?.refresh_token,
+        expires_at: connectionData.tokens?.expires_at,
+        scope: connectionData.tokens?.scope,
+        aura_id: auraData.id, // Associate connection with this specific aura
+      }
+      
+      console.log('📤 Making API request to save OAuth connection:', requestBody)
+      
       const response = await fetch('/api/oauth-connections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          provider: providerId,
-          sense_type: senseId,
-          provider_user_id: connectionData.accountEmail || connectionData.providerName,
-          access_token: connectionData.tokens?.access_token || 'placeholder',
-          refresh_token: connectionData.tokens?.refresh_token,
-          expires_at: connectionData.tokens?.expires_at,
-          scope: connectionData.tokens?.scope,
-          aura_id: auraData.id, // Associate connection with this specific aura
-        }),
+        body: JSON.stringify(requestBody),
+      })
+      
+      console.log('📥 API response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
       })
       
       if (response.ok) {
         const savedConnection = await response.json()
+        console.log('✅ Successfully saved OAuth connection:', savedConnection)
+        
         // Update local state with the saved connection
         setOAuthConnections(prev => ({
           ...prev,
@@ -243,9 +262,16 @@ export function AuraEditForm({
             accountEmail: connectionData.accountEmail || connectionData.providerName,
           }]
         }))
+      } else {
+        const errorData = await response.json()
+        console.error('❌ Failed to save OAuth connection - API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        })
       }
     } catch (error) {
-      console.error('Failed to save OAuth connection:', error)
+      console.error('❌ Failed to save OAuth connection - Network/Parse error:', error)
       // Still update local state for UI feedback
       setOAuthConnections(prev => ({
         ...prev,

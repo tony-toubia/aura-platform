@@ -246,6 +246,13 @@ export function EnhancedOAuthConnectionModal({
   const providers = OAUTH_PROVIDERS[senseType] || []
   
   const handleConnect = async (providerId: string) => {
+    console.log('🎯 handleConnect called:', {
+      providerId,
+      senseType,
+      auraId,
+      timestamp: new Date().toISOString()
+    })
+    
     setConnectionStatus(prev => ({ ...prev, [providerId]: 'connecting' }))
     
     try {
@@ -363,6 +370,12 @@ export function EnhancedOAuthConnectionModal({
         // Google Fit OAuth integration (reuses existing Google credentials)
         const clientId = process.env.NEXT_PUBLIC_GOOGLE_FIT_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
         
+        console.log('🔑 Environment check:', {
+          hasGoogleFitClientId: !!process.env.NEXT_PUBLIC_GOOGLE_FIT_CLIENT_ID,
+          hasGoogleClientId: !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+          clientId: clientId ? clientId.substring(0, 10) + '...' : 'NOT_SET'
+        })
+        
         if (!clientId) {
           throw new Error('Google Client ID not configured. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID to your environment variables.')
         }
@@ -379,7 +392,14 @@ export function EnhancedOAuthConnectionModal({
         })
 
         // Initiate OAuth flow and get tokens
+        console.log('🚀 Starting Google Fit OAuth flow...')
         const tokenResponse = await googleFitOAuth.initiateOAuth()
+        console.log('🎉 Google Fit OAuth completed:', {
+          hasAccessToken: !!tokenResponse.access_token,
+          hasRefreshToken: !!tokenResponse.refresh_token,
+          expiresIn: tokenResponse.expires_in,
+          scope: tokenResponse.scope
+        })
         
         // Create connection data
         const connectionData = {
@@ -390,9 +410,12 @@ export function EnhancedOAuthConnectionModal({
           connectedAt: new Date(),
         }
         
+        console.log('📋 Created connection data:', connectionData)
+        
         // Reset connection status to idle after successful connection
         setConnectionStatus(prev => ({ ...prev, [providerId]: 'idle' }))
         
+        console.log('📞 Calling onConnectionComplete...')
         onConnectionComplete(providerId, connectionData)
         
       } else if (providerId === 'fitbit' && senseType === 'fitness') {
@@ -489,12 +512,19 @@ export function EnhancedOAuthConnectionModal({
       }
       
     } catch (error) {
-      console.error('OAuth connection failed:', error)
+      console.error('❌ OAuth connection failed:', {
+        providerId,
+        senseType,
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined
+      })
       setConnectionStatus(prev => ({ ...prev, [providerId]: 'error' }))
       
       // Show user-friendly error message
       if (error instanceof Error) {
         alert(`Connection failed: ${error.message}`)
+      } else {
+        alert(`Connection failed: ${error}`)
       }
     }
   }
