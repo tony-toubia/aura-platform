@@ -406,7 +406,7 @@ export function EnhancedOAuthConnectionModal({
           tokenResponse = await googleFitOAuth.initiateOAuth()
         } catch (oauthError) {
           console.error('❌ OAuth flow failed:', oauthError)
-          throw new Error(`OAuth failed: ${oauthError.message}`)
+          throw new Error(`OAuth failed: ${oauthError instanceof Error ? oauthError.message : String(oauthError)}`)
         }
         console.log('🎉 Google Fit OAuth completed:', {
           hasAccessToken: !!tokenResponse.access_token,
