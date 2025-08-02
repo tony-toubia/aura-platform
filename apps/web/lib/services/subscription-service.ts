@@ -263,7 +263,7 @@ export class SubscriptionService {
           const { data: existing, error: selectError } = await supabase
             .from('subscriptions')
             .select('id, tier, status')
-            .eq('userId', userId)
+            .eq('user_id', userId)
             .single()
 
           if (selectError) {
@@ -275,11 +275,13 @@ export class SubscriptionService {
           if (!existing) {
             console.log('➕ Creating new subscription record...')
             const subscriptionData = {
-              userId: userId,
+              user_id: userId,
               tier: tierId.toUpperCase(), // Convert to enum format (FREE, PERSONAL, etc.)
               status: 'ACTIVE', // Convert to enum format
-              stripeCustomerId: sess.customer as string,
-              stripeSubscriptionId: sess.subscription as string,
+              stripe_customer_id: sess.customer as string,
+              stripe_subscription_id: sess.subscription as string,
+              created_at: new Date().toISOString(),
+              updated_at: new Date().toISOString(),
             }
             
             console.log('📝 Subscription data to insert:', subscriptionData)
@@ -301,8 +303,9 @@ export class SubscriptionService {
             const updateData = {
               tier: tierId.toUpperCase(), // Convert to enum format (FREE, PERSONAL, etc.)
               status: 'ACTIVE', // Convert to enum format
-              stripeCustomerId: sess.customer as string,
-              stripeSubscriptionId: sess.subscription as string,
+              stripe_customer_id: sess.customer as string,
+              stripe_subscription_id: sess.subscription as string,
+              updated_at: new Date().toISOString(),
             }
             
             console.log('📝 Update data:', updateData)
@@ -310,7 +313,7 @@ export class SubscriptionService {
             const { data: updateResult, error: updateError } = await supabase
               .from('subscriptions')
               .update(updateData)
-              .eq('userId', userId)
+              .eq('user_id', userId)
               .select()
             
             if (updateError) {
@@ -345,8 +348,9 @@ export class SubscriptionService {
             .update({
               tier: tierId.toUpperCase(),
               status: sub.status === 'active' ? 'ACTIVE' : 'CANCELLED',
+              updated_at: new Date().toISOString(),
             })
-            .eq('userId', userId)
+            .eq('user_id', userId)
           
           if (error) {
             console.error('Failed to update subscription:', error)
@@ -368,9 +372,10 @@ export class SubscriptionService {
             .update({
               tier: 'FREE',
               status: 'CANCELLED',
-              stripeSubscriptionId: null,
+              stripe_subscription_id: null,
+              updated_at: new Date().toISOString(),
             })
-            .eq('userId', userId)
+            .eq('user_id', userId)
           
           if (error) {
             console.error('Failed to cancel subscription:', error)
@@ -384,9 +389,10 @@ export class SubscriptionService {
             .update({
               tier: 'FREE',
               status: 'CANCELLED',
-              stripeSubscriptionId: null,
+              stripe_subscription_id: null,
+              updated_at: new Date().toISOString(),
             })
-            .eq('stripeSubscriptionId', sub.id)
+            .eq('stripe_subscription_id', sub.id)
           
           if (error) {
             console.error('Failed to cancel subscription by stripe ID:', error)
