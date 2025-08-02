@@ -56,7 +56,15 @@ export class GoogleCalendarOAuth {
       include_granted_scopes: 'true',
     })
 
-    return `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+    const authUrl = `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+    console.log('🔗 Generated Google Calendar OAuth URL:', authUrl)
+    console.log('📋 Google Calendar OAuth config:', {
+      clientId: this.config.clientId.substring(0, 20) + '...',
+      redirectUri: this.config.redirectUri,
+      scopes: this.config.scopes
+    })
+    
+    return authUrl
   }
 
   /**

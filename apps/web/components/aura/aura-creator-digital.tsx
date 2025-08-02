@@ -251,23 +251,154 @@ export function AuraCreatorDigital() {
     setLocationConfigs(prev => ({ ...prev, [senseId]: config }))
   }
 
-  const handleOAuthConnection = (senseId: SenseId, providerId: string, connectionData: any) => {
-    const newConnection = {
-      id: `${providerId}-${Date.now()}`,
-      name: connectionData.providerName || providerId,
-      type: senseId,
-      connectedAt: new Date(),
-      providerId: providerId,
-      accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
-    }
+  const handleOAuthConnection = async (senseId: SenseId, providerId: string, connectionData: any) => {
+    console.log('🔗 handleOAuthConnection called:', {
+      senseId,
+      providerId,
+      connectionData,
+      auraId: auraData.id
+    })
     
-    setOauthConnections(prev => ({
-      ...prev,
-      [senseId]: [...(prev[senseId] || []), newConnection]
-    }))
+    // Save to database via API if we have an aura ID
+    if (auraData.id) {
+      try {
+        const requestBody = {
+          provider: providerId,
+          sense_type: senseId,
+          provider_user_id: connectionData.accountEmail || connectionData.providerName,
+          access_token: connectionData.tokens?.access_token || 'placeholder',
+          refresh_token: connectionData.tokens?.refresh_token,
+          expires_at: connectionData.tokens?.expires_at,
+          scope: connectionData.tokens?.scope,
+          aura_id: auraData.id, // Associate connection with this specific aura
+        }
+        
+        console.log('📤 Making API request to save OAuth connection:', requestBody)
+        
+        const response = await fetch('/api/oauth-connections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(requestBody),
+        })
+        
+        console.log('📥 API response:', {
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText
+        })
+        
+        if (response.ok) {
+          const savedConnection = await response.json()
+          console.log('✅ Successfully saved OAuth connection:', savedConnection)
+          
+          // Update local state with the saved connection
+          const newConnection = {
+            id: savedConnection.id,
+            name: connectionData.providerName || providerId,
+            type: senseId,
+            connectedAt: new Date(savedConnection.created_at),
+            providerId: providerId,
+            accountEmail: connectionData.accountEmail || connectionData.providerName,
+          }
+          
+          setOauthConnections(prev => ({
+            ...prev,
+            [senseId]: [...(prev[senseId] || []), newConnection]
+          }))
+        } else {
+          const errorData = await response.json()
+          console.error('❌ Failed to save OAuth connection - API error:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorData
+          })
+          
+          // Still update local state for UI feedback
+          const newConnection = {
+            id: `${providerId}-${Date.now()}`,
+            name: connectionData.providerName || providerId,
+            type: senseId,
+            connectedAt: new Date(),
+            providerId: providerId,
+            accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+          }
+          
+          setOauthConnections(prev => ({
+            ...prev,
+            [senseId]: [...(prev[senseId] || []), newConnection]
+          }))
+        }
+      } catch (error) {
+        console.error('❌ Failed to save OAuth connection - Network/Parse error:', error)
+        
+        // Still update local state for UI feedback
+        const newConnection = {
+          id: `${providerId}-${Date.now()}`,
+          name: connectionData.providerName || providerId,
+          type: senseId,
+          connectedAt: new Date(),
+          providerId: providerId,
+          accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+        }
+        
+        setOauthConnections(prev => ({
+          ...prev,
+          [senseId]: [...(prev[senseId] || []), newConnection]
+        }))
+      }
+    } else {
+      // If no aura ID yet (during creation), just update local state
+      // The connections will be saved when the aura is created
+      console.log('⏳ No aura ID yet, storing connection locally for later save')
+      const newConnection = {
+        id: `${providerId}-${Date.now()}`,
+        name: connectionData.providerName || providerId,
+        type: senseId,
+        connectedAt: new Date(),
+        providerId: providerId,
+        accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+      }
+      
+      setOauthConnections(prev => ({
+        ...prev,
+        [senseId]: [...(prev[senseId] || []), newConnection]
+      }))
+    }
   }
 
-  const handleOAuthDisconnect = (senseId: SenseId, connectionId: string) => {
+  const handleOAuthDisconnect = async (senseId: SenseId, connectionId: string) => {
+    console.log('🔌 handleOAuthDisconnect called:', {
+      senseId,
+      connectionId,
+      auraId: auraData.id
+    })
+    
+    // Delete from database via API if we have an aura ID and the connection has a real database ID
+    if (auraData.id && !connectionId.includes('-')) {
+      try {
+        const response = await fetch(`/api/oauth-connections/${connectionId}`, {
+          method: 'DELETE',
+        })
+        
+        console.log('📥 Delete API response:', {
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText
+        })
+        
+        if (response.ok) {
+          console.log('✅ Successfully deleted OAuth connection from database')
+        } else {
+          console.error('❌ Failed to delete OAuth connection from database')
+        }
+      } catch (error) {
+        console.error('❌ Failed to delete OAuth connection - Network error:', error)
+      }
+    } else {
+      console.log('⏳ Local connection or no aura ID, skipping database deletion')
+    }
+    
+    // Always update local state regardless of API success/failure
     setOauthConnections(prev => ({
       ...prev,
       [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
@@ -567,7 +698,7 @@ export function AuraCreatorDigital() {
                 onToggle={toggleSense}
                 vesselType="digital"
                 auraName={auraData.name}
-                auraId={undefined} // No aura_id during creation
+                auraId={auraData.id} // Pass aura ID once available
                 onLocationConfig={handleLocationConfig}
                 locationConfigs={locationConfigs}
                 onOAuthConnection={handleOAuthConnection}
