@@ -6,21 +6,35 @@ import type { NextRequest } from "next/server"
 
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString()
-  const body = await req.json()
+  const requestId = Math.random().toString(36).substring(7)
+  
+  console.log(`[${timestamp}] [${requestId}] 🚀 POST /api/oauth-connections - REQUEST RECEIVED`)
+  
+  let body
+  try {
+    body = await req.json()
+  } catch (parseError) {
+    console.error(`[${timestamp}] [${requestId}] ❌ Failed to parse request body:`, parseError)
+    return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 })
+  }
+  
   const { provider, sense_type, provider_user_id, access_token, refresh_token, expires_at, scope, aura_id } = body
   
-  console.log(`[${timestamp}] 🚀 POST /api/oauth-connections called with:`, {
+  console.log(`[${timestamp}] [${requestId}] 📋 Request details:`, {
     provider,
     sense_type,
     provider_user_id: provider_user_id ? '***' : null,
     hasAccessToken: !!access_token,
     hasRefreshToken: !!refresh_token,
     aura_id,
-    bodyKeys: Object.keys(body)
+    bodyKeys: Object.keys(body),
+    contentType: req.headers.get('content-type'),
+    userAgent: req.headers.get('user-agent')?.substring(0, 50) + '...'
   })
 
   // Basic validation
   if (!provider || !sense_type || !access_token) {
+    console.log(`[${timestamp}] [${requestId}] ❌ Validation failed - missing required fields`)
     return NextResponse.json(
       { error: "Missing required fields: provider, sense_type, access_token" },
       { status: 400 }
@@ -72,7 +86,7 @@ export async function POST(req: NextRequest) {
       aura_id: aura_id || null, // Associate with specific aura if provided
     }
     
-    console.log(`[${timestamp}] 💾 Inserting OAuth connection:`, {
+    console.log(`[${timestamp}] [${requestId}] 💾 Inserting OAuth connection:`, {
       ...insertData,
       access_token: '***',
       refresh_token: insertData.refresh_token ? '***' : null
@@ -85,11 +99,11 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertError) {
-      console.error(`[${timestamp}] ❌ Failed to create OAuth connection:`, insertError)
+      console.error(`[${timestamp}] [${requestId}] ❌ Failed to create OAuth connection:`, insertError)
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
-    console.log(`[${timestamp}] ✅ Successfully created OAuth connection with ID: ${connection.id}`)
+    console.log(`[${timestamp}] [${requestId}] ✅ Successfully created OAuth connection with ID: ${connection.id}`)
     return NextResponse.json(connection, { status: 201 })
   } catch (error: any) {
     console.error("Unexpected error creating OAuth connection:", error)
@@ -119,9 +133,9 @@ export async function GET(req: NextRequest) {
       .select("*")
       .eq("user_id", user.id)
 
-    // Filter by aura_id if provided
+    // Filter by aura_id if provided (including legacy connections without aura_id)
     if (auraId) {
-      query = query.eq("aura_id", auraId)
+      query = query.or(`aura_id.eq.${auraId},aura_id.is.null`)
     }
 
     const { data: connections, error } = await query

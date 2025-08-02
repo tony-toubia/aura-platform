@@ -151,6 +151,14 @@ const OAUTH_PROVIDERS: Record<PersonalSenseType, OAuthProvider[]> = {
       color: 'from-orange-500 to-red-500',
       bgColor: 'bg-orange-50',
     },
+    {
+      id: 'test_direct_api',
+      name: '🧪 Test API Direct',
+      icon: Settings,
+      description: 'Test the API connection directly (bypass OAuth)',
+      color: 'from-gray-500 to-gray-600',
+      bgColor: 'bg-gray-50',
+    },
   ],
   sleep: [
     {
@@ -393,12 +401,19 @@ export function EnhancedOAuthConnectionModal({
 
         // Initiate OAuth flow and get tokens
         console.log('🚀 Starting Google Fit OAuth flow...')
-        const tokenResponse = await googleFitOAuth.initiateOAuth()
+        let tokenResponse
+        try {
+          tokenResponse = await googleFitOAuth.initiateOAuth()
+        } catch (oauthError) {
+          console.error('❌ OAuth flow failed:', oauthError)
+          throw new Error(`OAuth failed: ${oauthError.message}`)
+        }
         console.log('🎉 Google Fit OAuth completed:', {
           hasAccessToken: !!tokenResponse.access_token,
           hasRefreshToken: !!tokenResponse.refresh_token,
           expiresIn: tokenResponse.expires_in,
-          scope: tokenResponse.scope
+          scope: tokenResponse.scope,
+          fullResponse: tokenResponse
         })
         
         // Create connection data
@@ -421,6 +436,27 @@ export function EnhancedOAuthConnectionModal({
           auraId
         })
         onConnectionComplete(providerId, connectionData)
+        
+      } else if (providerId === 'test_direct_api' && senseType === 'fitness') {
+        // Direct API test - bypass OAuth completely
+        console.log('🧪 Testing API directly...')
+        
+        const testConnectionData = {
+          providerId: 'test_direct_api',
+          providerName: 'Direct API Test',
+          accountEmail: 'test@example.com',
+          tokens: {
+            access_token: 'test_access_token_' + Date.now(),
+            refresh_token: 'test_refresh_token_' + Date.now(),
+            expires_in: 3600,
+            scope: 'test_scope'
+          },
+          connectedAt: new Date(),
+        }
+        
+        console.log('📋 Test connection data:', testConnectionData)
+        setConnectionStatus(prev => ({ ...prev, [providerId]: 'idle' }))
+        onConnectionComplete(providerId, testConnectionData)
         
       } else if (providerId === 'fitbit' && senseType === 'fitness') {
         // Fitbit OAuth integration

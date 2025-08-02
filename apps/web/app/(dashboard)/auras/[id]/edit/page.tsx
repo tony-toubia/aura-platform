@@ -39,12 +39,12 @@ export default async function EditAuraPage({ params }: PageProps) {
     .eq("id", auraId)
     .single()
 
-  // Fetch OAuth connections for this specific aura
+  // Fetch OAuth connections for this specific aura (including legacy connections without aura_id)
   const { data: oauthConnections, error: oauthError } = await supabase
     .from("oauth_connections")
     .select("*")
     .eq("user_id", user.id)
-    .eq("aura_id", auraId)
+    .or(`aura_id.eq.${auraId},aura_id.is.null`)
 
   if (error || !auraRow) {
     // couldn't load it
