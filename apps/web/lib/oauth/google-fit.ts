@@ -118,7 +118,19 @@ export class GoogleFitOAuth {
     })
 
     if (!response.ok) {
-      throw new Error('Failed to exchange code for token')
+      let errorMessage = 'Failed to exchange code for token'
+      try {
+        const errorData = await response.json()
+        errorMessage = errorData.error || errorData.details || errorMessage
+        console.error('Google Fit token exchange failed:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        })
+      } catch (parseError) {
+        console.error('Failed to parse error response:', parseError)
+      }
+      throw new Error(errorMessage)
     }
 
     return response.json()
