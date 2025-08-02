@@ -75,9 +75,16 @@ const normalizeSenseId = (senseId: string): string => {
 interface AuraEditFormProps {
   initialAura: Aura
   initialLocationConfigs?: Record<string, LocationConfig>
+  initialOAuthConnections?: Record<string, any[]>
+  initialNewsConfigurations?: Record<string, any[]>
 }
 
-export function AuraEditForm({ initialAura, initialLocationConfigs = {} }: AuraEditFormProps) {
+export function AuraEditForm({
+  initialAura,
+  initialLocationConfigs = {},
+  initialOAuthConnections = {},
+  initialNewsConfigurations = {}
+}: AuraEditFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get("tab") as Step | null
@@ -87,6 +94,8 @@ export function AuraEditForm({ initialAura, initialLocationConfigs = {} }: AuraE
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>(initialLocationConfigs)
+  const [oauthConnections, setOAuthConnections] = useState<Record<string, any[]>>(initialOAuthConnections)
+  const [newsConfigurations, setNewsConfigurations] = useState<Record<string, any[]>>(initialNewsConfigurations)
 
   // Refs for scrolling
   const containerRef = useRef<HTMLDivElement>(null)
@@ -202,6 +211,27 @@ export function AuraEditForm({ initialAura, initialLocationConfigs = {} }: AuraE
     }))
   }
 
+  const handleOAuthConnection = (senseId: SenseId, providerId: string, connectionData: any) => {
+    setOAuthConnections(prev => ({
+      ...prev,
+      [senseId]: [...(prev[senseId] || []), connectionData]
+    }))
+  }
+
+  const handleOAuthDisconnect = (senseId: SenseId, connectionId: string) => {
+    setOAuthConnections(prev => ({
+      ...prev,
+      [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
+    }))
+  }
+
+  const handleNewsConfiguration = (senseId: SenseId, locations: any[]) => {
+    setNewsConfigurations(prev => ({
+      ...prev,
+      [senseId]: locations
+    }))
+  }
+
   const handleSave = async () => {
     setLoading(true)
     setError(null)
@@ -216,6 +246,8 @@ export function AuraEditForm({ initialAura, initialLocationConfigs = {} }: AuraE
           selectedStudyId: (auraData as any).selectedStudyId,
           selectedIndividualId: (auraData as any).selectedIndividualId,
           locationConfigs: locationConfigs,
+          oauthConnections: oauthConnections,
+          newsConfigurations: newsConfigurations,
         }),
       })
       const body = await resp.json()
@@ -475,6 +507,11 @@ export function AuraEditForm({ initialAura, initialLocationConfigs = {} }: AuraE
                 auraName={auraData.name}
                 onLocationConfig={handleLocationConfig}
                 locationConfigs={locationConfigs}
+                onOAuthConnection={handleOAuthConnection}
+                onOAuthDisconnect={handleOAuthDisconnect}
+                oauthConnections={oauthConnections}
+                onNewsConfiguration={handleNewsConfiguration}
+                newsConfigurations={newsConfigurations}
               />
             </div>
           )}

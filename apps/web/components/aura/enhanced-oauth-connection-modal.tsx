@@ -654,6 +654,33 @@ export function EnhancedOAuthConnectionModal({
     return existingConnections.filter(conn => conn.providerId === providerId)
   }
 
+  // Check if a provider should be prevented from duplicate connections
+  const shouldPreventDuplicateConnection = (providerId: string): { prevent: boolean; reason: string } => {
+    const existingConns = getProviderConnections(providerId)
+    
+    // For device location, prevent duplicates of the same device
+    if (providerId === 'device_location') {
+      const isCurrentDeviceAlreadyConfigured = isCurrentDeviceConfigured()
+      if (isCurrentDeviceAlreadyConfigured) {
+        return { prevent: true, reason: 'This device is already configured' }
+      }
+    }
+    
+    // For single-account providers (like personal health data), prevent duplicates
+    const singleAccountProviders = ['apple_health', 'oura', 'whoop']
+    if (singleAccountProviders.includes(providerId) && existingConns.length > 0) {
+      return { prevent: true, reason: 'Only one account can be connected for this service' }
+    }
+    
+    // For providers that typically have one main account but could have multiple
+    const limitedAccountProviders = ['google', 'outlook', 'google_fit', 'fitbit', 'strava']
+    if (limitedAccountProviders.includes(providerId) && existingConns.length >= 2) {
+      return { prevent: true, reason: 'Maximum of 2 accounts allowed for this service' }
+    }
+    
+    return { prevent: false, reason: '' }
+  }
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
@@ -813,6 +840,8 @@ export function EnhancedOAuthConnectionModal({
               const hasError = status === 'error'
               const hasExistingConnection = isProviderConnected(provider.id)
               const isCurrentDeviceAlreadyConfigured = provider.id === 'device_location' && isCurrentDeviceConfigured()
+              const duplicateCheck = shouldPreventDuplicateConnection(provider.id)
+              const shouldPreventConnection = duplicateCheck.prevent
               
               return (
                 <div
@@ -873,9 +902,14 @@ export function EnhancedOAuthConnectionModal({
                             ✓ This device is already configured
                           </p>
                         )}
-                        {hasExistingConnection && provider.id !== 'device_location' && (
+                        {hasExistingConnection && provider.id !== 'device_location' && !shouldPreventConnection && (
                           <p className="text-xs text-blue-600 mt-1 font-medium">
                             ✓ Already connected • You can add multiple accounts
+                          </p>
+                        )}
+                        {shouldPreventConnection && (
+                          <p className="text-xs text-orange-600 mt-1 font-medium">
+                            ⚠ {duplicateCheck.reason}
                           </p>
                         )}
                       </div>
@@ -883,20 +917,21 @@ export function EnhancedOAuthConnectionModal({
                     
                     <Button
                       onClick={() => handleConnect(provider.id)}
-                      disabled={isConnecting || (provider.id === 'device_location' && isCurrentDeviceAlreadyConfigured)}
-                      variant={hasExistingConnection || isCurrentDeviceAlreadyConfigured ? "outline" : "default"}
+                      disabled={isConnecting || shouldPreventConnection}
+                      variant={hasExistingConnection || shouldPreventConnection ? "outline" : "default"}
                       className={cn(
                         "min-w-[120px]",
                         hasError && "border-red-300 text-red-700 bg-red-50",
-                        (hasExistingConnection || isCurrentDeviceAlreadyConfigured) && "border-blue-300 text-blue-700 bg-blue-50"
+                        (hasExistingConnection || shouldPreventConnection) && "border-blue-300 text-blue-700 bg-blue-50",
+                        shouldPreventConnection && "opacity-60 cursor-not-allowed"
                       )}
                     >
                       <div className="flex items-center gap-2">
                         {getStatusIcon(provider.id)}
                         <span>
-                          {provider.id === 'device_location' && isCurrentDeviceAlreadyConfigured
-                            ? 'Already Configured'
-                            : hasExistingConnection && !isConnecting && provider.id !== 'device_location'
+                          {shouldPreventConnection
+                            ? 'Cannot Connect'
+                            : hasExistingConnection && !isConnecting && !shouldPreventConnection
                             ? 'Add Another'
                             : isConnecting
                             ? 'Connecting...'

@@ -73,18 +73,56 @@ export default async function EditAuraPage({ params }: PageProps) {
   // Extract location configs from the database
   const locationConfigs = auraRow.location_configs || {}
   
+  // Extract OAuth connections and news configurations from aura senses
+  const extractOAuthConnections = (auraSenses: any[]): Record<string, any[]> => {
+    const connections: Record<string, any[]> = {}
+    
+    auraSenses.forEach((auraSense) => {
+      const senseCode = auraSense.sense.code
+      const config = auraSense.config || {}
+      
+      if (config.oauthConnections && Array.isArray(config.oauthConnections)) {
+        connections[senseCode] = config.oauthConnections
+      }
+    })
+    
+    return connections
+  }
+
+  const extractNewsConfigurations = (auraSenses: any[]): Record<string, any[]> => {
+    const configurations: Record<string, any[]> = {}
+    
+    auraSenses.forEach((auraSense) => {
+      const senseCode = auraSense.sense.code
+      const config = auraSense.config || {}
+      
+      if (config.newsConfigurations && Array.isArray(config.newsConfigurations)) {
+        configurations[senseCode] = config.newsConfigurations
+      }
+    })
+    
+    return configurations
+  }
+
+  const oauthConnections = extractOAuthConnections(auraRow.aura_senses || [])
+  const newsConfigurations = extractNewsConfigurations(auraRow.aura_senses || [])
+  
   console.log('🔍 Loaded aura data:', {
     id: auraRow.id,
     name: auraRow.name,
     location_configs: auraRow.location_configs,
+    oauth_connections: oauthConnections,
+    news_configurations: newsConfigurations,
     senses: auraRow.aura_senses?.map((as: any) => ({ code: as.sense.code, config: as.config }))
   })
 
   return (
     <div className="container py-0">
-      <AuraEditForm 
-        initialAura={initialAura} 
+      <AuraEditForm
+        initialAura={initialAura}
         initialLocationConfigs={locationConfigs}
+        initialOAuthConnections={oauthConnections}
+        initialNewsConfigurations={newsConfigurations}
       />
     </div>
   )

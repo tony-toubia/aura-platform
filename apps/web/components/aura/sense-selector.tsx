@@ -315,10 +315,27 @@ export function SenseSelector({
   }
 
   const getOAuthDisplay = (senseId: string): string | null => {
-    // Get connections from both session and props
+    // Get connections from both session and props, but deduplicate by ID
     const sessionConns = sessionConnections[senseId] || []
     const propConns = oauthConnections[senseId] || []
-    const allConnections = [...propConns, ...sessionConns]
+    
+    // Deduplicate connections by ID to prevent showing duplicates
+    const allConnectionsMap = new Map()
+    
+    // Add prop connections first (from database)
+    propConns.forEach(conn => {
+      allConnectionsMap.set(conn.id || conn.providerId, conn)
+    })
+    
+    // Add session connections, but only if they don't already exist
+    sessionConns.forEach(conn => {
+      const key = conn.id || conn.providerId
+      if (!allConnectionsMap.has(key)) {
+        allConnectionsMap.set(key, conn)
+      }
+    })
+    
+    const allConnections = Array.from(allConnectionsMap.values())
     
     if (allConnections.length === 0) return null
     if (allConnections.length === 1) {
@@ -340,10 +357,27 @@ export function SenseSelector({
   }
 
   const getLocationDevices = (senseId: string): ConnectedProvider[] => {
-    // Get connections from both session and props for location sense
+    // Get connections from both session and props for location sense, but deduplicate
     const sessionConns = sessionConnections[senseId] || []
     const propConns = oauthConnections[senseId] || []
-    return [...propConns, ...sessionConns]
+    
+    // Deduplicate connections by ID
+    const connectionsMap = new Map()
+    
+    // Add prop connections first (from database)
+    propConns.forEach(conn => {
+      connectionsMap.set(conn.id || conn.providerId, conn)
+    })
+    
+    // Add session connections, but only if they don't already exist
+    sessionConns.forEach(conn => {
+      const key = conn.id || conn.providerId
+      if (!connectionsMap.has(key)) {
+        connectionsMap.set(key, conn)
+      }
+    })
+    
+    return Array.from(connectionsMap.values())
   }
 
   const getNewsDisplay = (senseId: string): string | null => {
@@ -371,8 +405,23 @@ export function SenseSelector({
     // Then check prop connections (connections from parent/database)
     const propConns = oauthConnections[senseId] || []
     
-    // Combine both sources
-    const allConnections = [...propConns, ...sessionConns]
+    // Deduplicate connections by ID
+    const connectionsMap = new Map()
+    
+    // Add prop connections first (from database)
+    propConns.forEach(conn => {
+      connectionsMap.set(conn.id || conn.providerId, conn)
+    })
+    
+    // Add session connections, but only if they don't already exist
+    sessionConns.forEach(conn => {
+      const key = conn.id || conn.providerId
+      if (!connectionsMap.has(key)) {
+        connectionsMap.set(key, conn)
+      }
+    })
+    
+    const allConnections = Array.from(connectionsMap.values())
     
     return allConnections.map(conn => ({
       id: conn.id,

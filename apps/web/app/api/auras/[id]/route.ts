@@ -14,13 +14,15 @@ export async function PUT(req: NextRequest, context: RouteParams) {
   const timestamp = new Date().toISOString()
   const { id: auraId } = await context.params
   const body = await req.json()
-  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, locationConfigs } = body
+  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, locationConfigs, oauthConnections, newsConfigurations } = body
   
   console.log(`[${timestamp}] PUT /api/auras/${auraId} called with:`, {
     name,
     sensesCount: senses?.length || 0,
     hasPersonality: !!personality,
-    hasLocationConfigs: !!locationConfigs
+    hasLocationConfigs: !!locationConfigs,
+    hasOAuthConnections: !!oauthConnections,
+    hasNewsConfigurations: !!newsConfigurations
   })
 
   // Basic validation
@@ -95,11 +97,32 @@ export async function PUT(req: NextRequest, context: RouteParams) {
           return NextResponse.json({ error: "Failed to fetch senses" }, { status: 500 })
         }
 
-        // Create aura_senses connections
-        const auraSenses = senseData.map((sense) => ({
-          aura_id: auraId,
-          sense_id: sense.id,
-        }))
+        // Create aura_senses connections with configurations
+        const auraSenses = senseData.map((sense) => {
+          // Build config object for this sense
+          const config: any = {}
+          
+          // Add location config if available
+          if (locationConfigs && locationConfigs[sense.code]) {
+            config.location = locationConfigs[sense.code]
+          }
+          
+          // Add OAuth connections if available
+          if (oauthConnections && oauthConnections[sense.code]) {
+            config.oauthConnections = oauthConnections[sense.code]
+          }
+          
+          // Add news configurations if available
+          if (newsConfigurations && newsConfigurations[sense.code]) {
+            config.newsConfigurations = newsConfigurations[sense.code]
+          }
+
+          return {
+            aura_id: auraId,
+            sense_id: sense.id,
+            config: Object.keys(config).length > 0 ? config : {},
+          }
+        })
 
         const { error: insertError } = await supabase
           .from("aura_senses")
