@@ -223,11 +223,30 @@ export class SubscriptionService {
   }
 
   static async handleWebhook(event: StripeModule.Event) {
-    const supabase = createClient()
-    const Stripe = (await import('stripe')).default as typeof StripeModule
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+    console.log('🎯 Starting webhook handler for event:', event.type, event.id)
+    
+    try {
+      // Use server-side Supabase client for webhook processing (no user session)
+      const { createClient: createServerClient } = await import('@supabase/supabase-js')
+      
+      console.log('🔑 Creating Supabase client with service role...')
+      const supabase = createServerClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!, // Service role key for server-side operations
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      )
+      
+      console.log('✅ Supabase client created successfully')
+      
+      const Stripe = (await import('stripe')).default as typeof StripeModule
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
-    console.log('Handling webhook event:', event.type, event.id)
+      console.log('🔄 Processing webhook event:', event.type, event.id)
 
     switch (event.type) {
       case 'checkout.session.completed': {
@@ -238,53 +257,72 @@ export class SubscriptionService {
         console.log('Checkout completed:', { userId, tierId, sessionId: sess.id })
         
         if (userId && tierId) {
+          console.log('💾 Checking for existing subscription record...')
+          
           // First, ensure the user has a subscription record
-          const { data: existing } = await supabase
+          const { data: existing, error: selectError } = await supabase
             .from('subscriptions')
-            .select('id')
-            .eq('user_id', userId)
+            .select('id, tier, status')
+            .eq('userId', userId)
             .single()
 
+          if (selectError) {
+            console.log('📝 No existing subscription found, will create new one. Error:', selectError.message)
+          } else {
+            console.log('📋 Found existing subscription:', existing)
+          }
+
           if (!existing) {
-            // Create new subscription record
-            const { error: insertError } = await supabase
+            console.log('➕ Creating new subscription record...')
+            const subscriptionData = {
+              userId: userId,
+              tier: tierId.toUpperCase(), // Convert to enum format (FREE, PERSONAL, etc.)
+              status: 'ACTIVE', // Convert to enum format
+              stripeCustomerId: sess.customer as string,
+              stripeSubscriptionId: sess.subscription as string,
+            }
+            
+            console.log('📝 Subscription data to insert:', subscriptionData)
+            
+            const { data: insertData, error: insertError } = await supabase
               .from('subscriptions')
-              .insert({
-                user_id: userId,
-                tier: tierId,
-                status: 'active',
-                stripe_customer_id: sess.customer as string,
-                stripe_subscription_id: sess.subscription as string,
-                created_at: new Date().toISOString(),
-                updated_at: new Date().toISOString(),
-              })
+              .insert(subscriptionData)
+              .select()
             
             if (insertError) {
-              console.error('Failed to create subscription:', insertError)
+              console.error('❌ Failed to create subscription:', insertError)
+              console.error('❌ Insert error details:', JSON.stringify(insertError, null, 2))
             } else {
-              console.log('Created new subscription for user:', userId)
+              console.log('✅ Created new subscription for user:', userId)
+              console.log('📋 Inserted data:', insertData)
             }
           } else {
-            // Update existing subscription
-            const { error: updateError } = await supabase
+            console.log('🔄 Updating existing subscription...')
+            const updateData = {
+              tier: tierId.toUpperCase(), // Convert to enum format (FREE, PERSONAL, etc.)
+              status: 'ACTIVE', // Convert to enum format
+              stripeCustomerId: sess.customer as string,
+              stripeSubscriptionId: sess.subscription as string,
+            }
+            
+            console.log('📝 Update data:', updateData)
+            
+            const { data: updateResult, error: updateError } = await supabase
               .from('subscriptions')
-              .update({
-                tier: tierId,
-                status: 'active',
-                stripe_customer_id: sess.customer as string,
-                stripe_subscription_id: sess.subscription as string,
-                updated_at: new Date().toISOString(),
-              })
-              .eq('user_id', userId)
+              .update(updateData)
+              .eq('userId', userId)
+              .select()
             
             if (updateError) {
-              console.error('Failed to update subscription:', updateError)
+              console.error('❌ Failed to update subscription:', updateError)
+              console.error('❌ Update error details:', JSON.stringify(updateError, null, 2))
             } else {
-              console.log('Updated subscription for user:', userId)
+              console.log('✅ Updated subscription for user:', userId)
+              console.log('📋 Updated data:', updateResult)
             }
           }
         } else {
-          console.error('Missing userId or tierId in checkout session:', { userId, tierId })
+          console.error('❌ Missing userId or tierId in checkout session:', { userId, tierId })
         }
         break
       }
@@ -305,11 +343,10 @@ export class SubscriptionService {
           const { error } = await supabase
             .from('subscriptions')
             .update({
-              tier: tierId,
-              status: sub.status === 'active' ? 'active' : 'cancelled',
-              updated_at: new Date().toISOString(),
+              tier: tierId.toUpperCase(),
+              status: sub.status === 'active' ? 'ACTIVE' : 'CANCELLED',
             })
-            .eq('user_id', userId)
+            .eq('userId', userId)
           
           if (error) {
             console.error('Failed to update subscription:', error)
@@ -329,12 +366,11 @@ export class SubscriptionService {
           const { error } = await supabase
             .from('subscriptions')
             .update({
-              tier: 'free',
-              status: 'cancelled',
-              stripe_subscription_id: null,
-              updated_at: new Date().toISOString(),
+              tier: 'FREE',
+              status: 'CANCELLED',
+              stripeSubscriptionId: null,
             })
-            .eq('user_id', userId)
+            .eq('userId', userId)
           
           if (error) {
             console.error('Failed to cancel subscription:', error)
@@ -346,12 +382,11 @@ export class SubscriptionService {
           const { error } = await supabase
             .from('subscriptions')
             .update({
-              tier: 'free',
-              status: 'cancelled',
-              stripe_subscription_id: null,
-              updated_at: new Date().toISOString(),
+              tier: 'FREE',
+              status: 'CANCELLED',
+              stripeSubscriptionId: null,
             })
-            .eq('stripe_subscription_id', sub.id)
+            .eq('stripeSubscriptionId', sub.id)
           
           if (error) {
             console.error('Failed to cancel subscription by stripe ID:', error)
@@ -363,6 +398,16 @@ export class SubscriptionService {
       }
       default:
         console.log('Unhandled webhook event type:', event.type)
+    }
+    
+    console.log('✅ Webhook processing completed successfully')
+    } catch (error) {
+      console.error('❌ Fatal error in webhook handler:', error)
+      if (error instanceof Error) {
+        console.error('❌ Error message:', error.message)
+        console.error('❌ Error stack:', error.stack)
+      }
+      throw error // Re-throw to ensure webhook endpoint returns error status
     }
   }
 }
