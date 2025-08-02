@@ -765,8 +765,8 @@ export function EnhancedOAuthConnectionModal({
                             </p>
                           )}
                           <p className="text-xs text-green-600">
-                            Connected {connection.connectedAt.toLocaleDateString()}
-                            {connection.lastSync && ` • Last sync: ${connection.lastSync.toLocaleDateString()}`}
+                            Connected {connection.connectedAt instanceof Date ? connection.connectedAt.toLocaleDateString() : new Date(connection.connectedAt).toLocaleDateString()}
+                            {connection.lastSync && ` • Last sync: ${connection.lastSync instanceof Date ? connection.lastSync.toLocaleDateString() : new Date(connection.lastSync).toLocaleDateString()}`}
                           </p>
                         </div>
                       </div>

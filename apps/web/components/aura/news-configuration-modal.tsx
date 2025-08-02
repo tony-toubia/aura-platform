@@ -284,7 +284,7 @@ export function NewsConfigurationModal({
                               {location.type === 'global' ? 'Global Coverage' : 'Regional News'}
                             </Badge>
                             <span className="text-xs text-gray-500">
-                              Added {location.addedAt.toLocaleDateString()}
+                              Added {location.addedAt instanceof Date ? location.addedAt.toLocaleDateString() : new Date(location.addedAt).toLocaleDateString()}
                             </span>
                           </div>
                         </div>

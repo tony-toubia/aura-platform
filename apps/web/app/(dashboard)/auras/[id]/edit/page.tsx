@@ -94,11 +94,10 @@ export default async function EditAuraPage({ params }: PageProps) {
         id: conn.id,
         name: conn.provider,
         type: senseType,
-        connectedAt: new Date(conn.created_at),
+        connectedAt: conn.created_at ? new Date(conn.created_at) : new Date(),
         providerId: conn.provider,
         accountEmail: conn.provider_user_id || `Connected ${conn.provider} account`,
-        accessToken: conn.access_token, // Don't expose this to frontend
-        refreshToken: conn.refresh_token, // Don't expose this to frontend
+        // Don't expose sensitive tokens to frontend
         expiresAt: conn.expires_at ? new Date(conn.expires_at) : null,
         scope: conn.scope,
       })
