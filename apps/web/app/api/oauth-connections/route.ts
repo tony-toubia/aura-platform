@@ -47,9 +47,6 @@ export async function POST(req: NextRequest) {
     // If aura_id is provided, check for duplicates within that aura
     if (aura_id) {
       existingConnectionQuery = existingConnectionQuery.eq("aura_id", aura_id)
-    } else {
-      // If no aura_id, check for user-level connections (legacy support)
-      existingConnectionQuery = existingConnectionQuery.is("aura_id", null)
     }
 
     const { data: existingConnection } = await existingConnectionQuery.single()
