@@ -324,12 +324,13 @@ export function SenseSelector({
     
     // Add prop connections first (from database)
     propConns.forEach(conn => {
-      allConnectionsMap.set(conn.id || conn.providerId, conn)
+      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
+      allConnectionsMap.set(key, conn)
     })
     
     // Add session connections, but only if they don't already exist
     sessionConns.forEach(conn => {
-      const key = conn.id || conn.providerId
+      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
       if (!allConnectionsMap.has(key)) {
         allConnectionsMap.set(key, conn)
       }
@@ -366,12 +367,13 @@ export function SenseSelector({
     
     // Add prop connections first (from database)
     propConns.forEach(conn => {
-      connectionsMap.set(conn.id || conn.providerId, conn)
+      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
+      connectionsMap.set(key, conn)
     })
     
     // Add session connections, but only if they don't already exist
     sessionConns.forEach(conn => {
-      const key = conn.id || conn.providerId
+      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
       if (!connectionsMap.has(key)) {
         connectionsMap.set(key, conn)
       }
@@ -410,12 +412,13 @@ export function SenseSelector({
     
     // Add prop connections first (from database)
     propConns.forEach(conn => {
-      connectionsMap.set(conn.id || conn.providerId, conn)
+      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
+      connectionsMap.set(key, conn)
     })
     
     // Add session connections, but only if they don't already exist
     sessionConns.forEach(conn => {
-      const key = conn.id || conn.providerId
+      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
       if (!connectionsMap.has(key)) {
         connectionsMap.set(key, conn)
       }

@@ -211,18 +211,70 @@ export function AuraEditForm({
     }))
   }
 
-  const handleOAuthConnection = (senseId: SenseId, providerId: string, connectionData: any) => {
-    setOAuthConnections(prev => ({
-      ...prev,
-      [senseId]: [...(prev[senseId] || []), connectionData]
-    }))
+  const handleOAuthConnection = async (senseId: SenseId, providerId: string, connectionData: any) => {
+    // Save to database via API
+    try {
+      const response = await fetch('/api/oauth-connections', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          provider: providerId,
+          sense_type: senseId,
+          provider_user_id: connectionData.accountEmail || connectionData.providerName,
+          access_token: connectionData.tokens?.access_token || 'placeholder',
+          refresh_token: connectionData.tokens?.refresh_token,
+          expires_at: connectionData.tokens?.expires_at,
+          scope: connectionData.tokens?.scope,
+        }),
+      })
+      
+      if (response.ok) {
+        const savedConnection = await response.json()
+        // Update local state with the saved connection
+        setOAuthConnections(prev => ({
+          ...prev,
+          [senseId]: [...(prev[senseId] || []), {
+            id: savedConnection.id,
+            name: providerId,
+            type: senseId,
+            connectedAt: new Date(savedConnection.created_at),
+            providerId: providerId,
+            accountEmail: connectionData.accountEmail || connectionData.providerName,
+          }]
+        }))
+      }
+    } catch (error) {
+      console.error('Failed to save OAuth connection:', error)
+      // Still update local state for UI feedback
+      setOAuthConnections(prev => ({
+        ...prev,
+        [senseId]: [...(prev[senseId] || []), connectionData]
+      }))
+    }
   }
 
-  const handleOAuthDisconnect = (senseId: SenseId, connectionId: string) => {
-    setOAuthConnections(prev => ({
-      ...prev,
-      [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
-    }))
+  const handleOAuthDisconnect = async (senseId: SenseId, connectionId: string) => {
+    // Delete from database via API
+    try {
+      const response = await fetch(`/api/oauth-connections/${connectionId}`, {
+        method: 'DELETE',
+      })
+      
+      if (response.ok) {
+        // Update local state
+        setOAuthConnections(prev => ({
+          ...prev,
+          [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
+        }))
+      }
+    } catch (error) {
+      console.error('Failed to delete OAuth connection:', error)
+      // Still update local state for UI feedback
+      setOAuthConnections(prev => ({
+        ...prev,
+        [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
+      }))
+    }
   }
 
   const handleNewsConfiguration = (senseId: SenseId, locations: any[]) => {
@@ -246,7 +298,6 @@ export function AuraEditForm({
           selectedStudyId: (auraData as any).selectedStudyId,
           selectedIndividualId: (auraData as any).selectedIndividualId,
           locationConfigs: locationConfigs,
-          oauthConnections: oauthConnections,
           newsConfigurations: newsConfigurations,
         }),
       })

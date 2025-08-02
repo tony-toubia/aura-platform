@@ -14,14 +14,13 @@ export async function PUT(req: NextRequest, context: RouteParams) {
   const timestamp = new Date().toISOString()
   const { id: auraId } = await context.params
   const body = await req.json()
-  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, locationConfigs, oauthConnections, newsConfigurations } = body
+  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, locationConfigs, newsConfigurations } = body
   
   console.log(`[${timestamp}] PUT /api/auras/${auraId} called with:`, {
     name,
     sensesCount: senses?.length || 0,
     hasPersonality: !!personality,
     hasLocationConfigs: !!locationConfigs,
-    hasOAuthConnections: !!oauthConnections,
     hasNewsConfigurations: !!newsConfigurations
   })
 
@@ -99,17 +98,12 @@ export async function PUT(req: NextRequest, context: RouteParams) {
 
         // Create aura_senses connections with configurations
         const auraSenses = senseData.map((sense) => {
-          // Build config object for this sense
+          // Build config object for this sense (excluding OAuth connections)
           const config: any = {}
           
           // Add location config if available
           if (locationConfigs && locationConfigs[sense.code]) {
             config.location = locationConfigs[sense.code]
-          }
-          
-          // Add OAuth connections if available
-          if (oauthConnections && oauthConnections[sense.code]) {
-            config.oauthConnections = oauthConnections[sense.code]
           }
           
           // Add news configurations if available

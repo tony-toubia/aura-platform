@@ -41,24 +41,31 @@ model Subscription {
 }
 
 model Aura {
-  id                String         @id @default(cuid())
-  userId            String
-  user              User           @relation(fields: [userId], references: [id])
-  name              String
-  vesselType        VesselType
-  personality       Json           // Stores trait values
-  communicationStyle String
-  voiceProfile      String
-  enabled           Boolean        @default(true)
-  senses            AuraSense[]
-  rules             BehaviorRule[]
-  knowledge         Knowledge[]
-  conversations     Conversation[]
-  analytics         Analytics?
-  createdAt         DateTime       @default(now())
-  updatedAt         DateTime       @updatedAt
+  id                    String         @id @default(cuid())
+  userId                String
+  user                  User           @relation(fields: [userId], references: [id])
+  name                  String
+  vesselType            VesselType
+  vesselCode            String?        // For specific vessel variants
+  plantType             String?        // For terra vessels
+  personality           Json           // Stores trait values
+  communicationStyle    String
+  voiceProfile          String
+  enabled               Boolean        @default(true)
+  avatar                String?        // Avatar URL or emoji
+  selectedStudyId       String?        // For wildlife tracking
+  selectedIndividualId  String?        // For specific individual tracking
+  locationConfigs       Json?          // Location configurations for senses
+  senses                AuraSense[]
+  rules                 BehaviorRule[]
+  knowledge             Knowledge[]
+  conversations         Conversation[]
+  analytics             Analytics?
+  createdAt             DateTime       @default(now())
+  updatedAt             DateTime       @updatedAt
   
   @@index([userId])
+  @@map("auras")
 }
 
 model Sense {

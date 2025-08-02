@@ -22,7 +22,7 @@ export default async function EditAuraPage({ params }: PageProps) {
     redirect("/login")
   }
 
-  // 3) Fetch the aura with its senses and rules
+  // 3) Fetch the aura with its senses, rules, and OAuth connections
   const { data: auraRow, error } = await supabase
     .from("auras")
     .select(
@@ -38,6 +38,12 @@ export default async function EditAuraPage({ params }: PageProps) {
     )
     .eq("id", auraId)
     .single()
+
+  // Fetch OAuth connections for this user
+  const { data: oauthConnections, error: oauthError } = await supabase
+    .from("oauth_connections")
+    .select("*")
+    .eq("user_id", user.id)
 
   if (error || !auraRow) {
     // couldn't load it
@@ -73,22 +79,35 @@ export default async function EditAuraPage({ params }: PageProps) {
   // Extract location configs from the database
   const locationConfigs = auraRow.location_configs || {}
   
-  // Extract OAuth connections and news configurations from aura senses
-  const extractOAuthConnections = (auraSenses: any[]): Record<string, any[]> => {
+  // Transform OAuth connections from the oauth_connections table
+  const transformOAuthConnections = (oauthConns: any[]): Record<string, any[]> => {
     const connections: Record<string, any[]> = {}
     
-    auraSenses.forEach((auraSense) => {
-      const senseCode = auraSense.sense.code
-      const config = auraSense.config || {}
+    oauthConns.forEach((conn) => {
+      const senseType = conn.sense_type
       
-      if (config.oauthConnections && Array.isArray(config.oauthConnections)) {
-        connections[senseCode] = config.oauthConnections
+      if (!connections[senseType]) {
+        connections[senseType] = []
       }
+      
+      connections[senseType].push({
+        id: conn.id,
+        name: conn.provider,
+        type: senseType,
+        connectedAt: new Date(conn.created_at),
+        providerId: conn.provider,
+        accountEmail: conn.provider_user_id || `Connected ${conn.provider} account`,
+        accessToken: conn.access_token, // Don't expose this to frontend
+        refreshToken: conn.refresh_token, // Don't expose this to frontend
+        expiresAt: conn.expires_at ? new Date(conn.expires_at) : null,
+        scope: conn.scope,
+      })
     })
     
     return connections
   }
 
+  // Extract news configurations from aura senses (still stored in config)
   const extractNewsConfigurations = (auraSenses: any[]): Record<string, any[]> => {
     const configurations: Record<string, any[]> = {}
     
@@ -104,14 +123,14 @@ export default async function EditAuraPage({ params }: PageProps) {
     return configurations
   }
 
-  const oauthConnections = extractOAuthConnections(auraRow.aura_senses || [])
+  const oauthConnectionsData = transformOAuthConnections(oauthConnections || [])
   const newsConfigurations = extractNewsConfigurations(auraRow.aura_senses || [])
   
   console.log('🔍 Loaded aura data:', {
     id: auraRow.id,
     name: auraRow.name,
     location_configs: auraRow.location_configs,
-    oauth_connections: oauthConnections,
+    oauth_connections: oauthConnectionsData,
     news_configurations: newsConfigurations,
     senses: auraRow.aura_senses?.map((as: any) => ({ code: as.sense.code, config: as.config }))
   })
@@ -121,7 +140,7 @@ export default async function EditAuraPage({ params }: PageProps) {
       <AuraEditForm
         initialAura={initialAura}
         initialLocationConfigs={locationConfigs}
-        initialOAuthConnections={oauthConnections}
+        initialOAuthConnections={oauthConnectionsData}
         initialNewsConfigurations={newsConfigurations}
       />
     </div>
