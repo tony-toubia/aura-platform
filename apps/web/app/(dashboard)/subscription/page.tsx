@@ -2,6 +2,7 @@ import { redirect } from "next/navigation"
 import { createServerSupabase } from "@/lib/supabase/server.server"
 import { SubscriptionService } from "@/lib/services/subscription-service"
 import { PricingCards } from "@/components/subscription/pricing-cards"
+import { CustomerPortalButton } from "@/components/subscription/customer-portal-button"
 import {
   Card,
   CardContent,
@@ -10,9 +11,11 @@ import {
   CardTitle,
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { ExternalLink, Brain, MessageCircle, Zap, Crown } from "lucide-react"
-import { openCustomerPortal } from "@/lib/stripe/upgrade"
+import { Brain, MessageCircle, Zap, Crown } from "lucide-react"
 import Link from "next/link"
+
+// Force this page to revalidate on every request to show fresh subscription data
+export const revalidate = 0
 
 export default async function SubscriptionPage() {
   const supabase = await createServerSupabase()
@@ -24,9 +27,19 @@ export default async function SubscriptionPage() {
     redirect("/login")
   }
 
-  const subscription = await SubscriptionService.getUserSubscription(
-    user.id
-  )
+  // Get subscription directly from server-side Supabase to avoid caching issues
+  const { data: subscriptionRow, error } = await supabase
+    .from('subscriptions')
+    .select('tier')
+    .eq('user_id', user.id)
+    .single()
+
+  // Import SUBSCRIPTION_TIERS directly to avoid client-side issues
+  const { SUBSCRIPTION_TIERS } = await import('@/lib/services/subscription-service')
+  
+  const subscription = subscriptionRow && !error
+    ? SUBSCRIPTION_TIERS[subscriptionRow.tier as keyof typeof SUBSCRIPTION_TIERS] ?? SUBSCRIPTION_TIERS.free
+    : SUBSCRIPTION_TIERS.free
 
   // usage stats
   const { count: auraCount } = await supabase
@@ -117,15 +130,7 @@ export default async function SubscriptionPage() {
 
           {subscription.id !== "free" && (
             <div className="text-center pt-4">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => openCustomerPortal()}
-                className="inline-flex items-center gap-2"
-              >
-                <ExternalLink className="w-5 h-5" />
-                Manage Billing
-              </Button>
+              <CustomerPortalButton />
             </div>
           )}
         </CardContent>

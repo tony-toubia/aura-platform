@@ -5,6 +5,9 @@ import { redirect } from 'next/navigation'
 import React from 'react' // Import React for type definitions
 import { DashboardContent } from '@/components/aura/dashboard-content'
 
+// Force this page to revalidate on every request to show fresh subscription data
+export const revalidate = 0
+
 // Define the props interface here to ensure type safety within this file
 interface DashboardStats {
   auras: number
