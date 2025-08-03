@@ -186,6 +186,7 @@ export function AuraCreatorDigital() {
         response = await auraApi.createAura({
           name: data.name,
           vesselType: data.vesselType,
+          vesselCode: data.vesselCode || 'digital-only', // Ensure digital auras have proper vessel code
           personality: data.personality,
           senses: senseCodes,
           communicationStyle: data.personality.tone || 'casual',
