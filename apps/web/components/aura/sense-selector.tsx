@@ -229,34 +229,50 @@ export function SenseSelector({
 
   const handleOAuthComplete = (providerId: string, connectionData: any) => {
     if (connectingSense) {
-      // Create a new connection record
-      const newConnection: ConnectedProvider = {
-        id: `${providerId}-${Date.now()}`, // Simple ID generation
-        name: connectionData.providerName || providerId,
-        type: connectingSense,
-        connectedAt: new Date(),
-        providerId: providerId,
-        accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
-      }
-      
-      // Add to session connections
-      setSessionConnections(prev => ({
-        ...prev,
-        [connectingSense]: [...(prev[connectingSense] || []), newConnection]
-      }))
-      
-      // Defer state updates to avoid React render cycle conflicts
-      setTimeout(() => {
-        // Only enable the sense if it's not already enabled
-        if (!isSelected(connectingSense)) {
-          onToggle(connectingSense as SenseId)
+      // If we have an auraId, let the parent component handle persistence
+      // This prevents duplicate connections in the UI
+      if (auraId && onOAuthConnection) {
+        // Defer state updates to avoid React render cycle conflicts
+        setTimeout(() => {
+          // Only enable the sense if it's not already enabled
+          if (!isSelected(connectingSense)) {
+            onToggle(connectingSense as SenseId)
+          }
+          
+          // Notify parent component of the OAuth connection - parent will handle adding to state
+          onOAuthConnection(connectingSense as SenseId, providerId, connectionData)
+        }, 0)
+      } else {
+        // Fallback for when no auraId is present (e.g., debug mode)
+        // Create a new connection record
+        const newConnection: ConnectedProvider = {
+          id: `${providerId}-${Date.now()}`, // Simple ID generation
+          name: connectionData.providerName || providerId,
+          type: connectingSense,
+          connectedAt: new Date(),
+          providerId: providerId,
+          accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
         }
         
-        // Notify parent component of the OAuth connection
-        if (onOAuthConnection) {
-          onOAuthConnection(connectingSense as SenseId, providerId, connectionData)
-        }
-      }, 0)
+        // Add to session connections
+        setSessionConnections(prev => ({
+          ...prev,
+          [connectingSense]: [...(prev[connectingSense] || []), newConnection]
+        }))
+        
+        // Defer state updates to avoid React render cycle conflicts
+        setTimeout(() => {
+          // Only enable the sense if it's not already enabled
+          if (!isSelected(connectingSense)) {
+            onToggle(connectingSense as SenseId)
+          }
+          
+          // Notify parent component of the OAuth connection
+          if (onOAuthConnection) {
+            onOAuthConnection(connectingSense as SenseId, providerId, connectionData)
+          }
+        }, 0)
+      }
       
       // Don't automatically close the modal - let users manage multiple connections
       // The modal has a "Done" button for when they're finished
@@ -265,30 +281,42 @@ export function SenseSelector({
 
   const handleOAuthDisconnect = (connectionId: string) => {
     if (connectingSense) {
-      // Remove from session connections
-      setSessionConnections(prev => {
-        const senseConnections = prev[connectingSense] || []
-        const updatedConnections = senseConnections.filter(conn => conn.id !== connectionId)
-        
+      // If we have an auraId, let the parent component handle disconnection
+      // This prevents state conflicts and ensures proper database cleanup
+      if (auraId && onOAuthDisconnect) {
         // Defer state updates to avoid React render cycle conflicts
         setTimeout(() => {
-          // If no connections left, disable the sense
-          if (updatedConnections.length === 0 && isSelected(connectingSense)) {
-            onToggle(connectingSense as SenseId)
-          }
-          
-          // Notify parent component of the disconnection
+          // Notify parent component of the disconnection - parent will handle state updates
           const senseId = connectingSense as SenseId
-          if (onOAuthDisconnect) {
-            onOAuthDisconnect(senseId, connectionId)
-          }
+          onOAuthDisconnect(senseId, connectionId)
         }, 0)
-        
-        return {
-          ...prev,
-          [connectingSense]: updatedConnections
-        }
-      })
+      } else {
+        // Fallback for when no auraId is present (e.g., debug mode)
+        // Remove from session connections
+        setSessionConnections(prev => {
+          const senseConnections = prev[connectingSense] || []
+          const updatedConnections = senseConnections.filter(conn => conn.id !== connectionId)
+          
+          // Defer state updates to avoid React render cycle conflicts
+          setTimeout(() => {
+            // If no connections left, disable the sense
+            if (updatedConnections.length === 0 && isSelected(connectingSense)) {
+              onToggle(connectingSense as SenseId)
+            }
+            
+            // Notify parent component of the disconnection
+            const senseId = connectingSense as SenseId
+            if (onOAuthDisconnect) {
+              onOAuthDisconnect(senseId, connectionId)
+            }
+          }, 0)
+          
+          return {
+            ...prev,
+            [connectingSense]: updatedConnections
+          }
+        })
+      }
     }
   }
 
@@ -318,22 +346,23 @@ export function SenseSelector({
   }
 
   const getOAuthDisplay = (senseId: string): string | null => {
-    // Get connections from both session and props, but deduplicate by ID
+    // Get connections from both session and props, but deduplicate properly
     const sessionConns = sessionConnections[senseId] || []
     const propConns = oauthConnections[senseId] || []
     
-    // Deduplicate connections by ID to prevent showing duplicates
+    // Deduplicate connections by provider + account email to prevent showing duplicates
     const allConnectionsMap = new Map()
     
-    // Add prop connections first (from database)
+    // Add prop connections first (from database) - these are the authoritative source
     propConns.forEach(conn => {
-      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
+      const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
       allConnectionsMap.set(key, conn)
     })
     
-    // Add session connections, but only if they don't already exist
+    // Add session connections only if they don't already exist (by provider + account)
+    // This prevents duplicates when the same connection exists in both states
     sessionConns.forEach(conn => {
-      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
+      const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
       if (!allConnectionsMap.has(key)) {
         allConnectionsMap.set(key, conn)
       }
@@ -361,22 +390,22 @@ export function SenseSelector({
   }
 
   const getLocationDevices = (senseId: string): ConnectedProvider[] => {
-    // Get connections from both session and props for location sense, but deduplicate
+    // Get connections from both session and props for location sense, but deduplicate properly
     const sessionConns = sessionConnections[senseId] || []
     const propConns = oauthConnections[senseId] || []
     
-    // Deduplicate connections by ID
+    // Deduplicate connections by provider + account email
     const connectionsMap = new Map()
     
-    // Add prop connections first (from database)
+    // Add prop connections first (from database) - these are the authoritative source
     propConns.forEach(conn => {
-      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
+      const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
       connectionsMap.set(key, conn)
     })
     
-    // Add session connections, but only if they don't already exist
+    // Add session connections only if they don't already exist (by provider + account)
     sessionConns.forEach(conn => {
-      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
+      const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
       if (!connectionsMap.has(key)) {
         connectionsMap.set(key, conn)
       }
@@ -404,24 +433,22 @@ export function SenseSelector({
   }
 
   const getConnectedCalendars = (senseId: string): ConnectedCalendar[] => {
-    // First check session connections (connections made during this session)
+    // Get connections from both session and props, but deduplicate properly
     const sessionConns = sessionConnections[senseId] || []
-    
-    // Then check prop connections (connections from parent/database)
     const propConns = oauthConnections[senseId] || []
     
-    // Deduplicate connections by ID
+    // Deduplicate connections by provider + account email
     const connectionsMap = new Map()
     
-    // Add prop connections first (from database)
+    // Add prop connections first (from database) - these are the authoritative source
     propConns.forEach(conn => {
-      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
+      const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
       connectionsMap.set(key, conn)
     })
     
-    // Add session connections, but only if they don't already exist
+    // Add session connections only if they don't already exist (by provider + account)
     sessionConns.forEach(conn => {
-      const key = conn.id || `${conn.providerId}-${conn.accountEmail || 'default'}`
+      const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
       if (!connectionsMap.has(key)) {
         connectionsMap.set(key, conn)
       }
