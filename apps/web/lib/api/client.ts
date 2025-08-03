@@ -29,7 +29,14 @@ class ApiClient {
       const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || `HTTP ${response.status}`)
+        console.error(`API Error [${endpoint}] - Status: ${response.status}`, {
+          status: response.status,
+          statusText: response.statusText,
+          responseData: data,
+          requestUrl: url,
+          requestConfig: config
+        })
+        throw new Error(data.error || data.message || `HTTP ${response.status}: ${response.statusText}`)
       }
 
       return data
@@ -94,7 +101,7 @@ export const auraApi = {
   createAura: (data: any) => {
     const timestamp = new Date().toISOString()
     console.log(`[${timestamp}] auraApi.createAura called with data:`, data)
-    return apiClient.post('/auras', data)
+    return apiClient.post('/auras/create-agent-aura', data)
   },
   updateAura: (id: string, data: any) => apiClient.put(`/auras/${id}`, data),
   deleteAura: (id: string) => apiClient.delete(`/auras/${id}`),
