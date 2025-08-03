@@ -184,18 +184,15 @@ export function AuraCreatorDigital() {
         // Create new aura
         console.log("Creating new aura")
         response = await auraApi.createAura({
-          userId,
           name: data.name,
           vesselType: data.vesselType,
-          vesselCode: data.vesselCode,
           personality: data.personality,
           senses: senseCodes,
-          rules: data.rules.filter((r) => r.name && r.name.trim()),
-          locationInfo: data.locationInfo,
-          newsType: data.newsType,
+          communicationStyle: data.personality.tone || 'casual',
+          voiceProfile: data.personality.vocabulary || 'average',
+          selectedStudyId: data.selectedStudyId,
+          selectedIndividualId: data.selectedIndividualId,
           locationConfigs,
-          oauthConnections,
-          newsConfigurations,
         })
       }
 

@@ -94,7 +94,7 @@ export const auraApi = {
   createAura: (data: any) => {
     const timestamp = new Date().toISOString()
     console.log(`[${timestamp}] auraApi.createAura called with data:`, data)
-    return apiClient.post('/auras/create-agent-aura', data)
+    return apiClient.post('/auras', data)
   },
   updateAura: (id: string, data: any) => apiClient.put(`/auras/${id}`, data),
   deleteAura: (id: string) => apiClient.delete(`/auras/${id}`),
