@@ -84,6 +84,19 @@ export default async function EditAuraPage({ params }: PageProps) {
   const transformOAuthConnections = (oauthConns: any[]): Record<string, any[]> => {
     const connections: Record<string, any[]> = {}
     
+    // Helper function to get user-friendly provider names
+    const getProviderDisplayName = (provider: string): string => {
+      const providerNames: Record<string, string> = {
+        'google': 'Google',
+        'google-fit': 'Google Fit',
+        'fitbit': 'Fitbit',
+        'apple-health': 'Apple Health',
+        'strava': 'Strava',
+        'microsoft': 'Microsoft',
+      }
+      return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1)
+    }
+    
     oauthConns.forEach((conn) => {
       const senseType = conn.sense_type
       
@@ -93,11 +106,11 @@ export default async function EditAuraPage({ params }: PageProps) {
       
       connections[senseType].push({
         id: conn.id,
-        name: conn.provider,
+        name: getProviderDisplayName(conn.provider),
         type: senseType,
         connectedAt: conn.created_at ? new Date(conn.created_at) : new Date(),
         providerId: conn.provider,
-        accountEmail: conn.provider_user_id || `Connected ${conn.provider} account`,
+        accountEmail: conn.provider_user_id || `Connected ${getProviderDisplayName(conn.provider)} account`,
         // Don't expose sensitive tokens to frontend
         expiresAt: conn.expires_at ? new Date(conn.expires_at) : null,
         scope: conn.scope,

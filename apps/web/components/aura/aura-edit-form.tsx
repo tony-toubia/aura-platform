@@ -219,6 +219,19 @@ export function AuraEditForm({
       auraId: auraData.id
     })
     
+    // Helper function to get user-friendly provider names (matching edit page logic)
+    const getProviderDisplayName = (provider: string): string => {
+      const providerNames: Record<string, string> = {
+        'google': 'Google',
+        'google-fit': 'Google Fit',
+        'fitbit': 'Fitbit',
+        'apple-health': 'Apple Health',
+        'strava': 'Strava',
+        'microsoft': 'Microsoft',
+      }
+      return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1)
+    }
+    
     // Save to database via API
     try {
       const requestBody = {
@@ -250,16 +263,16 @@ export function AuraEditForm({
         const savedConnection = await response.json()
         console.log('✅ Successfully saved OAuth connection:', savedConnection)
         
-        // Update local state with the saved connection
+        // Update local state with the saved connection using consistent naming
         setOAuthConnections(prev => ({
           ...prev,
           [senseId]: [...(prev[senseId] || []), {
             id: savedConnection.id,
-            name: providerId,
+            name: getProviderDisplayName(providerId),
             type: senseId,
             connectedAt: new Date(savedConnection.created_at),
             providerId: providerId,
-            accountEmail: connectionData.accountEmail || connectionData.providerName,
+            accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
           }]
         }))
       } else {
@@ -272,10 +285,17 @@ export function AuraEditForm({
       }
     } catch (error) {
       console.error('❌ Failed to save OAuth connection - Network/Parse error:', error)
-      // Still update local state for UI feedback
+      // Still update local state for UI feedback with consistent naming
       setOAuthConnections(prev => ({
         ...prev,
-        [senseId]: [...(prev[senseId] || []), connectionData]
+        [senseId]: [...(prev[senseId] || []), {
+          id: `${providerId}-${Date.now()}`,
+          name: getProviderDisplayName(providerId),
+          type: senseId,
+          connectedAt: new Date(),
+          providerId: providerId,
+          accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
+        }]
       }))
     }
   }

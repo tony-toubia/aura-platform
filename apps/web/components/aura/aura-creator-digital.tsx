@@ -259,6 +259,19 @@ export function AuraCreatorDigital() {
       auraId: auraData.id
     })
     
+    // Helper function to get user-friendly provider names (consistent with edit form)
+    const getProviderDisplayName = (provider: string): string => {
+      const providerNames: Record<string, string> = {
+        'google': 'Google',
+        'google-fit': 'Google Fit',
+        'fitbit': 'Fitbit',
+        'apple-health': 'Apple Health',
+        'strava': 'Strava',
+        'microsoft': 'Microsoft',
+      }
+      return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1)
+    }
+    
     // We should always have an aura ID at this point since we auto-save when transitioning to senses
     if (!auraData.id) {
       console.error('❌ No aura ID available - this should not happen after auto-save implementation')
@@ -310,11 +323,11 @@ export function AuraCreatorDigital() {
         // Only add to local state if API save was successful
         const newConnection = {
           id: savedConnection.id,
-          name: connectionData.providerName || providerId,
+          name: getProviderDisplayName(providerId),
           type: senseId,
           connectedAt: new Date(savedConnection.created_at),
           providerId: providerId,
-          accountEmail: connectionData.accountEmail || connectionData.providerName,
+          accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
         }
         
         setOauthConnections(prev => ({
@@ -333,11 +346,11 @@ export function AuraCreatorDigital() {
         if (response.status !== 409) { // 409 = Conflict (duplicate)
           const newConnection = {
             id: `${providerId}-${Date.now()}`,
-            name: connectionData.providerName || providerId,
+            name: getProviderDisplayName(providerId),
             type: senseId,
             connectedAt: new Date(),
             providerId: providerId,
-            accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+            accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
           }
           
           setOauthConnections(prev => ({
@@ -352,11 +365,11 @@ export function AuraCreatorDigital() {
       // Still update local state for UI feedback (only if not duplicate)
       const newConnection = {
         id: `${providerId}-${Date.now()}`,
-        name: connectionData.providerName || providerId,
+        name: getProviderDisplayName(providerId),
         type: senseId,
         connectedAt: new Date(),
         providerId: providerId,
-        accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+        accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
       }
       
       setOauthConnections(prev => ({
