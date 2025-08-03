@@ -39,12 +39,25 @@ export default async function EditAuraPage({ params }: PageProps) {
     .eq("id", auraId)
     .single()
 
-  // Fetch OAuth connections for this specific aura (including legacy connections without aura_id)
+  // Fetch OAuth connections for this specific aura ONLY
   const { data: oauthConnections, error: oauthError } = await supabase
     .from("oauth_connections")
     .select("*")
     .eq("user_id", user.id)
-    .or(`aura_id.eq.${auraId},aura_id.is.null`)
+    .eq("aura_id", auraId)
+
+  // Log OAuth query results for debugging
+  console.log('🔍 OAuth connections query result:', {
+    auraId,
+    userId: user.id,
+    connectionsFound: oauthConnections?.length || 0,
+    connections: oauthConnections,
+    oauthError
+  })
+
+  if (oauthError) {
+    console.error('❌ Error fetching OAuth connections:', oauthError)
+  }
 
   if (error || !auraRow) {
     // couldn't load it
@@ -82,6 +95,11 @@ export default async function EditAuraPage({ params }: PageProps) {
   
   // Transform OAuth connections from the oauth_connections table
   const transformOAuthConnections = (oauthConns: any[]): Record<string, any[]> => {
+    console.log('🔄 Transforming OAuth connections:', {
+      inputConnections: oauthConns,
+      count: oauthConns?.length || 0
+    })
+    
     const connections: Record<string, any[]> = {}
     
     // Helper function to get user-friendly provider names
@@ -89,22 +107,37 @@ export default async function EditAuraPage({ params }: PageProps) {
       const providerNames: Record<string, string> = {
         'google': 'Google',
         'google-fit': 'Google Fit',
+        'google_fit': 'Google Fit', // Handle underscore version from database
         'fitbit': 'Fitbit',
         'apple-health': 'Apple Health',
+        'apple_health': 'Apple Health', // Handle underscore version from database
         'strava': 'Strava',
         'microsoft': 'Microsoft',
       }
-      return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1)
+      return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1).replace(/_/g, ' ')
     }
     
-    oauthConns.forEach((conn) => {
+    if (!oauthConns || oauthConns.length === 0) {
+      console.log('⚠️ No OAuth connections to transform')
+      return connections
+    }
+    
+    oauthConns.forEach((conn, index) => {
+      console.log(`🔄 Processing connection ${index + 1}:`, {
+        id: conn.id,
+        provider: conn.provider,
+        sense_type: conn.sense_type,
+        aura_id: conn.aura_id,
+        user_id: conn.user_id
+      })
+      
       const senseType = conn.sense_type
       
       if (!connections[senseType]) {
         connections[senseType] = []
       }
       
-      connections[senseType].push({
+      const transformedConnection = {
         id: conn.id,
         name: getProviderDisplayName(conn.provider),
         type: senseType,
@@ -114,9 +147,13 @@ export default async function EditAuraPage({ params }: PageProps) {
         // Don't expose sensitive tokens to frontend
         expiresAt: conn.expires_at ? new Date(conn.expires_at) : null,
         scope: conn.scope,
-      })
+      }
+      
+      connections[senseType].push(transformedConnection)
+      console.log(`✅ Added connection to ${senseType}:`, transformedConnection)
     })
     
+    console.log('🔄 Final transformed connections:', connections)
     return connections
   }
 
@@ -143,7 +180,8 @@ export default async function EditAuraPage({ params }: PageProps) {
     id: auraRow.id,
     name: auraRow.name,
     location_configs: auraRow.location_configs,
-    oauth_connections: oauthConnectionsData,
+    oauth_connections_raw: oauthConnections,
+    oauth_connections_transformed: oauthConnectionsData,
     news_configurations: newsConfigurations,
     senses: auraRow.aura_senses?.map((as: any) => ({ code: as.sense.code, config: as.config }))
   })

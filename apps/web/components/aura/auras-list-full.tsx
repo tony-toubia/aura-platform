@@ -169,7 +169,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                     <div className="text-6xl mb-4 bg-white/70 w-20 h-20 rounded-2xl flex items-center justify-center mx-auto shadow-md">
                       {aura.avatar || config?.icon || '✨'}
                     </div>
-                    <h3 className="text-xl font-bold text-gray-800 mb-2">{aura.name}</h3>
+                    <h3 className="text-xl font-bold text-gray-800 mb-2 truncate px-2" title={aura.name}>{aura.name}</h3>
                     <p className="text-sm text-gray-600">
                       {aura.senses?.length || 0} senses • {aura.rules?.length || 0} rules
                     </p>

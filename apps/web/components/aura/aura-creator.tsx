@@ -77,6 +77,15 @@ export function AuraCreator() {
 
   // Location configurations for location-aware senses
   const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>({})
+  
+  // OAuth connections for connected senses
+  const [oauthConnections, setOauthConnections] = useState<Record<string, any[]>>({})
+  
+  // News configurations for news sense
+  const [newsConfigurations, setNewsConfigurations] = useState<Record<string, any[]>>({})
+  
+  // Weather/Air Quality configurations
+  const [weatherAirQualityConfigurations, setWeatherAirQualityConfigurations] = useState<Record<string, any[]>>({})
 
   const [auraData, setAuraData] = useState<AuraFormData>({
     id: '',
@@ -199,6 +208,44 @@ export function AuraCreator() {
     setLocationConfigs(prev => ({
       ...prev,
       [senseId]: config
+    }))
+  }
+
+  const handleOAuthConnection = (senseId: SenseId, providerId: string, connectionData: any) => {
+    // For creation flow, just store locally
+    const newConnection = {
+      id: `${providerId}-${Date.now()}`,
+      name: providerId,
+      type: senseId,
+      connectedAt: new Date(),
+      providerId: providerId,
+      accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+    }
+    
+    setOauthConnections(prev => ({
+      ...prev,
+      [senseId]: [...(prev[senseId] || []), newConnection]
+    }))
+  }
+
+  const handleOAuthDisconnect = (senseId: SenseId, connectionId: string) => {
+    setOauthConnections(prev => ({
+      ...prev,
+      [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
+    }))
+  }
+
+  const handleNewsConfiguration = (senseId: SenseId, locations: any[]) => {
+    setNewsConfigurations(prev => ({
+      ...prev,
+      [senseId]: locations
+    }))
+  }
+
+  const handleWeatherAirQualityConfiguration = (senseId: SenseId, locations: any[]) => {
+    setWeatherAirQualityConfigurations(prev => ({
+      ...prev,
+      [senseId]: locations
     }))
   }
 
@@ -624,6 +671,13 @@ export function AuraCreator() {
                       auraId={undefined} // No aura_id during creation
                       onLocationConfig={handleLocationConfig}
                       locationConfigs={locationConfigs}
+                      onOAuthConnection={handleOAuthConnection}
+                      onOAuthDisconnect={handleOAuthDisconnect}
+                      oauthConnections={oauthConnections}
+                      onNewsConfiguration={handleNewsConfiguration}
+                      newsConfigurations={newsConfigurations}
+                      onWeatherAirQualityConfiguration={handleWeatherAirQualityConfiguration}
+                      weatherAirQualityConfigurations={weatherAirQualityConfigurations}
                     />
                   </div>
                 )}

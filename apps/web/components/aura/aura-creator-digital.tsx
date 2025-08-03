@@ -61,6 +61,9 @@ export function AuraCreatorDigital() {
   
   // News configurations for news sense
   const [newsConfigurations, setNewsConfigurations] = useState<Record<string, any[]>>({})
+  
+  // Weather/Air Quality configurations
+  const [weatherAirQualityConfigurations, setWeatherAirQualityConfigurations] = useState<Record<string, any[]>>({})
 
   const [auraData, setAuraData] = useState<AuraFormData>({
     id: '',
@@ -131,7 +134,7 @@ export function AuraCreatorDigital() {
     }
   }, [step])
 
-  // Use the form submission hook
+  // Use the form submission hook for final save (with navigation)
   const {
     submit: saveAura,
     isSubmitting: isSaving,
@@ -139,82 +142,7 @@ export function AuraCreatorDigital() {
     clearError,
   } = useFormSubmit(
     async (data: AuraFormData) => {
-      // Validate required fields
-      if (!data.name) {
-        throw new Error("Aura name is required")
-      }
-
-      const userId = await getCurrentUserId()
-      if (!userId) throw new Error("User not authenticated")
-
-      const senseCodes = data.availableSenses.map((s) =>
-        s.includes(".") ? s.replace(/\./g, "_") : s
-      )
-
-      console.log("Saving digital aura with config:", {
-        name: data.name,
-        vesselType: data.vesselType,
-        vesselCode: data.vesselCode,
-        sensesCount: senseCodes.length,
-        rulesCount: data.rules.length,
-        personality: data.personality,
-        rules: data.rules,
-        senses: senseCodes,
-        locationConfigs,
-        oauthConnections,
-        newsConfigurations,
-        isUpdate: !!data.id
-      })
-
-      let response
-      
-      if (data.id) {
-        // Update existing aura
-        console.log(`Updating existing aura with ID: ${data.id}`)
-        response = await auraApi.updateAura(data.id, {
-          name: data.name,
-          personality: data.personality,
-          senses: senseCodes,
-          rules: data.rules.filter((r) => r.name && r.name.trim()),
-          locationConfigs,
-          oauthConnections,
-          newsConfigurations,
-        })
-      } else {
-        // Create new aura
-        console.log("Creating new aura")
-        response = await auraApi.createAura({
-          userId,
-          name: data.name,
-          vesselType: data.vesselType,
-          vesselCode: data.vesselCode || 'digital-only',
-          personality: data.personality,
-          senses: senseCodes,
-          rules: data.rules.filter((r) => r.name && r.name.trim()),
-          locationInfo: data.locationInfo,
-          newsType: data.newsType,
-          locationConfigs,
-          oauthConnections,
-          newsConfigurations,
-        })
-      }
-
-      if (!response.success) {
-        throw new Error(response.error || `Failed to ${data.id ? 'update' : 'create'} Aura`)
-      }
-
-      const auraId = response.data?.auraId || response.data?.id || data.id
-      console.log(`Digital Aura ${data.id ? 'updated' : 'created'} successfully:`, auraId)
-      
-      // Only update the ID if we don't have one yet (for new auras)
-      if (!data.id && auraId) {
-        setAuraData((prev) => ({
-          ...prev,
-          id: auraId,
-        }))
-      }
-
-      return response.data
+      return await performAuraSave(data, false) // false = don't navigate
     },
     {
       onSuccess: () => {
@@ -227,6 +155,108 @@ export function AuraCreatorDigital() {
       },
     }
   )
+
+  // Separate auto-save function that doesn't navigate
+  const autoSaveAura = useFormSubmit(
+    async (data: AuraFormData) => {
+      return await performAuraSave(data, true) // true = auto-save mode
+    },
+    {
+      onSuccess: () => {
+        console.log("Auto-save successful")
+        // Don't navigate - just stay on current step
+      },
+      onError: (error) => {
+        console.error("Auto-save error:", error)
+        // Don't show error for auto-save failures to avoid disrupting UX
+      },
+    }
+  )
+
+  // Shared save logic
+  const performAuraSave = async (data: AuraFormData, isAutoSave: boolean = false) => {
+    // Validate required fields
+    if (!data.name) {
+      throw new Error("Aura name is required")
+    }
+
+    const userId = await getCurrentUserId()
+    if (!userId) throw new Error("User not authenticated")
+
+    const senseCodes = data.availableSenses.map((s) =>
+      s.includes(".") ? s.replace(/\./g, "_") : s
+    )
+
+    console.log(`${isAutoSave ? 'Auto-saving' : 'Saving'} digital aura with config:`, {
+      name: data.name,
+      vesselType: data.vesselType,
+      vesselCode: data.vesselCode,
+      sensesCount: senseCodes.length,
+      rulesCount: data.rules.length,
+      personality: data.personality,
+      rules: data.rules,
+      originalSenses: data.availableSenses,
+      normalizedSenses: senseCodes,
+      locationConfigs,
+      oauthConnections,
+      newsConfigurations,
+      weatherAirQualityConfigurations,
+      isUpdate: !!data.id,
+      isAutoSave
+    })
+
+    let response
+    
+    if (data.id) {
+      // Update existing aura
+      console.log(`${isAutoSave ? 'Auto-updating' : 'Updating'} existing aura with ID: ${data.id}`)
+      response = await auraApi.updateAura(data.id, {
+        name: data.name,
+        personality: data.personality,
+        senses: senseCodes,
+        rules: data.rules.filter((r) => r.name && r.name.trim()),
+        locationConfigs,
+        oauthConnections,
+        newsConfigurations,
+        weatherAirQualityConfigurations,
+      })
+    } else {
+      // Create new aura
+      console.log(`${isAutoSave ? 'Auto-creating' : 'Creating'} new aura`)
+      response = await auraApi.createAura({
+        userId,
+        name: data.name,
+        vesselType: data.vesselType,
+        vesselCode: data.vesselCode || 'digital-only',
+        personality: data.personality,
+        senses: senseCodes,
+        rules: data.rules.filter((r) => r.name && r.name.trim()),
+        locationInfo: data.locationInfo,
+        newsType: data.newsType,
+        locationConfigs,
+        oauthConnections,
+        newsConfigurations,
+        weatherAirQualityConfigurations,
+      })
+    }
+
+    if (!response.success) {
+      throw new Error(response.error || `Failed to ${data.id ? 'update' : 'create'} Aura`)
+    }
+
+    const auraId = response.data?.auraId || response.data?.id || data.id
+    console.log(`Digital Aura ${data.id ? 'updated' : 'created'} successfully:`, auraId)
+    
+    // Only update the ID if we don't have one yet (for new auras)
+    if (!data.id && auraId) {
+      setAuraData((prev) => ({
+        ...prev,
+        id: auraId,
+      }))
+    }
+
+    return response.data
+  }
 
   const updatePersonality = (update: Partial<Personality>) => {
     setAuraData(prev => ({
@@ -247,8 +277,14 @@ export function AuraCreatorDigital() {
     }));
   };
 
-  const handleLocationConfig = (senseId: SenseId, config: LocationConfig) => {
+  const handleLocationConfig = async (senseId: SenseId, config: LocationConfig) => {
     setLocationConfigs(prev => ({ ...prev, [senseId]: config }))
+    
+    // Auto-save if we have an aura ID
+    if (auraData.id) {
+      console.log('🔄 Auto-saving after location configuration for sense:', senseId)
+      await performSave('handleLocationConfig')
+    }
   }
 
   const handleOAuthConnection = async (senseId: SenseId, providerId: string, connectionData: any) => {
@@ -264,12 +300,14 @@ export function AuraCreatorDigital() {
       const providerNames: Record<string, string> = {
         'google': 'Google',
         'google-fit': 'Google Fit',
+        'google_fit': 'Google Fit', // Handle underscore version from database
         'fitbit': 'Fitbit',
         'apple-health': 'Apple Health',
+        'apple_health': 'Apple Health', // Handle underscore version from database
         'strava': 'Strava',
         'microsoft': 'Microsoft',
       }
-      return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1)
+      return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1).replace(/_/g, ' ')
     }
     
     // We should always have an aura ID at this point since we auto-save when transitioning to senses
@@ -418,11 +456,30 @@ export function AuraCreatorDigital() {
     }))
   }
 
-  const handleNewsConfiguration = (senseId: SenseId, locations: any[]) => {
+  const handleNewsConfiguration = async (senseId: SenseId, locations: any[]) => {
     setNewsConfigurations(prev => ({
       ...prev,
       [senseId]: locations
     }))
+    
+    // Auto-save if we have an aura ID
+    if (auraData.id) {
+      console.log('🔄 Auto-saving after news configuration for sense:', senseId)
+      await performSave('handleNewsConfiguration')
+    }
+  }
+
+  const handleWeatherAirQualityConfiguration = async (senseId: SenseId, locations: any[]) => {
+    setWeatherAirQualityConfigurations(prev => ({
+      ...prev,
+      [senseId]: locations
+    }))
+    
+    // Auto-save if we have an aura ID
+    if (auraData.id) {
+      console.log('🔄 Auto-saving after weather/air quality configuration for sense:', senseId)
+      await performSave('handleWeatherAirQualityConfiguration')
+    }
   }
 
   const updateRules = (rules: BehaviorRule[]) => {
@@ -451,8 +508,15 @@ export function AuraCreatorDigital() {
     
     isSavingRef.current = true
     try {
-      console.log(`[${timestamp}] Calling saveAura from: ${caller} (${auraData.id ? 'update' : 'create'})`)
-      await saveAura(auraData)
+      // Use auto-save for configuration changes, regular save for manual saves
+      const isAutoSave = (caller.includes('handle') && caller !== 'handleSave') || caller.includes('Configuration')
+      if (isAutoSave) {
+        console.log(`[${timestamp}] Calling autoSaveAura from: ${caller} (${auraData.id ? 'update' : 'create'})`)
+        await autoSaveAura.submit(auraData)
+      } else {
+        console.log(`[${timestamp}] Calling saveAura from: ${caller} (${auraData.id ? 'update' : 'create'})`)
+        await saveAura(auraData)
+      }
     } finally {
       isSavingRef.current = false
     }
@@ -721,6 +785,8 @@ export function AuraCreatorDigital() {
                 oauthConnections={oauthConnections}
                 onNewsConfiguration={handleNewsConfiguration}
                 newsConfigurations={newsConfigurations}
+                onWeatherAirQualityConfiguration={handleWeatherAirQualityConfiguration}
+                weatherAirQualityConfigurations={weatherAirQualityConfigurations}
               />
             </div>
           )}

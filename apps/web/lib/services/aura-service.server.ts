@@ -19,6 +19,7 @@ export interface CreateAuraServerInput {
   locationConfigs?: Record<string, any> | null
   oauthConnections?: Record<string, any[]> | null
   newsConfigurations?: Record<string, any[]> | null
+  weatherAirQualityConfigurations?: Record<string, any[]> | null
 }
 
 export interface UpdateAuraInput {
@@ -29,6 +30,7 @@ export interface UpdateAuraInput {
   selectedIndividualId?: string | null
   oauthConnections?: Record<string, any[]> | null
   newsConfigurations?: Record<string, any[]> | null
+  weatherAirQualityConfigurations?: Record<string, any[]> | null
 }
 
 export class AuraServiceServer {
@@ -75,6 +77,7 @@ export class AuraServiceServer {
       // Extract OAuth connections and configurations from sense configs
       oauthConnections: this.extractOAuthConnections(r.aura_senses),
       newsConfigurations: this.extractNewsConfigurations(r.aura_senses),
+      weatherAirQualityConfigurations: this.extractWeatherAirQualityConfigurations(r.aura_senses),
       locationConfigs: this.extractLocationConfigs(r.aura_senses),
     }))
   }
@@ -123,6 +126,7 @@ export class AuraServiceServer {
       // Extract OAuth connections and configurations from sense configs
       oauthConnections: this.extractOAuthConnections(row.aura_senses),
       newsConfigurations: this.extractNewsConfigurations(row.aura_senses),
+      weatherAirQualityConfigurations: this.extractWeatherAirQualityConfigurations(row.aura_senses),
       locationConfigs: this.extractLocationConfigs(row.aura_senses),
     }
   }
@@ -224,6 +228,11 @@ export class AuraServiceServer {
         if (input.newsConfigurations && input.newsConfigurations[s.code]) {
           config.newsConfigurations = input.newsConfigurations[s.code]
         }
+        
+        // Add weather/air quality configurations if available
+        if (input.weatherAirQualityConfigurations && input.weatherAirQualityConfigurations[s.code]) {
+          config.weatherAirQualityConfigurations = input.weatherAirQualityConfigurations[s.code]
+        }
 
         return {
           aura_id: aura.id,
@@ -316,6 +325,11 @@ export class AuraServiceServer {
           // Add news configurations if available
           if (input.newsConfigurations && input.newsConfigurations[s.code]) {
             config.newsConfigurations = input.newsConfigurations[s.code]
+          }
+          
+          // Add weather/air quality configurations if available
+          if (input.weatherAirQualityConfigurations && input.weatherAirQualityConfigurations[s.code]) {
+            config.weatherAirQualityConfigurations = input.weatherAirQualityConfigurations[s.code]
           }
 
           return {
@@ -417,6 +431,22 @@ export class AuraServiceServer {
       
       if (config.location) {
         configurations[senseCode] = config.location
+      }
+    })
+    
+    return configurations
+  }
+
+  /** Extract weather/air quality configurations from aura senses */
+  private static extractWeatherAirQualityConfigurations(auraSenses: any[]): Record<string, any[]> {
+    const configurations: Record<string, any[]> = {}
+    
+    auraSenses.forEach((auraSense) => {
+      const senseCode = auraSense.sense.code
+      const config = auraSense.config || {}
+      
+      if (config.weatherAirQualityConfigurations && Array.isArray(config.weatherAirQualityConfigurations)) {
+        configurations[senseCode] = config.weatherAirQualityConfigurations
       }
     })
     

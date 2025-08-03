@@ -14,14 +14,15 @@ export async function PUT(req: NextRequest, context: RouteParams) {
   const timestamp = new Date().toISOString()
   const { id: auraId } = await context.params
   const body = await req.json()
-  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, locationConfigs, newsConfigurations } = body
+  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, locationConfigs, newsConfigurations, weatherAirQualityConfigurations } = body
   
   console.log(`[${timestamp}] PUT /api/auras/${auraId} called with:`, {
     name,
     sensesCount: senses?.length || 0,
     hasPersonality: !!personality,
     hasLocationConfigs: !!locationConfigs,
-    hasNewsConfigurations: !!newsConfigurations
+    hasNewsConfigurations: !!newsConfigurations,
+    hasWeatherAirQualityConfigurations: !!weatherAirQualityConfigurations
   })
 
   // Basic validation
@@ -85,15 +86,27 @@ export async function PUT(req: NextRequest, context: RouteParams) {
 
       // Then, add new sense connections if any senses are provided
       if (senses.length > 0) {
+        console.log(`[${timestamp}] Looking up senses with codes:`, senses)
+        
         // Get sense IDs from codes
         const { data: senseData, error: senseError } = await supabase
           .from("senses")
           .select("id, code")
           .in("code", senses)
 
+        console.log(`[${timestamp}] Found senses in database:`, senseData)
+        console.log(`[${timestamp}] Requested ${senses.length} senses, found ${senseData?.length || 0} in database`)
+
         if (senseError || !senseData) {
           console.error("Failed to fetch senses:", senseError)
           return NextResponse.json({ error: "Failed to fetch senses" }, { status: 500 })
+        }
+
+        // Check for missing senses
+        const foundCodes = senseData.map(s => s.code)
+        const missingSenses = senses.filter(code => !foundCodes.includes(code))
+        if (missingSenses.length > 0) {
+          console.warn(`[${timestamp}] Missing senses in database:`, missingSenses)
         }
 
         // Create aura_senses connections with configurations
@@ -109,6 +122,11 @@ export async function PUT(req: NextRequest, context: RouteParams) {
           // Add news configurations if available
           if (newsConfigurations && newsConfigurations[sense.code]) {
             config.newsConfigurations = newsConfigurations[sense.code]
+          }
+          
+          // Add weather/air quality configurations if available
+          if (weatherAirQualityConfigurations && weatherAirQualityConfigurations[sense.code]) {
+            config.weatherAirQualityConfigurations = weatherAirQualityConfigurations[sense.code]
           }
 
           return {

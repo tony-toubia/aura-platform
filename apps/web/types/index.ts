@@ -71,6 +71,7 @@ export interface Aura {
   // OAuth connection configurations
   oauthConnections?: Record<string, any[]>
   newsConfigurations?: Record<string, any[]>
+  weatherAirQualityConfigurations?: Record<string, any[]>
   locationConfigs?: Record<string, any>
 }
 

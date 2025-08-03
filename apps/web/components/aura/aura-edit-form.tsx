@@ -96,6 +96,9 @@ export function AuraEditForm({
   const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>(initialLocationConfigs)
   const [oauthConnections, setOAuthConnections] = useState<Record<string, any[]>>(initialOAuthConnections)
   const [newsConfigurations, setNewsConfigurations] = useState<Record<string, any[]>>(initialNewsConfigurations)
+  
+  // Weather/Air Quality configurations
+  const [weatherAirQualityConfigurations, setWeatherAirQualityConfigurations] = useState<Record<string, any[]>>({})
 
   // Refs for scrolling
   const containerRef = useRef<HTMLDivElement>(null)
@@ -107,6 +110,18 @@ export function AuraEditForm({
   // Form state initialized from initialAura
   const [auraData, setAuraData] = useState(() => {
     const { personality, ...restOfAura } = initialAura
+    
+    // Auto-enable senses that have OAuth connections
+    const sensesWithConnections = Object.keys(initialOAuthConnections)
+    const allSenses = [...normalizedSenses, ...sensesWithConnections].filter((sense, index, arr) => arr.indexOf(sense) === index)
+    
+    console.log('🔍 AuraEditForm initialization:', {
+      initialSenses: normalizedSenses,
+      sensesWithConnections,
+      finalSenses: allSenses,
+      oauthConnections: initialOAuthConnections
+    })
+    
     return {
       ...restOfAura,
       personality: {
@@ -120,7 +135,7 @@ export function AuraEditForm({
         vocabulary: personality.vocabulary || "average",
         quirks: personality.quirks || [],
       },
-      senses: normalizedSenses as SenseId[],
+      senses: allSenses as SenseId[],
       selectedStudyId: initialAura.selectedStudyId
         ? Number(initialAura.selectedStudyId)
         : undefined,
@@ -188,6 +203,15 @@ export function AuraEditForm({
     }
   }, [step])
 
+  // Debug OAuth connections on component mount and when they change
+  useEffect(() => {
+    console.log('🔍 AuraEditForm OAuth connections state:', {
+      initialOAuthConnections,
+      currentOAuthConnections: oauthConnections,
+      auraId: auraData.id
+    })
+  }, [initialOAuthConnections, oauthConnections, auraData.id])
+
   const updatePersonality = (update: Partial<Personality>) => {
     setAuraData(p => ({
       ...p,
@@ -224,12 +248,14 @@ export function AuraEditForm({
       const providerNames: Record<string, string> = {
         'google': 'Google',
         'google-fit': 'Google Fit',
+        'google_fit': 'Google Fit', // Handle underscore version from database
         'fitbit': 'Fitbit',
         'apple-health': 'Apple Health',
+        'apple_health': 'Apple Health', // Handle underscore version from database
         'strava': 'Strava',
         'microsoft': 'Microsoft',
       }
-      return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1)
+      return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1).replace(/_/g, ' ')
     }
     
     // Save to database via API
@@ -331,6 +357,13 @@ export function AuraEditForm({
     }))
   }
 
+  const handleWeatherAirQualityConfiguration = (senseId: SenseId, locations: any[]) => {
+    setWeatherAirQualityConfigurations(prev => ({
+      ...prev,
+      [senseId]: locations
+    }))
+  }
+
   const handleSave = async () => {
     setLoading(true)
     setError(null)
@@ -346,6 +379,7 @@ export function AuraEditForm({
           selectedIndividualId: (auraData as any).selectedIndividualId,
           locationConfigs: locationConfigs,
           newsConfigurations: newsConfigurations,
+          weatherAirQualityConfigurations: weatherAirQualityConfigurations,
         }),
       })
       const body = await resp.json()
@@ -611,6 +645,8 @@ export function AuraEditForm({
                 oauthConnections={oauthConnections}
                 onNewsConfiguration={handleNewsConfiguration}
                 newsConfigurations={newsConfigurations}
+                onWeatherAirQualityConfiguration={handleWeatherAirQualityConfiguration}
+                weatherAirQualityConfigurations={weatherAirQualityConfigurations}
               />
             </div>
           )}

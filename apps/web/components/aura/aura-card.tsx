@@ -60,8 +60,8 @@ export function AuraCard({ aura, onDelete, onExport, onEdit, className }: AuraCa
         <div className="flex items-start justify-between">
           <div className="flex items-center space-x-3">
             <div className="text-4xl">{aura.avatar}</div>
-            <div>
-              <h3 className="font-bold text-lg">{aura.name}</h3>
+            <div className="flex-1 min-w-0">
+              <h3 className="font-bold text-lg truncate" title={aura.name}>{aura.name}</h3>
               <p className="text-sm text-muted-foreground">{vesselConfig.name}</p>
             </div>
           </div>

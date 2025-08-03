@@ -50,27 +50,43 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Check for existing connection to prevent duplicates (now includes aura_id)
-    let existingConnectionQuery = supabase
+    // Check for existing connection for this user/provider/sense combination
+    const { data: existingConnection } = await supabase
       .from("oauth_connections")
-      .select("id")
+      .select("id, aura_id")
       .eq("user_id", user.id)
       .eq("provider", provider)
       .eq("sense_type", sense_type)
-      .eq("provider_user_id", provider_user_id || provider)
-
-    // If aura_id is provided, check for duplicates within that aura
-    if (aura_id) {
-      existingConnectionQuery = existingConnectionQuery.eq("aura_id", aura_id)
-    }
-
-    const { data: existingConnection } = await existingConnectionQuery.single()
+      .single()
 
     if (existingConnection) {
-      return NextResponse.json(
-        { error: "Connection already exists for this provider and account" },
-        { status: 409 }
-      )
+      // If connection exists and we're trying to associate it with a specific aura
+      if (aura_id && existingConnection.aura_id !== aura_id) {
+        console.log(`[${timestamp}] [${requestId}] 🔄 Updating existing connection to associate with aura: ${aura_id}`)
+        
+        // Update the existing connection to associate it with the new aura
+        const { data: updatedConnection, error: updateError } = await supabase
+          .from("oauth_connections")
+          .update({ aura_id: aura_id })
+          .eq("id", existingConnection.id)
+          .select()
+          .single()
+
+        if (updateError) {
+          console.error(`[${timestamp}] [${requestId}] ❌ Failed to update OAuth connection:`, updateError)
+          return NextResponse.json({ error: updateError.message }, { status: 500 })
+        }
+
+        console.log(`[${timestamp}] [${requestId}] ✅ Successfully updated OAuth connection with ID: ${updatedConnection.id}`)
+        return NextResponse.json(updatedConnection, { status: 200 })
+      } else {
+        // Connection already exists for this aura or no aura specified
+        console.log(`[${timestamp}] [${requestId}] ⚠️ Connection already exists`)
+        return NextResponse.json(
+          { error: "Connection already exists for this provider and account" },
+          { status: 409 }
+        )
+      }
     }
 
     // Insert new OAuth connection
@@ -133,9 +149,9 @@ export async function GET(req: NextRequest) {
       .select("*")
       .eq("user_id", user.id)
 
-    // Filter by aura_id if provided (including legacy connections without aura_id)
+    // Filter by aura_id if provided - only show connections for this specific aura
     if (auraId) {
-      query = query.or(`aura_id.eq.${auraId},aura_id.is.null`)
+      query = query.eq("aura_id", auraId)
     }
 
     const { data: connections, error } = await query

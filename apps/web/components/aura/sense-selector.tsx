@@ -8,6 +8,7 @@ import { TIER_CONFIG } from "@/lib/ui-constants"
 import { SenseLocationModal, type LocationConfig } from "./sense-location-modal"
 import { EnhancedOAuthConnectionModal, type PersonalSenseType, type ConnectedCalendar } from "./enhanced-oauth-connection-modal"
 import { NewsConfigurationModal, type NewsLocation } from "./news-configuration-modal"
+import { WeatherAirQualityConfigurationModal, type WeatherAirQualityLocation } from "./weather-air-quality-configuration-modal"
 import {
   Cloud,
   Droplets,
@@ -25,6 +26,7 @@ import {
   MapPin,
   Shield,
   Newspaper,
+  Smartphone,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SubscriptionGuard } from "@/components/subscription/subscription-guard"
@@ -70,6 +72,10 @@ interface SenseSelectorProps {
   onNewsConfiguration?: (senseId: SenseId, locations: NewsLocation[]) => void
   /** Current news configurations */
   newsConfigurations?: Record<string, NewsLocation[]>
+  /** Callback for when weather/air quality configuration is completed */
+  onWeatherAirQualityConfiguration?: (senseId: SenseId, locations: WeatherAirQualityLocation[]) => void
+  /** Current weather/air quality configurations */
+  weatherAirQualityConfigurations?: Record<string, WeatherAirQualityLocation[]>
 }
 
 // Normalize IDs for matching
@@ -122,18 +128,38 @@ export function SenseSelector({
   oauthConnections = {},
   onNewsConfiguration,
   newsConfigurations = {},
+  onWeatherAirQualityConfiguration,
+  weatherAirQualityConfigurations = {},
 }: SenseSelectorProps) {
+  // Debug the props being passed to SenseSelector
+  console.log('🔍 SenseSelector props:', {
+    selectedSenses,
+    oauthConnections,
+    auraId,
+    availableSenses: availableSenses.map(s => s.id)
+  })
   const [locationModalOpen, setLocationModalOpen] = useState(false)
   const [configuringSense, setConfiguringSense] = useState<'weather' | 'air_quality' | null>(null)
   const [oauthModalOpen, setOauthModalOpen] = useState(false)
   const [connectingSense, setConnectingSense] = useState<PersonalSenseType | null>(null)
   const [newsModalOpen, setNewsModalOpen] = useState(false)
+  const [weatherAirQualityModalOpen, setWeatherAirQualityModalOpen] = useState(false)
   
   // Local state to track actual connections made during this session
   const [sessionConnections, setSessionConnections] = useState<Record<string, ConnectedProvider[]>>({})
   
   // Local state to track news configurations in case parent doesn't manage them properly
   const [localNewsConfigurations, setLocalNewsConfigurations] = useState<Record<string, NewsLocation[]>>({})
+  
+  // Local state to track weather/air quality configurations
+  const [localWeatherAirQualityConfigurations, setLocalWeatherAirQualityConfigurations] = useState<Record<string, WeatherAirQualityLocation[]>>({})
+
+  // Initialize local weather/air quality configurations from props
+  useEffect(() => {
+    if (Object.keys(weatherAirQualityConfigurations).length > 0) {
+      setLocalWeatherAirQualityConfigurations(weatherAirQualityConfigurations)
+    }
+  }, [weatherAirQualityConfigurations])
 
   const normalizedRequired = nonToggleableSenses.map(normalizeSenseId)
   const requiredSenses = availableSenses.filter(s =>
@@ -167,10 +193,10 @@ export function SenseSelector({
     if (normalizedId === 'news') {
       setNewsModalOpen(true)
     }
-    // If enabling a location-aware sense (but not news), show configuration modal
-    else if (!isSelected(senseId) && (normalizedId === 'weather' || normalizedId === 'air_quality')) {
+    // If this is weather or air quality, show the new multi-location configuration modal
+    else if (normalizedId === 'weather' || normalizedId === 'air_quality') {
       setConfiguringSense(normalizedId)
-      setLocationModalOpen(true)
+      setWeatherAirQualityModalOpen(true)
     }
     // If this is a connected sense (calendar, fitness, etc.)
     else if (CONNECTED_SENSE_IDS.includes(normalizedId)) {
@@ -225,6 +251,36 @@ export function SenseSelector({
 
   const handleNewsCancel = () => {
     setNewsModalOpen(false)
+  }
+
+  const handleWeatherAirQualityConfiguration = (locations: WeatherAirQualityLocation[]) => {
+    console.log('Weather/Air Quality configuration completed with locations:', locations)
+    
+    if (configuringSense) {
+      // Store locally to ensure persistence
+      setLocalWeatherAirQualityConfigurations(prev => ({
+        ...prev,
+        [configuringSense]: locations
+      }))
+      
+      // Enable the sense if locations are configured
+      if (locations.length > 0 && !isSelected(configuringSense)) {
+        onToggle(configuringSense as SenseId)
+      }
+      
+      // Save the configuration via parent callback
+      if (onWeatherAirQualityConfiguration) {
+        onWeatherAirQualityConfiguration(configuringSense as SenseId, locations)
+      }
+      
+      setWeatherAirQualityModalOpen(false)
+      setConfiguringSense(null)
+    }
+  }
+
+  const handleWeatherAirQualityCancel = () => {
+    setWeatherAirQualityModalOpen(false)
+    setConfiguringSense(null)
   }
 
   const handleOAuthComplete = (providerId: string, connectionData: any) => {
@@ -289,6 +345,15 @@ export function SenseSelector({
           // Notify parent component of the disconnection - parent will handle state updates
           const senseId = connectingSense as SenseId
           onOAuthDisconnect(senseId, connectionId)
+          
+          // Check if this was the last connection for this sense
+          const currentConnections = oauthConnections[senseId] || []
+          const remainingConnections = currentConnections.filter(conn => conn.id !== connectionId)
+          
+          // If no connections left, disable the sense
+          if (remainingConnections.length === 0 && isSelected(connectingSense)) {
+            onToggle(connectingSense as SenseId)
+          }
         }, 0)
       } else {
         // Fallback for when no auraId is present (e.g., debug mode)
@@ -350,6 +415,16 @@ export function SenseSelector({
     const sessionConns = sessionConnections[senseId] || []
     const propConns = oauthConnections[senseId] || []
     
+    // Debug logging for OAuth connections
+    if (senseId === 'fitness' || senseId === 'calendar' || senseId === 'sleep' || senseId === 'location') {
+      console.log(`🔍 getOAuthDisplay for ${senseId}:`, {
+        sessionConns,
+        propConns,
+        auraId,
+        totalOAuthConnections: oauthConnections
+      })
+    }
+    
     // Deduplicate connections by provider + account email to prevent showing duplicates
     const allConnectionsMap = new Map()
     
@@ -369,6 +444,11 @@ export function SenseSelector({
     })
     
     const allConnections = Array.from(allConnectionsMap.values())
+    
+    // Debug the final result
+    if (senseId === 'fitness' || senseId === 'calendar' || senseId === 'sleep' || senseId === 'location') {
+      console.log(`🔍 Final connections for ${senseId}:`, allConnections)
+    }
     
     if (allConnections.length === 0) return null
     if (allConnections.length === 1) {
@@ -429,6 +509,24 @@ export function SenseSelector({
     // Use local state if parent state is empty, otherwise use parent state
     const parentLocs = newsConfigurations[senseId] || []
     const localLocs = localNewsConfigurations[senseId] || []
+    return parentLocs.length > 0 ? parentLocs : localLocs
+  }
+
+  const getWeatherAirQualityDisplay = (senseId: string): string | null => {
+    // Use parent state if available, otherwise use local state
+    const parentLocs = weatherAirQualityConfigurations[senseId] || []
+    const localLocs = localWeatherAirQualityConfigurations[senseId] || []
+    const locations = parentLocs.length > 0 ? parentLocs : localLocs
+    console.log(`Getting weather/air quality display for ${senseId}:`, locations)
+    if (locations.length === 0) return null
+    if (locations.length === 1) return locations[0]?.displayName || 'Configured'
+    return `${locations.length} location${locations.length !== 1 ? 's' : ''} configured`
+  }
+
+  const getWeatherAirQualityLocations = (senseId: string): WeatherAirQualityLocation[] => {
+    // Use parent state if available, otherwise use local state
+    const parentLocs = weatherAirQualityConfigurations[senseId] || []
+    const localLocs = localWeatherAirQualityConfigurations[senseId] || []
     return parentLocs.length > 0 ? parentLocs : localLocs
   }
 
@@ -562,8 +660,10 @@ export function SenseSelector({
               const tierInfo = getTierConfig(sense.tier)
               const locationDisplay = getLocationDisplay(sense.id)
               const newsDisplay = getNewsDisplay(sense.id)
-              const needsLocation = LOCATION_AWARE_SENSES.includes(sense.id as SenseId) && sense.id !== 'news'
+              const weatherAirQualityDisplay = getWeatherAirQualityDisplay(sense.id)
+              const needsLocation = LOCATION_AWARE_SENSES.includes(sense.id as SenseId) && sense.id !== 'news' && !weatherAirQualityDisplay
               const isNewsConfigured = sense.id === 'news' && newsDisplay
+              const isWeatherAirQualityConfigured = (sense.id === 'weather' || sense.id === 'air_quality') && weatherAirQualityDisplay
               
               return (
                 <SubscriptionGuard
@@ -671,6 +771,56 @@ export function SenseSelector({
                           </div>
                         </div>
                       )}
+                      {weatherAirQualityDisplay && (
+                        <div className="space-y-2 mb-2">
+                          <div className={cn(
+                            "flex items-center gap-1 text-xs px-2 py-1 rounded-md",
+                            active
+                              ? "text-purple-700 bg-purple-50 border border-purple-200"
+                              : sense.id === 'weather'
+                              ? "text-blue-600 bg-blue-50 border border-blue-200"
+                              : "text-green-600 bg-green-50 border border-green-200"
+                          )}>
+                            {sense.id === 'weather' ? (
+                              <Cloud className="w-3 h-3" />
+                            ) : (
+                              <Wind className="w-3 h-3" />
+                            )}
+                            <span className="font-medium">{weatherAirQualityDisplay}</span>
+                          </div>
+                          {/* Show individual weather/air quality locations */}
+                          <div className="flex flex-wrap gap-1">
+                            {getWeatherAirQualityLocations(sense.id).map((location) => (
+                              <div
+                                key={location.id}
+                                className={cn(
+                                  "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
+                                  location.type === 'device'
+                                    ? active
+                                      ? "bg-purple-100 text-purple-700 border border-purple-200"
+                                      : "bg-purple-50 text-purple-600 border border-purple-100"
+                                    : active
+                                    ? sense.id === 'weather'
+                                      ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                      : "bg-green-100 text-green-700 border border-green-200"
+                                    : sense.id === 'weather'
+                                    ? "bg-blue-50 text-blue-600 border border-blue-100"
+                                    : "bg-green-50 text-green-600 border border-green-100"
+                                )}
+                              >
+                                {location.type === 'device' ? (
+                                  <Smartphone className="w-2.5 h-2.5" />
+                                ) : (
+                                  <MapPin className="w-2.5 h-2.5" />
+                                )}
+                                <span className="font-medium">
+                                  {location.type === 'device' ? 'Device Location' : location.name}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
                       <div className="flex items-center justify-between">
                         <span className={cn(
                           "text-xs px-2 py-1 rounded-full bg-gradient-to-r font-medium",
@@ -699,6 +849,10 @@ export function SenseSelector({
                             ? "Configure location"
                             : sense.id === 'news'
                             ? "Configure news sources"
+                            : isWeatherAirQualityConfigured
+                            ? `${sense.id === 'weather' ? 'Weather' : 'Air quality'} configured`
+                            : (sense.id === 'weather' || sense.id === 'air_quality')
+                            ? `Configure ${sense.id === 'weather' ? 'weather' : 'air quality'} locations`
                             : "Click to add"}
                         </div>
                       </div>
@@ -939,6 +1093,24 @@ export function SenseSelector({
           return parentLocs.length > 0 ? parentLocs : localLocs
         })()}
       />
+
+      {/* Weather/Air Quality Configuration Modal */}
+      {configuringSense && (configuringSense === 'weather' || configuringSense === 'air_quality') && (
+        <WeatherAirQualityConfigurationModal
+          open={weatherAirQualityModalOpen}
+          onOpenChange={(open) => {
+            setWeatherAirQualityModalOpen(open)
+            if (!open) {
+              handleWeatherAirQualityCancel()
+            }
+          }}
+          senseType={configuringSense}
+          vesselName={auraName}
+          onConfigurationComplete={handleWeatherAirQualityConfiguration}
+          existingLocations={localWeatherAirQualityConfigurations[configuringSense] || []}
+          existingLocationConnections={getLocationDevices('location')} // Pass location connections for integration
+        />
+      )}
     </div>
   )
 }

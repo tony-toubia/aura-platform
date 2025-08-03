@@ -330,6 +330,13 @@ export function AuraConfigurationForm({
               auraId={undefined} // No aura_id during creation
               onLocationConfig={handleLocationConfig}
               locationConfigs={locationConfigs}
+              onOAuthConnection={() => {}} // Placeholder for OAuth connections
+              onOAuthDisconnect={() => {}} // Placeholder for OAuth disconnections
+              oauthConnections={{}} // Empty OAuth connections
+              onNewsConfiguration={() => {}} // Placeholder for news configuration
+              newsConfigurations={{}} // Empty news configurations
+              onWeatherAirQualityConfiguration={() => {}} // Placeholder for weather/air quality configuration
+              weatherAirQualityConfigurations={{}} // Empty weather/air quality configurations
             />
           </div>
         )}
