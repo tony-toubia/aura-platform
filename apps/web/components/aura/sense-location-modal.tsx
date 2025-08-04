@@ -287,9 +287,9 @@ export function SenseLocationModal({
           </RadioGroup>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-          <Button onClick={handleConfirm} disabled={!canConfirm} className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">Confirm Location</Button>
+        <DialogFooter className="mt-8 mb-4">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="whitespace-nowrap">Cancel</Button>
+          <Button onClick={handleConfirm} disabled={!canConfirm} className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 whitespace-nowrap">Confirm Location</Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

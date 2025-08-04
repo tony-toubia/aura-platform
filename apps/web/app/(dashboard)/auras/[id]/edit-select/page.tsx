@@ -22,6 +22,7 @@ import {
   ArrowLeft
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { countAuraSenses } from '@/lib/utils/sense-counting'
 import type { Aura } from '@/types'
 
 interface PageProps {
@@ -177,7 +178,7 @@ export default function EditSelectPage({ params }: PageProps) {
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
                   <div>
                     <span className="text-gray-500">Senses:</span>
-                    <div className="font-medium">{aura.senses?.length || 0} connected</div>
+                    <div className="font-medium">{countAuraSenses(aura)} connected</div>
                   </div>
                   <div>
                     <span className="text-gray-500">Rules:</span>

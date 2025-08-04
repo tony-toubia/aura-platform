@@ -269,6 +269,7 @@ export function AuraEditForm({
         expires_at: connectionData.tokens?.expires_at,
         scope: connectionData.tokens?.scope,
         aura_id: auraData.id, // Associate connection with this specific aura
+        device_info: connectionData.deviceInfo || null, // Include device information for location connections
       }
       
       console.log('📤 Making API request to save OAuth connection:', requestBody)
@@ -299,6 +300,7 @@ export function AuraEditForm({
             connectedAt: new Date(savedConnection.created_at),
             providerId: providerId,
             accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
+            deviceInfo: connectionData.deviceInfo || null, // Include device info in local state
           }]
         }))
       } else {
@@ -321,6 +323,7 @@ export function AuraEditForm({
           connectedAt: new Date(),
           providerId: providerId,
           accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
+          deviceInfo: connectionData.deviceInfo || null, // Include device info in fallback state
         }]
       }))
     }
@@ -577,7 +580,7 @@ export function AuraEditForm({
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
-                        <p className="text-lg font-semibold">{auraData.name}</p>
+                        <p className="text-lg font-semibold truncate pr-2" title={auraData.name}>{auraData.name}</p>
                         <Button
                           variant="ghost"
                           size="sm"
@@ -638,6 +641,7 @@ export function AuraEditForm({
                 vesselType={auraData.vesselType}
                 auraName={auraData.name}
                 auraId={auraData.id}
+                initialAura={initialAura}
                 onLocationConfig={handleLocationConfig}
                 locationConfigs={locationConfigs}
                 onOAuthConnection={handleOAuthConnection}

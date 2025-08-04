@@ -9,7 +9,7 @@ export const Dialog = RadixDialog.Root;
 export const DialogOverlay: React.FC<React.ComponentProps<typeof RadixDialog.Overlay>> = ({ className, ...props }) => (
   <RadixDialog.Overlay
     className={cn(
-      "fixed inset-0 bg-black/50",
+      "fixed inset-0 bg-black/50 z-[9999]",
       className
     )}
     {...props}
@@ -22,7 +22,7 @@ export const DialogContent: React.FC<React.ComponentProps<typeof RadixDialog.Con
     <DialogOverlay />
     <RadixDialog.Content
       className={cn(
-        "fixed top-1/2 left-1/2 w-[90vw] max-w-md max-h-[85vh] -translate-x-1/2 -translate-y-1/2 overflow-auto rounded-lg bg-white p-6",
+        "fixed top-8 left-1/2 w-[90vw] max-w-md max-h-[calc(100vh-4rem)] -translate-x-1/2 overflow-auto rounded-lg bg-white p-6 z-[10000]",
         className
       )}
       {...props}

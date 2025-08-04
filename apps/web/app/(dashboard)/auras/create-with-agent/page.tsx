@@ -49,6 +49,7 @@ export default function CreateAuraWithAgentPage() {
   // ✅ Hooks must be unconditional
   const [isMounted, setIsMounted] = useState(false);
   const [mode, setMode] = useState<ConfigurationMode>("agent");
+  const [initialAura, setInitialAura] = useState<any>(null);
   const [configuration, setConfiguration] = useState<AuraFormData>({
     id: "",
     name: "",
@@ -102,6 +103,19 @@ export default function CreateAuraWithAgentPage() {
       // Set edit mode flag
       if (editMode === 'true') {
         setIsEditMode(true);
+        
+        // Fetch full aura data for proper sense counting
+        if (auraId) {
+          fetch(`/api/auras/${auraId}`)
+            .then(response => response.json())
+            .then(auraData => {
+              console.log('Fetched aura data for edit mode:', auraData);
+              setInitialAura(auraData);
+            })
+            .catch(error => {
+              console.error('Failed to fetch aura data:', error);
+            });
+        }
       }
       
       setConfiguration(prev => ({
@@ -458,6 +472,7 @@ export default function CreateAuraWithAgentPage() {
               onConfigurationComplete={handleAgentComplete}
               onConfigurationUpdate={handleAgentConfigUpdate}
               initialConfig={configuration}
+              initialAura={initialAura}
               availableSenses={AVAILABLE_SENSES}
               isEditMode={isEditMode}
             />

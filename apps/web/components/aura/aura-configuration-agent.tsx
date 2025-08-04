@@ -22,7 +22,8 @@ import {
   ChevronDown
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import type { Personality, BehaviorRule } from '@/types'
+import { countAuraSenses } from '@/lib/utils/sense-counting'
+import type { Personality, BehaviorRule, Aura } from '@/types'
 
 interface AgentMessage {
   id: string
@@ -58,6 +59,7 @@ interface AuraConfigurationAgentProps {
   onConfigurationComplete: (config: AuraConfiguration) => void
   onConfigurationUpdate?: (config: Partial<AuraConfiguration>) => void
   initialConfig?: Partial<AuraConfiguration>
+  initialAura?: Aura
   availableSenses: string[]
   isEditMode?: boolean
 }
@@ -66,6 +68,7 @@ export function AuraConfigurationAgent({
   onConfigurationComplete,
   onConfigurationUpdate,
   initialConfig,
+  initialAura,
   availableSenses,
   isEditMode = false
 }: AuraConfigurationAgentProps) {
@@ -572,7 +575,9 @@ export function AuraConfigurationAgent({
                 </div>
                 <div>
                   <span className="text-gray-600">Senses:</span>
-                  <div className="font-medium">{configuration.availableSenses.length} selected</div>
+                  <div className="font-medium">
+                    {initialAura ? countAuraSenses(initialAura) : configuration.availableSenses.length} selected
+                  </div>
                 </div>
                 <div>
                   <span className="text-gray-600">Rules:</span>

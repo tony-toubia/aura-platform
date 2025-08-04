@@ -185,6 +185,65 @@ export async function GET(req: NextRequest, context: RouteParams) {
       return NextResponse.json({ error: "Aura not found" }, { status: 404 })
     }
 
+    // Fetch OAuth connections for this specific aura
+    const { data: oauthConnections, error: oauthError } = await supabase
+      .from("oauth_connections")
+      .select("*")
+      .eq("user_id", user.id)
+      .eq("aura_id", auraId)
+
+    if (oauthError) {
+      console.error('Error fetching OAuth connections:', oauthError)
+    }
+
+    // Transform OAuth connections to match expected format
+    const transformOAuthConnections = (oauthConns: any[]): Record<string, any[]> => {
+      const connections: Record<string, any[]> = {}
+      
+      // Helper function to get user-friendly provider names
+      const getProviderDisplayName = (provider: string): string => {
+        const providerNames: Record<string, string> = {
+          'google': 'Google',
+          'google-fit': 'Google Fit',
+          'google_fit': 'Google Fit',
+          'fitbit': 'Fitbit',
+          'apple-health': 'Apple Health',
+          'apple_health': 'Apple Health',
+          'strava': 'Strava',
+          'microsoft': 'Microsoft',
+        }
+        return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1).replace(/_/g, ' ')
+      }
+      
+      if (!oauthConns || oauthConns.length === 0) {
+        return connections
+      }
+      
+      oauthConns.forEach((conn) => {
+        const senseType = conn.sense_type
+        
+        if (!connections[senseType]) {
+          connections[senseType] = []
+        }
+        
+        const transformedConnection = {
+          id: conn.id,
+          name: getProviderDisplayName(conn.provider),
+          type: senseType,
+          connectedAt: conn.created_at ? new Date(conn.created_at) : new Date(),
+          providerId: conn.provider,
+          accountEmail: conn.provider_user_id || `Connected ${getProviderDisplayName(conn.provider)} account`,
+          expiresAt: conn.expires_at ? new Date(conn.expires_at) : null,
+          scope: conn.scope,
+          deviceInfo: conn.device_info || null, // Include device information for location connections
+        }
+        
+        connections[senseType].push(transformedConnection)
+      })
+      
+      return connections
+    }
+
     // Transform the data to match expected format
     const transformedAura = {
       id: aura.id,
@@ -199,6 +258,7 @@ export async function GET(req: NextRequest, context: RouteParams) {
       updatedAt: aura.updated_at,
       selectedStudyId: aura.selected_study_id,
       selectedIndividualId: aura.selected_individual_id,
+      oauthConnections: transformOAuthConnections(oauthConnections || []),
     }
 
     return NextResponse.json(transformedAura)

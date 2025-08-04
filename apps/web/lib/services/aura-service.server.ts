@@ -49,37 +49,70 @@ export class AuraServiceServer {
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
 
+    // Also fetch OAuth connections for each aura
+    const { data: oauthConnections, error: oauthError } = await supabase
+      .from('oauth_connections')
+      .select('*')
+      .eq('user_id', user.id)
+
     if (error) throw error
-    return (rows ?? []).map((r) => ({
-      id: r.id,
-      name: r.name,
-      vesselType: r.vessel_type,
-      vesselCode: r.vessel_code,
-      plantType: r.plant_type,
-      personality: r.personality,
-      senses: r.aura_senses.map((as: any) => as.sense.code),
-      avatar: r.avatar ?? this.getAvatarForVessel(r.vessel_type, r.vessel_code),
-      rules: (r.behavior_rules || []).map((rule: any) => ({
-        id: rule.id,
-        name: rule.name,
-        trigger: rule.trigger,
-        action: rule.action,
-        priority: rule.priority,
-        enabled: rule.enabled,
-        createdAt: rule.created_at ? new Date(rule.created_at) : undefined,
-        updatedAt: rule.updated_at ? new Date(rule.updated_at) : undefined,
-      })),
-      enabled: r.enabled,
-      createdAt: new Date(r.created_at),
-      updatedAt: new Date(r.updated_at),
-      selectedStudyId: r.selected_study_id ?? null,
-      selectedIndividualId: r.selected_individual_id ?? null,
-      // Extract OAuth connections and configurations from sense configs
-      oauthConnections: this.extractOAuthConnections(r.aura_senses),
-      newsConfigurations: this.extractNewsConfigurations(r.aura_senses),
-      weatherAirQualityConfigurations: this.extractWeatherAirQualityConfigurations(r.aura_senses),
-      locationConfigs: this.extractLocationConfigs(r.aura_senses),
-    }))
+    if (oauthError) throw oauthError
+    
+    return (rows ?? []).map((r) => {
+      // Get OAuth connections for this specific aura
+      const auraOAuthConnections = (oauthConnections || []).filter(conn => conn.aura_id === r.id)
+      
+      // Group OAuth connections by sense type
+      const groupedOAuthConnections: Record<string, any[]> = {}
+      auraOAuthConnections.forEach(conn => {
+        if (!groupedOAuthConnections[conn.sense_type]) {
+          groupedOAuthConnections[conn.sense_type] = []
+        }
+        groupedOAuthConnections[conn.sense_type]!.push({
+          id: conn.id,
+          name: conn.provider,
+          type: conn.sense_type,
+          connectedAt: new Date(conn.created_at),
+          providerId: conn.provider,
+          accountEmail: conn.provider_user_id,
+        })
+      })
+
+      // Merge OAuth connections from aura_senses config and oauth_connections table
+      const configOAuthConnections = this.extractOAuthConnections(r.aura_senses)
+      const mergedOAuthConnections = { ...configOAuthConnections, ...groupedOAuthConnections }
+
+      return {
+        id: r.id,
+        name: r.name,
+        vesselType: r.vessel_type,
+        vesselCode: r.vessel_code,
+        plantType: r.plant_type,
+        personality: r.personality,
+        senses: r.aura_senses.map((as: any) => as.sense.code),
+        avatar: r.avatar ?? this.getAvatarForVessel(r.vessel_type, r.vessel_code),
+        rules: (r.behavior_rules || []).map((rule: any) => ({
+          id: rule.id,
+          name: rule.name,
+          trigger: rule.trigger,
+          action: rule.action,
+          priority: rule.priority,
+          enabled: rule.enabled,
+          createdAt: rule.created_at ? new Date(rule.created_at) : undefined,
+          updatedAt: rule.updated_at ? new Date(rule.updated_at) : undefined,
+        })),
+        enabled: r.enabled,
+        createdAt: new Date(r.created_at),
+        updatedAt: new Date(r.updated_at),
+        selectedStudyId: r.selected_study_id ?? null,
+        selectedIndividualId: r.selected_individual_id ?? null,
+        // Use merged OAuth connections from both sources
+        oauthConnections: mergedOAuthConnections,
+        newsConfigurations: this.extractNewsConfigurations(r.aura_senses),
+        weatherAirQualityConfigurations: this.extractWeatherAirQualityConfigurations(r.aura_senses),
+        locationConfigs: this.extractLocationConfigs(r.aura_senses),
+      }
+    })
   }
 
   /** Fetch a single aura by ID (only if it belongs to current user) */
@@ -98,7 +131,36 @@ export class AuraServiceServer {
       .eq('user_id', user.id)
       .single()
 
+    // Also fetch OAuth connections for this specific aura
+    const { data: oauthConnections, error: oauthError } = await supabase
+      .from('oauth_connections')
+      .select('*')
+      .eq('user_id', user.id)
+      .eq('aura_id', id)
+
     if (error || !row) return null
+    if (oauthError) throw oauthError
+
+    // Group OAuth connections by sense type
+    const groupedOAuthConnections: Record<string, any[]> = {}
+    ;(oauthConnections || []).forEach(conn => {
+      if (!groupedOAuthConnections[conn.sense_type]) {
+        groupedOAuthConnections[conn.sense_type] = []
+      }
+      groupedOAuthConnections[conn.sense_type]!.push({
+        id: conn.id,
+        name: conn.provider,
+        type: conn.sense_type,
+        connectedAt: new Date(conn.created_at),
+        providerId: conn.provider,
+        accountEmail: conn.provider_user_id,
+      })
+    })
+
+    // Merge OAuth connections from aura_senses config and oauth_connections table
+    const configOAuthConnections = this.extractOAuthConnections(row.aura_senses)
+    const mergedOAuthConnections = { ...configOAuthConnections, ...groupedOAuthConnections }
+
     return {
       id: row.id,
       name: row.name,
@@ -123,8 +185,8 @@ export class AuraServiceServer {
       updatedAt: new Date(row.updated_at),
       selectedStudyId: row.selected_study_id ?? null,
       selectedIndividualId: row.selected_individual_id ?? null,
-      // Extract OAuth connections and configurations from sense configs
-      oauthConnections: this.extractOAuthConnections(row.aura_senses),
+      // Use merged OAuth connections from both sources
+      oauthConnections: mergedOAuthConnections,
       newsConfigurations: this.extractNewsConfigurations(row.aura_senses),
       weatherAirQualityConfigurations: this.extractWeatherAirQualityConfigurations(row.aura_senses),
       locationConfigs: this.extractLocationConfigs(row.aura_senses),

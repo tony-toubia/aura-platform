@@ -145,7 +145,7 @@ export default function CreateSelectEnhancedPage() {
                       {id === 'digital' && [
                         'Pure AI consciousness',
                         'Data stream awareness',
-                        'Unlimited conversations',
+                        'Unlimited messages',
                         'Personality customization'
                       ].map((feature, index) => (
                         <li key={index} className="flex items-center gap-2 text-sm text-gray-600">
@@ -246,7 +246,7 @@ export default function CreateSelectEnhancedPage() {
                 <div>
                   <h3 className="font-semibold text-gray-900 mb-2">✨ Start Your Journey</h3>
                   <p className="text-gray-600 text-sm leading-relaxed mb-3">
-                    Digital Being offers the full Aura experience right now. Create meaningful conversations, 
+                    Digital Being offers the full Aura experience right now. Send unlimited messages,
                     develop unique personalities, and explore AI companionship without limits.
                   </p>
                   <div className="flex items-center gap-2 text-xs text-purple-600">

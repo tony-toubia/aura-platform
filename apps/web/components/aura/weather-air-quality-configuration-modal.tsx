@@ -384,6 +384,7 @@ export function WeatherAirQualityConfigurationModal({
                   size="sm"
                   disabled={!hasLocationConnections}
                   className={cn(
+                    "whitespace-nowrap",
                     !hasLocationConnections && "opacity-50 cursor-not-allowed"
                   )}
                 >
@@ -499,24 +500,24 @@ export function WeatherAirQualityConfigurationModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex justify-between items-center pt-6 border-t">
+        <div className="flex justify-between items-center pt-6 border-t mt-8 mb-4">
           <p className="text-sm text-gray-500">
-            {locations.length === 0 
+            {locations.length === 0
               ? `Add at least one location for ${senseType === 'weather' ? 'weather' : 'air quality'} monitoring`
               : `${locations.length} location${locations.length !== 1 ? 's' : ''} configured`
             }
           </p>
           <div className="flex gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)}>
+            <Button variant="outline" onClick={() => onOpenChange(false)} className="whitespace-nowrap">
               Cancel
             </Button>
             <Button
               onClick={handleSave}
               disabled={locations.length === 0}
-              className={cn("bg-gradient-to-r text-white", senseInfo.color)}
+              className={cn("bg-gradient-to-r text-white whitespace-nowrap", senseInfo.color)}
             >
               <CheckCircle className="w-4 h-4 mr-2" />
-              Save Configuration
+              Save
             </Button>
           </div>
         </div>

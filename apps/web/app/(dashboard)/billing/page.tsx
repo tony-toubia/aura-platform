@@ -282,7 +282,7 @@ export default async function BillingPage() {
               <h4 className="font-medium text-gray-700 mb-2">Plan Features</h4>
               <ul className="space-y-1 text-sm text-gray-600">
                 <li>• {subscription.features.maxAuras === -1 ? 'Unlimited' : subscription.features.maxAuras} Active Auras</li>
-                <li>• {subscription.features.maxConversations === -1 ? 'Unlimited' : subscription.features.maxConversations.toLocaleString()} Conversations/month</li>
+                <li>• {subscription.features.maxMessages === -1 ? 'Unlimited' : subscription.features.maxMessages.toLocaleString()} Messages/month</li>
                 <li>• {subscription.features.hasAnalytics ? 'Advanced Analytics' : 'Basic Analytics'}</li>
                 <li>• {subscription.features.hasApiAccess ? 'API Access' : 'No API Access'}</li>
               </ul>

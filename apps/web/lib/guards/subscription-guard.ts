@@ -18,7 +18,7 @@ export async function requireSubscription(
 
 export async function checkFeatureLimit(
   userId: string,
-  feature: 'auras' | 'rules' | 'conversations',
+  feature: 'auras' | 'rules' | 'messages',
   currentCount: number
 ): Promise<{ allowed: boolean; limit: number; upgradeRequired?: string }> {
   const subscription = await SubscriptionService.getUserSubscription(userId)
@@ -29,10 +29,21 @@ export async function checkFeatureLimit(
       if (maxAuras === -1 || currentCount < maxAuras) {
         return { allowed: true, limit: maxAuras }
       }
-      return { 
-        allowed: false, 
+      return {
+        allowed: false,
         limit: maxAuras,
         upgradeRequired: subscription.id === 'free' ? 'personal' : 'family'
+      }
+    
+    case 'messages':
+      const maxMessages = subscription.features.maxMessages
+      if (maxMessages === -1 || currentCount < maxMessages) {
+        return { allowed: true, limit: maxMessages }
+      }
+      return {
+        allowed: false,
+        limit: maxMessages,
+        upgradeRequired: subscription.id === 'free' ? 'personal' : subscription.id === 'personal' ? 'family' : 'business'
       }
     
     // Similar logic for other features

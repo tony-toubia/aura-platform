@@ -14,7 +14,7 @@ export interface SubscriptionTier {
 export interface SubscriptionFeatures {
   maxAuras: number
   maxRulesPerAura: number
-  maxConversations: number
+  maxMessages: number
   availableSenses: string[]
   hasAnalytics: boolean
   hasVoiceResponses: boolean
@@ -33,7 +33,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
     features: {
       maxAuras: 1,
       maxRulesPerAura: 5,
-      maxConversations: 100,
+      maxMessages: 1000,
       availableSenses: ['weather', 'news', 'air_quality'],
       hasAnalytics: false,
       hasVoiceResponses: false,
@@ -52,7 +52,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
     features: {
       maxAuras: 3,
       maxRulesPerAura: 20,
-      maxConversations: 1000,
+      maxMessages: 10000,
       availableSenses: [
         'weather',
         'news',
@@ -82,7 +82,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
     features: {
       maxAuras: 10,
       maxRulesPerAura: -1,
-      maxConversations: 5000,
+      maxMessages: 50000,
       availableSenses: [
         'weather',
         'news',
@@ -111,7 +111,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
     features: {
       maxAuras: -1,
       maxRulesPerAura: -1,
-      maxConversations: -1,
+      maxMessages: -1,
       availableSenses: ['all'],
       hasAnalytics: true,
       hasVoiceResponses: true,
@@ -151,6 +151,10 @@ export class SubscriptionService {
         const { count } = await this.getUserAuraCount(userId)
         return f.maxAuras === -1 || (count ?? 0) < f.maxAuras
       }
+      case 'maxMessages': {
+        const { count } = await this.getUserMessageCount(userId)
+        return f.maxMessages === -1 || (count ?? 0) < f.maxMessages
+      }
       case 'availableSenses':
         return true
       default:
@@ -188,12 +192,32 @@ export class SubscriptionService {
     return (count ?? 0) < sub.features.maxRulesPerAura
   }
 
+  static async canSendMoreMessages(userId: string): Promise<boolean> {
+    const sub = await this.getUserSubscription(userId)
+    if (sub.features.maxMessages === -1) return true
+    const { count } = await this.getUserMessageCount(userId)
+    return (count ?? 0) < sub.features.maxMessages
+  }
+
   private static async getUserAuraCount(userId: string) {
     const supabase = createClient()
     return supabase
       .from('auras')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
+  }
+
+  private static async getUserMessageCount(userId: string) {
+    const supabase = createClient()
+    const startOfMonth = new Date()
+    startOfMonth.setDate(1)
+    startOfMonth.setHours(0, 0, 0, 0)
+    
+    return supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .gte('created_at', startOfMonth.toISOString())
   }
 
   static async createCheckoutSession(

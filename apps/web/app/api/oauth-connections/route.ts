@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 })
   }
   
-  const { provider, sense_type, provider_user_id, access_token, refresh_token, expires_at, scope, aura_id } = body
+  const { provider, sense_type, provider_user_id, access_token, refresh_token, expires_at, scope, aura_id, device_info } = body
   
   console.log(`[${timestamp}] [${requestId}] 📋 Request details:`, {
     provider,
@@ -27,6 +27,8 @@ export async function POST(req: NextRequest) {
     hasAccessToken: !!access_token,
     hasRefreshToken: !!refresh_token,
     aura_id,
+    hasDeviceInfo: !!device_info,
+    deviceInfoKeys: device_info ? Object.keys(device_info) : [],
     bodyKeys: Object.keys(body),
     contentType: req.headers.get('content-type'),
     userAgent: req.headers.get('user-agent')?.substring(0, 50) + '...'
@@ -100,12 +102,18 @@ export async function POST(req: NextRequest) {
       expires_at: expires_at ? new Date(expires_at).toISOString() : null,
       scope,
       aura_id: aura_id || null, // Associate with specific aura if provided
+      device_info: device_info || null, // Store device information for location connections
     }
     
     console.log(`[${timestamp}] [${requestId}] 💾 Inserting OAuth connection:`, {
       ...insertData,
       access_token: '***',
-      refresh_token: insertData.refresh_token ? '***' : null
+      refresh_token: insertData.refresh_token ? '***' : null,
+      device_info: insertData.device_info ? {
+        browser: insertData.device_info.browser,
+        os: insertData.device_info.os,
+        platform: insertData.device_info.platform
+      } : null
     })
     
     const { data: connection, error: insertError } = await supabase

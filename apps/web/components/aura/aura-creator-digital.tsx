@@ -719,7 +719,7 @@ export function AuraCreatorDigital() {
                       </div>
                     ) : (
                       <div className="flex items-center justify-between">
-                        <p className="text-lg font-semibold">{auraData.name}</p>
+                        <p className="text-lg font-semibold truncate pr-2" title={auraData.name}>{auraData.name}</p>
                         <Button variant="ghost" size="sm" onClick={() => setIsEditingName(true)}>
                           <Edit className="w-4 h-4 mr-2" />
                           Edit

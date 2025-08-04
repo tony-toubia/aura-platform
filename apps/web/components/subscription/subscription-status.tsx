@@ -21,7 +21,7 @@ interface SubscriptionStatusProps {
   subscription: SubscriptionTier
   usage: {
     auras: number
-    conversations: number
+    messages: number
     rules?: number
   }
   onUpgrade?: () => void
@@ -127,17 +127,17 @@ export function SubscriptionStatus({
             )}
           </div>
 
-          {/* Conversations */}
+          {/* Messages */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Conversations (this month)</span>
+              <span className="font-medium">Messages (this month)</span>
               <span className="text-muted-foreground">
-                {usage.conversations} / {subscription.features.maxConversations === -1 ? '∞' : subscription.features.maxConversations}
+                {usage.messages} / {subscription.features.maxMessages === -1 ? '∞' : subscription.features.maxMessages}
               </span>
             </div>
-            {subscription.features.maxConversations !== -1 && (
-              <Progress 
-                value={getUsagePercentage(usage.conversations, subscription.features.maxConversations)}
+            {subscription.features.maxMessages !== -1 && (
+              <Progress
+                value={getUsagePercentage(usage.messages, subscription.features.maxMessages)}
                 className="h-2"
               />
             )}

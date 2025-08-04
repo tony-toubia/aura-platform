@@ -9,6 +9,7 @@ import { SenseLocationModal, type LocationConfig } from "./sense-location-modal"
 import { EnhancedOAuthConnectionModal, type PersonalSenseType, type ConnectedCalendar } from "./enhanced-oauth-connection-modal"
 import { NewsConfigurationModal, type NewsLocation } from "./news-configuration-modal"
 import { WeatherAirQualityConfigurationModal, type WeatherAirQualityLocation } from "./weather-air-quality-configuration-modal"
+import { countAuraSenses } from "@/lib/utils/sense-counting"
 import {
   Cloud,
   Droplets,
@@ -30,6 +31,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { SubscriptionGuard } from "@/components/subscription/subscription-guard"
+import type { Aura } from "@/types"
 
 // derive the element type from your constant
 export type AvailableSense = typeof AVAILABLE_SENSES[number]
@@ -41,6 +43,14 @@ export interface ConnectedProvider {
   connectedAt: Date
   providerId?: string
   accountEmail?: string
+  deviceInfo?: {
+    browser: string
+    os: string
+    platform: string
+    language: string
+    screenInfo: string
+    userAgent: string
+  }
 }
 
 interface SenseSelectorProps {
@@ -58,6 +68,8 @@ interface SenseSelectorProps {
   auraName?: string
   /** Aura ID for associating OAuth connections */
   auraId?: string
+  /** Initial aura data for proper sense counting */
+  initialAura?: Aura
   /** Callback for when location is configured */
   onLocationConfig?: (senseId: SenseId, config: LocationConfig) => void
   /** Current location configurations */
@@ -121,6 +133,7 @@ export function SenseSelector({
   vesselType,
   auraName = "Your Aura",
   auraId,
+  initialAura,
   onLocationConfig,
   locationConfigs = {},
   onOAuthConnection,
@@ -452,9 +465,57 @@ export function SenseSelector({
     
     if (allConnections.length === 0) return null
     if (allConnections.length === 1) {
-      // For location senses, show device type; for others, show service name
+      // For location senses, parse and show proper device info
       if (senseId === 'location') {
-        return allConnections[0]?.name || 'Connected Device'
+        const device = allConnections[0]
+        
+        console.log('🔍 Parsing device info for OAuth display:', { device, hasDeviceInfo: !!device.deviceInfo })
+        
+        // First, try to get structured device info (preferred method)
+        if (device.deviceInfo?.browser && device.deviceInfo?.os) {
+          const displayName = `${device.deviceInfo.browser} ${device.deviceInfo.os}`
+          console.log('✅ Using structured device info:', displayName)
+          return displayName
+        }
+        
+        // Fallback to parsing from other fields for backward compatibility
+        const deviceInfo = device.name || device.providerId || device.accountEmail || 'unknown'
+        const lowerDeviceInfo = deviceInfo.toLowerCase()
+        
+        console.log('⚠️ Falling back to string parsing:', { deviceInfo })
+        
+        // Parse browser and OS information from string
+        const getBrowser = () => {
+          if (lowerDeviceInfo.includes('chrome')) return 'Chrome'
+          if (lowerDeviceInfo.includes('firefox')) return 'Firefox'
+          if (lowerDeviceInfo.includes('safari')) return 'Safari'
+          if (lowerDeviceInfo.includes('edge')) return 'Edge'
+          return null
+        }
+        
+        const getDeviceType = () => {
+          if (lowerDeviceInfo.includes('mobile') || lowerDeviceInfo.includes('android') || lowerDeviceInfo.includes('iphone')) return 'Mobile'
+          if (lowerDeviceInfo.includes('tablet') || lowerDeviceInfo.includes('ipad')) return 'Tablet'
+          if (lowerDeviceInfo.includes('windows')) return 'Windows'
+          if (lowerDeviceInfo.includes('mac') || lowerDeviceInfo.includes('macos')) return 'Mac'
+          if (lowerDeviceInfo.includes('linux')) return 'Linux'
+          return null
+        }
+        
+        const browser = getBrowser()
+        const deviceType = getDeviceType()
+        
+        // Create display name based on what we can parse
+        if (browser && deviceType) {
+          return `${browser} ${deviceType}`
+        } else if (browser) {
+          return browser
+        } else if (deviceType) {
+          return deviceType
+        } else {
+          // Fallback to cleaned up device name
+          return deviceInfo.length > 20 ? `${deviceInfo.substring(0, 20)}...` : deviceInfo
+        }
       }
       return allConnections[0]?.name || 'Connected'
     }
@@ -938,25 +999,85 @@ export function SenseSelector({
                         <div className="space-y-2 mb-2">
                           <div className="flex items-center gap-1 text-xs text-orange-700 px-2 py-1 rounded-md bg-orange-50 border border-orange-200">
                             <Shield className="w-3 h-3" />
-                            <span className="font-medium">{oauthProvider}</span>
+                            <span className="font-medium">{sense.id === 'location' ? 'Device Location' : oauthProvider}</span>
                           </div>
-                          {/* Show individual location devices for location sense */}
-                          {sense.id === 'location' && (
+                          {/* Show individual providers for all OAuth senses */}
+                          {sense.id === 'location' ? (
                             <div className="flex flex-wrap gap-1">
                               {getLocationDevices(sense.id).map((device) => {
-                                const deviceType = device.providerId || 'unknown'
-                                const getDeviceIcon = () => {
-                                  if (deviceType.includes('mobile')) return '📱'
-                                  if (deviceType.includes('tablet')) return '📱'
-                                  if (deviceType.includes('desktop')) return '💻'
-                                  return '📍'
+                                console.log('🔍 Device info for location chip:', { device, hasDeviceInfo: !!device.deviceInfo })
+                                
+                                // Helper function to get device display info
+                                const getDeviceDisplayInfo = () => {
+                                  // First, try to get structured device info (preferred method)
+                                  if (device.deviceInfo?.browser && device.deviceInfo?.os) {
+                                    console.log('✅ Using structured device info for chip:', device.deviceInfo)
+                                    return {
+                                      browser: device.deviceInfo.browser,
+                                      os: device.deviceInfo.os,
+                                      displayName: `${device.deviceInfo.browser} ${device.deviceInfo.os}`
+                                    }
+                                  }
+                                  
+                                  // Fallback to parsing from other fields for backward compatibility
+                                  const deviceInfo = device.name || device.providerId || device.accountEmail || 'unknown'
+                                  const lowerDeviceInfo = deviceInfo.toLowerCase()
+                                  
+                                  console.log('⚠️ Falling back to string parsing for chip:', { deviceInfo })
+                                  
+                                  const getBrowser = () => {
+                                    if (lowerDeviceInfo.includes('chrome')) return 'Chrome'
+                                    if (lowerDeviceInfo.includes('firefox')) return 'Firefox'
+                                    if (lowerDeviceInfo.includes('safari')) return 'Safari'
+                                    if (lowerDeviceInfo.includes('edge')) return 'Edge'
+                                    return 'Browser'
+                                  }
+                                  
+                                  const getDeviceType = () => {
+                                    if (lowerDeviceInfo.includes('mobile') || lowerDeviceInfo.includes('android') || lowerDeviceInfo.includes('iphone')) return 'Mobile'
+                                    if (lowerDeviceInfo.includes('tablet') || lowerDeviceInfo.includes('ipad')) return 'Tablet'
+                                    if (lowerDeviceInfo.includes('windows')) return 'Windows'
+                                    if (lowerDeviceInfo.includes('mac') || lowerDeviceInfo.includes('macos')) return 'Mac'
+                                    if (lowerDeviceInfo.includes('linux')) return 'Linux'
+                                    return 'Device'
+                                  }
+                                  
+                                  const browser = getBrowser()
+                                  const os = getDeviceType()
+                                  
+                                  let displayName
+                                  if (browser !== 'Browser' && os !== 'Device') {
+                                    displayName = `${browser} ${os}`
+                                  } else if (browser !== 'Browser') {
+                                    displayName = browser
+                                  } else {
+                                    displayName = deviceInfo.length > 20 ? `${deviceInfo.substring(0, 20)}...` : deviceInfo
+                                  }
+                                  
+                                  return { browser, os, displayName }
                                 }
                                 
+                                const deviceDisplayInfo = getDeviceDisplayInfo()
+                                
+                                // Get browser icon based on browser name
+                                const getBrowserIcon = () => {
+                                  const browser = deviceDisplayInfo.browser.toLowerCase()
+                                  if (browser.includes('chrome')) return '🌐'
+                                  if (browser.includes('firefox')) return '🦊'
+                                  if (browser.includes('safari')) return '🧭'
+                                  if (browser.includes('edge')) return '🌊'
+                                  return '🌐'
+                                }
+                                
+                                // Get color based on OS
                                 const getDeviceColor = () => {
-                                  if (deviceType.includes('mobile')) return 'bg-green-100 text-green-700 border-green-200'
-                                  if (deviceType.includes('tablet')) return 'bg-purple-100 text-purple-700 border-purple-200'
-                                  if (deviceType.includes('desktop')) return 'bg-blue-100 text-blue-700 border-blue-200'
-                                  return 'bg-gray-100 text-gray-700 border-gray-200'
+                                  const os = deviceDisplayInfo.os.toLowerCase()
+                                  if (os.includes('mobile') || os.includes('android') || os.includes('iphone')) return 'bg-green-100 text-green-700 border-green-200'
+                                  if (os.includes('tablet') || os.includes('ipad')) return 'bg-purple-100 text-purple-700 border-purple-200'
+                                  if (os.includes('windows')) return 'bg-blue-100 text-blue-700 border-blue-200'
+                                  if (os.includes('mac')) return 'bg-gray-100 text-gray-700 border-gray-200'
+                                  if (os.includes('linux')) return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+                                  return 'bg-orange-100 text-orange-700 border-orange-200'
                                 }
                                 
                                 return (
@@ -967,11 +1088,79 @@ export function SenseSelector({
                                       getDeviceColor()
                                     )}
                                   >
-                                    <span>{getDeviceIcon()}</span>
-                                    <span className="font-medium">{device.name}</span>
+                                    <span>{getBrowserIcon()}</span>
+                                    <span className="font-medium">{deviceDisplayInfo.displayName}</span>
                                   </div>
                                 )
                               })}
+                            </div>
+                          ) : (
+                            <div className="flex flex-wrap gap-1">
+                              {(() => {
+                                // Get connections for non-location senses (fitness, calendar, sleep)
+                                const sessionConns = sessionConnections[sense.id] || []
+                                const propConns = oauthConnections[sense.id] || []
+                                
+                                // Deduplicate connections by provider + account email
+                                const connectionsMap = new Map()
+                                
+                                // Add prop connections first (from database)
+                                propConns.forEach(conn => {
+                                  const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
+                                  connectionsMap.set(key, conn)
+                                })
+                                
+                                // Add session connections only if they don't already exist
+                                sessionConns.forEach(conn => {
+                                  const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
+                                  if (!connectionsMap.has(key)) {
+                                    connectionsMap.set(key, conn)
+                                  }
+                                })
+                                
+                                const allConnections = Array.from(connectionsMap.values())
+                                
+                                return allConnections.map((connection) => {
+                                  // Get provider display name and icon
+                                  const getProviderInfo = () => {
+                                    const providerId = connection.providerId?.toLowerCase() || connection.name?.toLowerCase() || 'unknown'
+                                    
+                                    if (providerId.includes('strava')) return { name: 'Strava', icon: '🏃', color: 'bg-orange-100 text-orange-700 border-orange-200' }
+                                    if (providerId.includes('google') && sense.id === 'fitness') return { name: 'Google Fit', icon: '💪', color: 'bg-blue-100 text-blue-700 border-blue-200' }
+                                    if (providerId.includes('google') && sense.id === 'calendar') return { name: 'Google Calendar', icon: '📅', color: 'bg-blue-100 text-blue-700 border-blue-200' }
+                                    if (providerId.includes('fitbit')) return { name: 'Fitbit', icon: '⌚', color: 'bg-green-100 text-green-700 border-green-200' }
+                                    if (providerId.includes('apple') && sense.id === 'fitness') return { name: 'Apple Health', icon: '🍎', color: 'bg-gray-100 text-gray-700 border-gray-200' }
+                                    if (providerId.includes('apple') && sense.id === 'calendar') return { name: 'Apple Calendar', icon: '📅', color: 'bg-gray-100 text-gray-700 border-gray-200' }
+                                    if (providerId.includes('outlook') || providerId.includes('microsoft')) return { name: 'Outlook', icon: '📧', color: 'bg-blue-100 text-blue-700 border-blue-200' }
+                                    if (providerId.includes('garmin')) return { name: 'Garmin', icon: '⌚', color: 'bg-blue-100 text-blue-700 border-blue-200' }
+                                    if (providerId.includes('polar')) return { name: 'Polar', icon: '❄️', color: 'bg-cyan-100 text-cyan-700 border-cyan-200' }
+                                    if (providerId.includes('withings')) return { name: 'Withings', icon: '⚖️', color: 'bg-purple-100 text-purple-700 border-purple-200' }
+                                    
+                                    // Fallback to connection name or provider ID
+                                    const displayName = connection.name || connection.providerId || 'Connected Service'
+                                    return {
+                                      name: displayName.length > 15 ? `${displayName.substring(0, 15)}...` : displayName,
+                                      icon: sense.id === 'fitness' ? '💪' : sense.id === 'calendar' ? '📅' : sense.id === 'sleep' ? '😴' : '🔗',
+                                      color: 'bg-gray-100 text-gray-700 border-gray-200'
+                                    }
+                                  }
+                                  
+                                  const providerInfo = getProviderInfo()
+                                  
+                                  return (
+                                    <div
+                                      key={connection.id}
+                                      className={cn(
+                                        "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full border",
+                                        providerInfo.color
+                                      )}
+                                    >
+                                      <span>{providerInfo.icon}</span>
+                                      <span className="font-medium">{providerInfo.name}</span>
+                                    </div>
+                                  )
+                                })
+                              })()}
                             </div>
                           )}
                         </div>
@@ -1019,39 +1208,132 @@ export function SenseSelector({
             <h4 className="font-semibold text-purple-900 mb-2 flex items-center gap-2">
               <Sparkles className="w-4 h-4" /> Sense Configuration Summary
             </h4>
-            <div className="grid md:grid-cols-3 gap-4 text-sm">
+            <div className="grid md:grid-cols-4 gap-4 text-sm">
               <div>
-                <span className="font-medium text-purple-800">Active Senses:</span>
-                <span className="text-purple-700 ml-2">{selectedSenses.length}</span>
+                <span className="font-medium text-purple-800">Total Senses:</span>
+                <span className="text-purple-700 ml-2">{initialAura ? countAuraSenses(initialAura) : (() => {
+                  // Fallback counting logic for when no initialAura is provided
+                  let count = requiredSenses.length
+                  
+                  // Count additional senses (traditional ones)
+                  const additionalTraditionalSenses = selectedSenses.filter(sense =>
+                    !['fitness', 'calendar', 'sleep', 'location', 'news', 'weather', 'air_quality'].includes(sense)
+                  )
+                  count += additionalTraditionalSenses.length
+                  
+                  // Count OAuth connected senses (1 per sense type if any connections exist)
+                  Object.keys(oauthConnections).forEach(senseType => {
+                    const connections = oauthConnections[senseType] || []
+                    if (connections.length > 0) {
+                      count += 1
+                    }
+                  })
+                  
+                  // Count location-aware senses (1 per sense type if any configurations exist)
+                  if (newsConfigurations.news && newsConfigurations.news.length > 0) {
+                    count += 1
+                  }
+                  if (weatherAirQualityConfigurations.weather && weatherAirQualityConfigurations.weather.length > 0) {
+                    count += 1
+                  }
+                  if (weatherAirQualityConfigurations.air_quality && weatherAirQualityConfigurations.air_quality.length > 0) {
+                    count += 1
+                  }
+                  
+                  return count
+                })()}</span>
               </div>
+              {requiredSenses.length > 0 && (
+                <div>
+                  <span className="font-medium text-purple-800">Essential:</span>
+                  <span className="text-purple-700 ml-2">{requiredSenses.length}</span>
+                </div>
+              )}
               <div>
-                <span className="font-medium text-purple-800">Essential:</span>
-                <span className="text-purple-700 ml-2">{requiredSenses.length}</span>
+                <span className="font-medium text-purple-800">Additional Senses:</span>
+                <span className="text-purple-700 ml-2">{initialAura ? (() => {
+                  // Count only aura_senses entries (not OAuth connections) for Additional Senses
+                  const auraSensesCount = initialAura.senses?.length || 0
+                  const essentialSenses = requiredSenses.length
+                  return Math.max(0, auraSensesCount - essentialSenses)
+                })() : (() => {
+                  // Fallback counting logic for when no initialAura is provided
+                  let count = 0
+                  
+                  // Count traditional additional senses
+                  const additionalTraditionalSenses = selectedSenses.filter(sense =>
+                    !['fitness', 'calendar', 'sleep', 'location', 'news', 'weather', 'air_quality'].includes(sense)
+                  )
+                  count += additionalTraditionalSenses.length
+                  
+                  // Count location-aware senses
+                  if (newsConfigurations.news && newsConfigurations.news.length > 0) {
+                    count += 1
+                  }
+                  if (weatherAirQualityConfigurations.weather && weatherAirQualityConfigurations.weather.length > 0) {
+                    count += 1
+                  }
+                  if (weatherAirQualityConfigurations.air_quality && weatherAirQualityConfigurations.air_quality.length > 0) {
+                    count += 1
+                  }
+                  
+                  return count
+                })()}</span>
               </div>
               <div>
                 <span className="font-medium text-purple-800">Connected Services:</span>
-                <span className="text-purple-700 ml-2">{Object.keys(oauthConnections).length}</span>
+                <span className="text-purple-700 ml-2">{Object.keys(oauthConnections).filter(senseType => {
+                  const connections = oauthConnections[senseType] || []
+                  return connections.length > 0
+                }).length}</span>
               </div>
             </div>
             <p className="text-purple-700 mt-3 leading-relaxed">
               Each sense adds unique context to your Aura's understanding of the world. Essential senses provide core awareness, while additional senses enrich their personality and responses.
             </p>
-            {selectedSenses.length > requiredSenses.length && (
-              <div className="mt-3 flex items-center gap-2 text-sm text-blue-700">
-                <CheckCircle2 className="w-4 h-4" />
-                <span>
-                  Your Aura has enhanced awareness through {selectedSenses.length - requiredSenses.length} additional sense{selectedSenses.length - requiredSenses.length !== 1 ? 's' : ''}!
-                </span>
-              </div>
-            )}
-            {Object.keys(oauthConnections).length > 0 && (
-              <div className="mt-2 flex items-center gap-2 text-sm text-orange-700">
-                <Shield className="w-4 h-4" />
-                <span>
-                  {Object.keys(oauthConnections).length} personal service{Object.keys(oauthConnections).length !== 1 ? 's' : ''} securely connected
-                </span>
-              </div>
-            )}
+            {(() => {
+              // Calculate additional senses count
+              const additionalTraditionalSenses = selectedSenses.filter(sense =>
+                !['fitness', 'calendar', 'sleep', 'location', 'news', 'weather', 'air_quality'].includes(sense)
+              ).length
+              
+              let additionalLocationAwareSenses = 0
+              if (newsConfigurations.news && newsConfigurations.news.length > 0) {
+                additionalLocationAwareSenses += 1
+              }
+              if (weatherAirQualityConfigurations.weather && weatherAirQualityConfigurations.weather.length > 0) {
+                additionalLocationAwareSenses += 1
+              }
+              if (weatherAirQualityConfigurations.air_quality && weatherAirQualityConfigurations.air_quality.length > 0) {
+                additionalLocationAwareSenses += 1
+              }
+              
+              const totalAdditionalSenses = additionalTraditionalSenses + additionalLocationAwareSenses
+              
+              return totalAdditionalSenses > 0 && (
+                <div className="mt-3 flex items-center gap-2 text-sm text-blue-700">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>
+                    Your Aura has enhanced awareness through {totalAdditionalSenses} additional sense{totalAdditionalSenses !== 1 ? 's' : ''}!
+                  </span>
+                </div>
+              )
+            })()}
+            {(() => {
+              const connectedServicesCount = Object.keys(oauthConnections).filter(senseType => {
+                const connections = oauthConnections[senseType] || []
+                return connections.length > 0
+              }).length
+              
+              return connectedServicesCount > 0 && (
+                <div className="mt-2 flex items-center gap-2 text-sm text-orange-700">
+                  <Shield className="w-4 h-4" />
+                  <span>
+                    {connectedServicesCount} personal service{connectedServicesCount !== 1 ? 's' : ''} securely connected
+                  </span>
+                </div>
+              )
+            })()}
           </div>
         </div>
       </div>

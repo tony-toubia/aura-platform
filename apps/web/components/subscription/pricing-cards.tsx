@@ -95,8 +95,8 @@ export function PricingCards({
       format: (v) => (v === -1 ? 'Unlimited' : v),
     },
     {
-      key: 'maxConversations',
-      label: 'Conversations per month',
+      key: 'maxMessages',
+      label: 'Messages per month',
       format: (v) => (v === -1 ? 'Unlimited' : (v as number).toLocaleString()),
     },
     { key: 'hasAnalytics', label: 'Advanced Analytics', format: (v) => v },

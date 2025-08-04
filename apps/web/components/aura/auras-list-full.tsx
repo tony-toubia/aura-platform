@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
+import { countAuraSenses, countTotalSenses } from '@/lib/utils/sense-counting'
 import {
   Plus,
   Brain,
@@ -65,7 +66,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
             </div>
             <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-200 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-blue-700">
-                {initialAuras.reduce((acc, aura) => acc + (aura.senses?.length || 0), 0)}
+                {countTotalSenses(initialAuras)}
               </div>
               <div className="text-sm text-blue-600">Total Senses</div>
             </div>
@@ -171,7 +172,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                     </div>
                     <h3 className="text-xl font-bold text-gray-800 mb-2 truncate px-2" title={aura.name}>{aura.name}</h3>
                     <p className="text-sm text-gray-600">
-                      {aura.senses?.length || 0} senses • {aura.rules?.length || 0} rules
+                      {countAuraSenses(aura)} senses • {aura.rules?.length || 0} rules
                     </p>
                   </div>
 

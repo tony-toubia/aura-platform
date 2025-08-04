@@ -49,10 +49,12 @@ export default async function SubscriptionPage() {
 
   const startOfMonth = new Date()
   startOfMonth.setDate(1)
-  const { count: conversationCount } = await supabase
-    .from("conversations")
+  startOfMonth.setHours(0, 0, 0, 0)
+  const { count: messageCount } = await supabase
+    .from("messages")
     .select("*", { count: "exact", head: true })
-    .gte("started_at", startOfMonth.toISOString())
+    .eq("user_id", user.id)
+    .gte("created_at", startOfMonth.toISOString())
 
   return (
     <div className="max-w-4xl mx-auto py-12 px-4 space-y-12">
@@ -94,20 +96,20 @@ export default async function SubscriptionPage() {
                 </p>
               </div>
             </div>
-            {/* Conversations */}
+            {/* Messages */}
             <div className="flex items-center space-x-4 p-4 bg-blue-50 rounded-lg">
               <div className="p-3 bg-blue-100 rounded-full">
                 <MessageCircle className="w-6 h-6 text-blue-700" />
               </div>
               <div>
                 <p className="text-sm font-medium text-gray-700">
-                  Conversations
+                  Messages
                 </p>
                 <p className="text-2xl font-bold text-blue-700">
-                  {conversationCount ?? 0} /{" "}
-                  {subscription.features.maxConversations === -1
+                  {messageCount ?? 0} /{" "}
+                  {subscription.features.maxMessages === -1
                     ? "∞"
-                    : subscription.features.maxConversations}
+                    : subscription.features.maxMessages}
                 </p>
               </div>
             </div>
@@ -142,7 +144,7 @@ export default async function SubscriptionPage() {
           Ready for More Aura Magic?
         </h3>
         <p className="text-gray-600 mb-8 max-w-md mx-auto">
-          Upgrade your plan to unlock unlimited Auras, conversations, and API
+          Upgrade your plan to unlock unlimited Auras, messages, and API
           power.
         </p>
         <Button asChild size="lg" className="bg-gradient-to-r from-purple-600 to-blue-600 text-white shadow-lg hover:shadow-xl transition-shadow px-8 py-6 text-lg">

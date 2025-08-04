@@ -64,7 +64,7 @@ export default async function EditAuraPage({ params }: PageProps) {
     redirect("/auras")
   }
 
-  // 4) Map the raw row into our TAura shape
+  // 4) Map the raw row into our TAura shape (OAuth connections will be added later)
   const initialAura: TAura = {
     id:         auraRow.id,
     name:       auraRow.name,
@@ -175,6 +175,9 @@ export default async function EditAuraPage({ params }: PageProps) {
 
   const oauthConnectionsData = transformOAuthConnections(oauthConnections || [])
   const newsConfigurations = extractNewsConfigurations(auraRow.aura_senses || [])
+  
+  // Add OAuth connections to the initialAura object
+  initialAura.oauthConnections = oauthConnectionsData
   
   console.log('🔍 Loaded aura data:', {
     id: auraRow.id,

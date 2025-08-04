@@ -45,6 +45,7 @@ export type OAuthProvider = {
   color: string
   bgColor: string
   popular?: boolean
+  comingSoon?: boolean
 }
 
 export type ConnectionStatus = 'idle' | 'connecting' | 'connected' | 'error' | 'disconnecting'
@@ -106,6 +107,7 @@ const OAUTH_PROVIDERS: Record<PersonalSenseType, OAuthProvider[]> = {
       description: 'Import your iCloud calendar events',
       color: 'from-gray-700 to-gray-800',
       bgColor: 'bg-gray-50',
+      comingSoon: true,
     },
     {
       id: 'calendly',
@@ -114,6 +116,7 @@ const OAUTH_PROVIDERS: Record<PersonalSenseType, OAuthProvider[]> = {
       description: 'Connect your Calendly scheduled meetings',
       color: 'from-orange-500 to-orange-600',
       bgColor: 'bg-orange-50',
+      comingSoon: true,
     },
   ],
   fitness: [
@@ -125,6 +128,7 @@ const OAUTH_PROVIDERS: Record<PersonalSenseType, OAuthProvider[]> = {
       color: 'from-red-500 to-pink-500',
       bgColor: 'bg-red-50',
       popular: true,
+      comingSoon: true,
     },
     {
       id: 'google_fit',
@@ -142,6 +146,7 @@ const OAUTH_PROVIDERS: Record<PersonalSenseType, OAuthProvider[]> = {
       description: 'Import your Fitbit health and fitness data',
       color: 'from-teal-500 to-cyan-500',
       bgColor: 'bg-teal-50',
+      comingSoon: true,
     },
     {
       id: 'strava',
@@ -150,14 +155,6 @@ const OAUTH_PROVIDERS: Record<PersonalSenseType, OAuthProvider[]> = {
       description: 'Connect your Strava workouts and activities',
       color: 'from-orange-500 to-red-500',
       bgColor: 'bg-orange-50',
-    },
-    {
-      id: 'test_direct_api',
-      name: '🧪 Test API Direct',
-      icon: Settings,
-      description: 'Test the API connection directly (bypass OAuth)',
-      color: 'from-gray-500 to-gray-600',
-      bgColor: 'bg-gray-50',
     },
   ],
   sleep: [
@@ -169,6 +166,7 @@ const OAUTH_PROVIDERS: Record<PersonalSenseType, OAuthProvider[]> = {
       color: 'from-purple-500 to-blue-500',
       bgColor: 'bg-purple-50',
       popular: true,
+      comingSoon: true,
     },
     {
       id: 'google_fit',
@@ -186,6 +184,7 @@ const OAUTH_PROVIDERS: Record<PersonalSenseType, OAuthProvider[]> = {
       color: 'from-gray-800 to-black',
       bgColor: 'bg-gray-50',
       popular: true,
+      comingSoon: true,
     },
     {
       id: 'whoop',
@@ -194,6 +193,7 @@ const OAUTH_PROVIDERS: Record<PersonalSenseType, OAuthProvider[]> = {
       description: 'Import your WHOOP recovery and sleep metrics',
       color: 'from-yellow-500 to-orange-500',
       bgColor: 'bg-yellow-50',
+      comingSoon: true,
     },
   ],
   location: [
@@ -436,27 +436,6 @@ export function EnhancedOAuthConnectionModal({
           auraId
         })
         onConnectionComplete(providerId, connectionData)
-        
-      } else if (providerId === 'test_direct_api' && senseType === 'fitness') {
-        // Direct API test - bypass OAuth completely
-        console.log('🧪 Testing API directly...')
-        
-        const testConnectionData = {
-          providerId: 'test_direct_api',
-          providerName: 'Direct API Test',
-          accountEmail: 'test@example.com',
-          tokens: {
-            access_token: 'test_access_token_' + Date.now(),
-            refresh_token: 'test_refresh_token_' + Date.now(),
-            expires_in: 3600,
-            scope: 'test_scope'
-          },
-          connectedAt: new Date(),
-        }
-        
-        console.log('📋 Test connection data:', testConnectionData)
-        setConnectionStatus(prev => ({ ...prev, [providerId]: 'idle' }))
-        onConnectionComplete(providerId, testConnectionData)
         
       } else if (providerId === 'fitbit' && senseType === 'fitness') {
         // Fitbit OAuth integration
@@ -913,23 +892,29 @@ export function EnhancedOAuthConnectionModal({
               const hasExistingConnection = isProviderConnected(provider.id)
               const isCurrentDeviceAlreadyConfigured = provider.id === 'device_location' && isCurrentDeviceConfigured()
               const duplicateCheck = shouldPreventDuplicateConnection(provider.id)
-              const shouldPreventConnection = duplicateCheck.prevent
+              const shouldPreventConnection = duplicateCheck.prevent || provider.comingSoon
               
               return (
                 <div
                   key={provider.id}
                   className={cn(
                     "relative border rounded-xl p-4 transition-all",
-                    provider.popular && !hasExistingConnection && "ring-2 ring-blue-200 border-blue-300",
+                    provider.popular && !hasExistingConnection && !provider.comingSoon && "ring-2 ring-blue-200 border-blue-300",
                     isConnected && "border-green-300 bg-green-50",
                     hasError && "border-red-300 bg-red-50",
                     hasExistingConnection && "border-gray-300 bg-gray-50",
-                    !isConnected && !hasError && !hasExistingConnection && provider.bgColor
+                    provider.comingSoon && "border-orange-300 bg-orange-50 opacity-75",
+                    !isConnected && !hasError && !hasExistingConnection && !provider.comingSoon && provider.bgColor
                   )}
                 >
-                  {provider.popular && !hasExistingConnection && (
+                  {provider.popular && !hasExistingConnection && !provider.comingSoon && (
                     <div className="absolute -top-2 left-4 bg-blue-600 text-white text-xs px-2 py-1 rounded-full">
                       Popular Choice
+                    </div>
+                  )}
+                  {provider.comingSoon && (
+                    <div className="absolute -top-2 right-4 bg-orange-500 text-white text-xs px-2 py-1 rounded-full">
+                      Coming Soon
                     </div>
                   )}
                   
@@ -937,34 +922,41 @@ export function EnhancedOAuthConnectionModal({
                     <div className="flex items-center gap-4">
                       <div className={cn(
                         "p-3 rounded-lg bg-gradient-to-r text-white",
-                        provider.color
+                        provider.color,
+                        provider.comingSoon && "opacity-60"
                       )}>
                         <provider.icon className="w-5 h-5" />
                       </div>
                       
                       <div className="flex-1">
-                        <h4 className="font-semibold text-gray-800 mb-1">
+                        <h4 className={cn(
+                          "font-semibold mb-1",
+                          provider.comingSoon ? "text-gray-600" : "text-gray-800"
+                        )}>
                           {provider.name}
                         </h4>
-                        <p className="text-sm text-gray-600">
+                        <p className={cn(
+                          "text-sm",
+                          provider.comingSoon ? "text-gray-500" : "text-gray-600"
+                        )}>
                           {provider.description}
                         </p>
-                        {(provider.id === 'google' || provider.id === 'outlook') && senseType === 'calendar' && (
+                        {provider.comingSoon && (
+                          <p className="text-xs text-orange-600 mt-1 font-medium">
+                            🚧 Integration coming soon
+                          </p>
+                        )}
+                        {!provider.comingSoon && (provider.id === 'google' || provider.id === 'outlook') && senseType === 'calendar' && (
                           <p className="text-xs text-green-600 mt-1 font-medium">
                             ✓ Full integration available
                           </p>
                         )}
-                        {(provider.id === 'google_fit' || provider.id === 'fitbit' || provider.id === 'strava') && senseType === 'fitness' && (
+                        {!provider.comingSoon && (provider.id === 'google_fit' || provider.id === 'strava') && senseType === 'fitness' && (
                           <p className="text-xs text-green-600 mt-1 font-medium">
                             ✓ Full integration available
                           </p>
                         )}
-                        {provider.id === 'apple_health' && senseType === 'fitness' && (
-                          <p className="text-xs text-blue-600 mt-1 font-medium">
-                            ⚠ Requires iOS app for full functionality
-                          </p>
-                        )}
-                        {provider.id === 'device_location' && senseType === 'location' && (
+                        {!provider.comingSoon && provider.id === 'device_location' && senseType === 'location' && (
                           <p className="text-xs text-green-600 mt-1 font-medium">
                             ✓ Native browser location • No external accounts needed
                           </p>
@@ -974,12 +966,12 @@ export function EnhancedOAuthConnectionModal({
                             ✓ This device is already configured
                           </p>
                         )}
-                        {hasExistingConnection && provider.id !== 'device_location' && !shouldPreventConnection && (
+                        {hasExistingConnection && provider.id !== 'device_location' && !shouldPreventConnection && !provider.comingSoon && (
                           <p className="text-xs text-blue-600 mt-1 font-medium">
                             ✓ Already connected • You can add multiple accounts
                           </p>
                         )}
-                        {shouldPreventConnection && (
+                        {!provider.comingSoon && shouldPreventConnection && (
                           <p className="text-xs text-orange-600 mt-1 font-medium">
                             ⚠ {duplicateCheck.reason}
                           </p>
@@ -992,16 +984,19 @@ export function EnhancedOAuthConnectionModal({
                       disabled={isConnecting || shouldPreventConnection}
                       variant={hasExistingConnection || shouldPreventConnection ? "outline" : "default"}
                       className={cn(
-                        "min-w-[120px]",
+                        "min-w-[120px] whitespace-nowrap",
                         hasError && "border-red-300 text-red-700 bg-red-50",
                         (hasExistingConnection || shouldPreventConnection) && "border-blue-300 text-blue-700 bg-blue-50",
-                        shouldPreventConnection && "opacity-60 cursor-not-allowed"
+                        shouldPreventConnection && "opacity-60 cursor-not-allowed",
+                        provider.comingSoon && "border-orange-300 text-orange-700 bg-orange-50"
                       )}
                     >
                       <div className="flex items-center gap-2">
                         {getStatusIcon(provider.id)}
                         <span>
-                          {shouldPreventConnection
+                          {provider.comingSoon
+                            ? 'Coming Soon'
+                            : shouldPreventConnection
                             ? 'Cannot Connect'
                             : hasExistingConnection && !isConnecting && !shouldPreventConnection
                             ? 'Add Another'
@@ -1022,11 +1017,11 @@ export function EnhancedOAuthConnectionModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex justify-between items-center pt-6 border-t">
+        <div className="flex justify-between items-center pt-6 border-t mt-8 mb-4">
           <p className="text-sm text-gray-500">
             You can manage all connected services in your account settings
           </p>
-          <Button variant="outline" onClick={onCancel}>
+          <Button variant="outline" onClick={onCancel} className="whitespace-nowrap">
             Done
           </Button>
         </div>

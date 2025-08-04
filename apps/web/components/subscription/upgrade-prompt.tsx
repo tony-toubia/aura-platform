@@ -15,7 +15,7 @@ interface UpgradePromptProps {
 // Map technical feature names to user-friendly messages
 const FEATURE_MESSAGES: Record<string, string> = {
   maxAuras: 'Creating additional Auras',
-  maxConversations: 'Having unlimited conversations',
+  maxMessages: 'Sending more messages',
   advancedFeatures: 'Advanced features',
   premiumSupport: 'Premium support',
   // Add more mappings as needed
