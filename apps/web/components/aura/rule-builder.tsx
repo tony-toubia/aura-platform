@@ -33,7 +33,9 @@ import {
   Activity,
   Info,
   RefreshCw,
-  Loader2
+  Loader2,
+  ChevronDown,
+  ChevronUp
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { RuleCard } from "@/components/rules/rule-card"
@@ -74,6 +76,7 @@ export function RuleBuilder({
   vesselType,
   vesselCode,
   availableSenses,
+  oauthConnections = {},
   existingRules = [],
   editingRule = null,
   onEditRule,
@@ -84,6 +87,7 @@ export function RuleBuilder({
 }: RuleBuilderProps) {
   const router = useRouter()
   const [showTemplates, setShowTemplates] = useState(true)
+  const [showActiveRules, setShowActiveRules] = useState(true)
   const cooldownConfig = useCooldownConfig()
 
   // Form state
@@ -127,17 +131,28 @@ export function RuleBuilder({
 
   // Get available sensor configs
   const availableSensorConfigs = useMemo(() => {
+    console.log('🔍 Rule Builder - Available senses:', availableSenses);
+    console.log('🔍 Rule Builder - All sensor configs:', Object.keys(SENSOR_CONFIGS));
+    
     return Object.values(SENSOR_CONFIGS).filter(sensor => {
       const baseKey = sensor.id.split('.')[0];
       if (!baseKey) return false;
       
-      // Handle news sensor
+      // Handle news sensor (no dot notation)
       if (sensor.id === 'news') {
-        return availableSenses.includes('news');
+        const isAvailable = availableSenses.includes('news');
+        console.log(`🔍 News sensor available: ${isAvailable}`);
+        return isAvailable;
       }
       
       // Handle other sensors with dot notation (e.g., weather.temperature, fitness.steps)
-      return availableSenses.includes(sensor.id) || availableSenses.includes(baseKey);
+      // Check if the base sense is available (e.g., 'fitness' for 'fitness.steps')
+      const isBaseAvailable = availableSenses.includes(baseKey);
+      const isFullIdAvailable = availableSenses.includes(sensor.id);
+      
+      console.log(`🔍 Sensor ${sensor.id}: baseKey=${baseKey}, baseAvailable=${isBaseAvailable}, fullIdAvailable=${isFullIdAvailable}`);
+      
+      return isFullIdAvailable || isBaseAvailable;
     });
   }, [availableSenses]);
 
@@ -364,81 +379,90 @@ export function RuleBuilder({
     <div className="space-y-8">
       {/* Quick Templates */}
       {relevantTemplates.length > 0 && (
-        <>
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => setShowTemplates(!showTemplates)}
-              className="mb-4"
-            >
-              {showTemplates ? "Hide" : "Show"} Quick-Start Templates
-            </Button>
-          </div>
-
+        <Card className="border-2 border-purple-100">
+          <CardHeader
+            className="bg-gradient-to-r from-purple-50 to-blue-50 cursor-pointer hover:from-purple-100 hover:to-blue-100 transition-colors"
+            onClick={() => setShowTemplates(!showTemplates)}
+          >
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+                Quick-Start Templates
+              </div>
+              {showTemplates ? (
+                <ChevronUp className="w-5 h-5 text-purple-600" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-purple-600" />
+              )}
+            </CardTitle>
+            <CardDescription>
+              Click any template to instantly configure a rule, then customize it
+            </CardDescription>
+          </CardHeader>
           {showTemplates && (
-            <Card className="border-2 border-purple-100">
-              <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50">
-                <CardTitle className="flex items-center gap-2">
-                  <Sparkles className="w-5 h-5 text-purple-600" />
-                  Quick-Start Templates
-                </CardTitle>
-                <CardDescription>
-                  Click any template to instantly configure a rule, then customize it
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="p-4 sm:p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                  {relevantTemplates.map((template, idx) => (
-                    <Button
-                      key={idx}
-                      variant="outline"
-                      className="h-auto p-4 flex flex-col items-start space-y-2 border-2 hover:border-purple-400 transition-all"
-                      onClick={() => applyTemplate(template)}
-                    >
-                      <div className="flex items-center gap-2 w-full">
-                        <span className="text-2xl">{getSensorConfig(template.sensor)?.icon}</span>
-                        <span className="font-semibold text-left">{template.name}</span>
-                      </div>
-                      <span className="text-sm text-muted-foreground text-left">
-                        When {getSensorConfig(template.sensor)?.name} {OPERATOR_LABELS[template.operator]} {
-                          typeof template.value === 'string' 
-                            ? getSensorConfig(template.sensor)?.enumValues?.find(e => e.value === template.value)?.label || template.value
-                            : template.value
-                        }
-                      </span>
-                    </Button>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+            <CardContent className="p-4 sm:p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
+                {relevantTemplates.map((template, idx) => (
+                  <Button
+                    key={idx}
+                    variant="outline"
+                    className="h-auto p-4 flex flex-col items-start space-y-2 border-2 hover:border-purple-400 transition-all"
+                    onClick={() => applyTemplate(template)}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <span className="text-2xl">{getSensorConfig(template.sensor)?.icon}</span>
+                      <span className="font-semibold text-left">{template.name}</span>
+                    </div>
+                    <span className="text-sm text-muted-foreground text-left">
+                      When {getSensorConfig(template.sensor)?.name} {OPERATOR_LABELS[template.operator]} {
+                        typeof template.value === 'string'
+                          ? getSensorConfig(template.sensor)?.enumValues?.find(e => e.value === template.value)?.label || template.value
+                          : template.value
+                      }
+                    </span>
+                  </Button>
+                ))}
+              </div>
+            </CardContent>
           )}
-        </>
+        </Card>
       )}
 
       {/* Active Rules List */}
       {existingRules.length > 0 && (
         <Card className="border-2 border-purple-100">
-          <CardHeader className="bg-gradient-to-r from-purple-50 to-blue-50">
-            <CardTitle className="flex items-center gap-2">
-              <Activity className="w-5 h-5 text-purple-600" />
-              Active Rules
+          <CardHeader
+            className="bg-gradient-to-r from-purple-50 to-blue-50 cursor-pointer hover:from-purple-100 hover:to-blue-100 transition-colors"
+            onClick={() => setShowActiveRules(!showActiveRules)}
+          >
+            <CardTitle className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Activity className="w-5 h-5 text-purple-600" />
+                Active Rules
+              </div>
+              {showActiveRules ? (
+                <ChevronUp className="w-5 h-5 text-purple-600" />
+              ) : (
+                <ChevronDown className="w-5 h-5 text-purple-600" />
+              )}
             </CardTitle>
             <CardDescription>
               Your Aura will respond automatically when these conditions are met
             </CardDescription>
           </CardHeader>
-          <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
-            {existingRules.map((rule) => (
-              <RuleCard
-                key={rule.id}
-                rule={rule}
-                onEdit={onEditRule}
-                onToggle={onToggleRule}
-                onDelete={onDeleteRule}
-              />
-            ))}
-          </CardContent>
+          {showActiveRules && (
+            <CardContent className="p-4 sm:p-6 space-y-3 sm:space-y-4">
+              {existingRules.map((rule) => (
+                <RuleCard
+                  key={rule.id}
+                  rule={rule}
+                  onEdit={onEditRule}
+                  onToggle={onToggleRule}
+                  onDelete={onDeleteRule}
+                />
+              ))}
+            </CardContent>
+          )}
         </Card>
       )}
 
@@ -500,17 +524,39 @@ export function RuleBuilder({
                       <div className="px-2 py-1.5 text-sm font-semibold text-gray-500 capitalize">
                         {category}
                       </div>
-                      {sensors.map((sensor) => (
-                        <SelectItem key={sensor.id} value={sensor.id}>
-                          <div className="flex items-center gap-2">
-                            <span>{sensor.icon}</span>
-                            <span>{sensor.name}</span>
-                            {sensor.unit && (
-                              <span className="text-xs text-gray-500">({sensor.unit})</span>
-                            )}
-                          </div>
-                        </SelectItem>
-                      ))}
+                      {sensors.map((sensor) => {
+                        // Get OAuth connections for this sensor's base type
+                        const sensorBaseType = sensor.id.split('.')[0]
+                        const connections = sensorBaseType && oauthConnections ? (oauthConnections[sensorBaseType] || []) : []
+                        
+                        return (
+                          <SelectItem key={sensor.id} value={sensor.id}>
+                            <div className="flex items-center gap-2">
+                              <span>{sensor.icon}</span>
+                              <div className="flex flex-col">
+                                <div className="flex items-center gap-2">
+                                  <span>{sensor.name}</span>
+                                  {sensor.unit && (
+                                    <span className="text-xs text-gray-500">({sensor.unit})</span>
+                                  )}
+                                </div>
+                                {connections.length > 0 && (
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {connections.map((conn: any, idx: number) => (
+                                      <span
+                                        key={idx}
+                                        className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full"
+                                      >
+                                        {conn.name || conn.providerId}
+                                      </span>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </SelectItem>
+                        )
+                      })}
                     </div>
                   ))}
                 </SelectContent>

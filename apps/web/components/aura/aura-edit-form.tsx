@@ -1,7 +1,7 @@
 // apps/web/components/aura/aura-edit-form.tsx
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, useCallback } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import {
   Card,
@@ -32,6 +32,8 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Aura, Personality } from "@/types"
+import { useAutoSave } from "@/lib/hooks/use-auto-save"
+import { SaveStatusIndicator } from "@/components/ui/save-status-indicator"
 
 type Step = "details" | "senses" | "rules"
 
@@ -77,13 +79,15 @@ interface AuraEditFormProps {
   initialLocationConfigs?: Record<string, LocationConfig>
   initialOAuthConnections?: Record<string, any[]>
   initialNewsConfigurations?: Record<string, any[]>
+  initialWeatherAirQualityConfigurations?: Record<string, any[]>
 }
 
 export function AuraEditForm({
   initialAura,
   initialLocationConfigs = {},
   initialOAuthConnections = {},
-  initialNewsConfigurations = {}
+  initialNewsConfigurations = {},
+  initialWeatherAirQualityConfigurations = {}
 }: AuraEditFormProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
@@ -98,7 +102,7 @@ export function AuraEditForm({
   const [newsConfigurations, setNewsConfigurations] = useState<Record<string, any[]>>(initialNewsConfigurations)
   
   // Weather/Air Quality configurations
-  const [weatherAirQualityConfigurations, setWeatherAirQualityConfigurations] = useState<Record<string, any[]>>({})
+  const [weatherAirQualityConfigurations, setWeatherAirQualityConfigurations] = useState<Record<string, any[]>>(initialWeatherAirQualityConfigurations)
 
   // Refs for scrolling
   const containerRef = useRef<HTMLDivElement>(null)
@@ -164,6 +168,55 @@ export function AuraEditForm({
     return JSON.stringify(initial) !== JSON.stringify(current)
   }
 
+  // Auto-save function that saves all current data to the database
+  const saveToDatabase = useCallback(async () => {
+    console.log('🔄 Auto-saving aura data to database:', {
+      auraId: auraData.id,
+      name: auraData.name,
+      personality: auraData.personality,
+      senses: auraData.senses,
+      locationConfigs,
+      newsConfigurations,
+      weatherAirQualityConfigurations
+    })
+
+    const response = await fetch(`/api/auras/${auraData.id}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name: auraData.name,
+        personality: auraData.personality,
+        senses: auraData.senses,
+        selectedStudyId: (auraData as any).selectedStudyId,
+        selectedIndividualId: (auraData as any).selectedIndividualId,
+        locationConfigs: locationConfigs,
+        newsConfigurations: newsConfigurations,
+        weatherAirQualityConfigurations: weatherAirQualityConfigurations,
+      }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || 'Failed to save aura')
+    }
+
+    console.log('✅ Auto-save successful')
+  }, [auraData, locationConfigs, newsConfigurations, weatherAirQualityConfigurations])
+
+  // Auto-save hooks for different types of changes
+  const {
+    saveStatus: generalSaveStatus,
+    debouncedSave: debouncedGeneralSave,
+    saveImmediately: saveGeneralImmediately
+  } = useAutoSave({
+    delay: 2000, // 2 second delay for general changes
+    onSave: saveToDatabase,
+    onError: (error) => {
+      console.error('Auto-save failed:', error)
+      setError(error.message)
+    }
+  })
+
   // Scroll to top when step changes and restore form data from URL parameters
   useEffect(() => {
     if (containerRef.current) {
@@ -217,22 +270,81 @@ export function AuraEditForm({
       ...p,
       personality: { ...p.personality, ...update },
     }))
+    // Trigger debounced auto-save for personality changes
+    debouncedGeneralSave()
   }
 
   const toggleSense = (senseId: SenseId) => {
+    const isCurrentlySelected = auraData.senses.includes(senseId)
+    const newSenses = isCurrentlySelected
+      ? auraData.senses.filter(id => id !== senseId)
+      : [...auraData.senses, senseId]
+    
+    console.log(`🔄 toggleSense called for ${senseId}:`, {
+      isCurrentlySelected,
+      currentSenses: auraData.senses,
+      newSenses,
+      action: isCurrentlySelected ? 'removing' : 'adding'
+    })
+    
     setAuraData(p => ({
       ...p,
-      senses: p.senses.includes(senseId)
-        ? p.senses.filter(id => id !== senseId)
-        : [...p.senses, senseId],
+      senses: newSenses,
     }))
+    
+    // Trigger immediate auto-save for sense changes
+    saveGeneralImmediately()
   }
 
-  const handleLocationConfig = (senseId: SenseId, config: LocationConfig) => {
+  const handleLocationConfig = async (senseId: SenseId, config: LocationConfig) => {
+    // Update local state immediately for UI feedback
     setLocationConfigs(prev => ({
       ...prev,
       [senseId]: config
     }))
+    
+    // Save to database immediately
+    try {
+      console.log('💾 Saving location configuration to database:', { senseId, config })
+      
+      const response = await fetch(`/api/auras/${auraData.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: auraData.name,
+          personality: auraData.personality,
+          senses: auraData.senses,
+          selectedStudyId: (auraData as any).selectedStudyId,
+          selectedIndividualId: (auraData as any).selectedIndividualId,
+          locationConfigs: {
+            ...locationConfigs,
+            [senseId]: config
+          },
+          newsConfigurations: newsConfigurations,
+          weatherAirQualityConfigurations: weatherAirQualityConfigurations,
+        }),
+      })
+      
+      if (response.ok) {
+        console.log('✅ Successfully saved location configuration to database')
+      } else {
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch (parseError) {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
+        }
+        console.error('❌ Failed to save location configuration:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        })
+        throw new Error(errorData?.error || `Failed to save location configuration: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('❌ Error saving location configuration:', error)
+      throw error // Re-throw to trigger auto-save error handling
+    }
   }
 
   const handleOAuthConnection = async (senseId: SenseId, providerId: string, connectionData: any) => {
@@ -240,8 +352,24 @@ export function AuraEditForm({
       senseId,
       providerId,
       connectionData,
-      auraId: auraData.id
+      auraId: auraData.id,
+      currentSenses: auraData.senses,
+      useLibrary: connectionData.useLibrary,
+      isLibraryConnection: connectionData.isLibraryConnection
     })
+    
+    // Ensure the sense is enabled when OAuth connection is made
+    let updatedSenses = auraData.senses
+    if (!auraData.senses.includes(senseId)) {
+      console.log(`🔄 Auto-enabling ${senseId} sense in AuraEditForm due to OAuth connection`)
+      updatedSenses = [...auraData.senses, senseId]
+      setAuraData(prev => ({
+        ...prev,
+        senses: updatedSenses
+      }))
+      // Trigger immediate auto-save for sense changes
+      saveGeneralImmediately()
+    }
     
     // Helper function to get user-friendly provider names (matching edit page logic)
     const getProviderDisplayName = (provider: string): string => {
@@ -258,7 +386,29 @@ export function AuraEditForm({
       return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1).replace(/_/g, ' ')
     }
     
-    // Save to database via API
+    // Handle library connection association (when selecting from library)
+    if (connectionData.isLibraryConnection) {
+      console.log('📚 Handling library connection association')
+      
+      // Update local state with the library connection
+      setOAuthConnections(prev => ({
+        ...prev,
+        [senseId]: [...(prev[senseId] || []), {
+          id: connectionData.id,
+          name: getProviderDisplayName(providerId),
+          type: senseId,
+          connectedAt: connectionData.connectedAt,
+          providerId: providerId,
+          accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
+          deviceInfo: connectionData.deviceInfo || null,
+          isLibraryConnection: true,
+        }]
+      }))
+      
+      return // Library association is handled by the modal
+    }
+    
+    // Save to database via API (for new connections)
     try {
       const requestBody = {
         provider: providerId,
@@ -268,8 +418,9 @@ export function AuraEditForm({
         refresh_token: connectionData.tokens?.refresh_token,
         expires_at: connectionData.tokens?.expires_at,
         scope: connectionData.tokens?.scope,
-        aura_id: auraData.id, // Associate connection with this specific aura
+        aura_id: connectionData.useLibrary ? null : auraData.id, // Library connections have null aura_id
         device_info: connectionData.deviceInfo || null, // Include device information for location connections
+        use_library: connectionData.useLibrary || false, // Flag to indicate library storage
       }
       
       console.log('📤 Making API request to save OAuth connection:', requestBody)
@@ -301,6 +452,7 @@ export function AuraEditForm({
             providerId: providerId,
             accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
             deviceInfo: connectionData.deviceInfo || null, // Include device info in local state
+            isLibraryConnection: connectionData.useLibrary || false,
           }]
         }))
       } else {
@@ -324,6 +476,7 @@ export function AuraEditForm({
           providerId: providerId,
           accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
           deviceInfo: connectionData.deviceInfo || null, // Include device info in fallback state
+          isLibraryConnection: connectionData.useLibrary || false,
         }]
       }))
     }
@@ -353,18 +506,159 @@ export function AuraEditForm({
     }
   }
 
-  const handleNewsConfiguration = (senseId: SenseId, locations: any[]) => {
-    setNewsConfigurations(prev => ({
-      ...prev,
+  const handleNewsConfiguration = async (senseId: SenseId, locations: any[]) => {
+    console.log('🔄 handleNewsConfiguration called:', {
+      senseId,
+      locations,
+      auraId: auraData.id,
+      currentNewsConfigs: newsConfigurations,
+      currentSenses: auraData.senses
+    })
+    
+    // Update local state immediately for UI feedback
+    const updatedNewsConfigs = {
+      ...newsConfigurations,
       [senseId]: locations
-    }))
+    }
+    setNewsConfigurations(updatedNewsConfigs)
+    
+    // Ensure the sense is enabled when locations are configured
+    let updatedSenses = auraData.senses
+    if (locations.length > 0 && !auraData.senses.includes(senseId)) {
+      console.log(`🔄 Auto-enabling ${senseId} sense in AuraEditForm due to configuration`)
+      updatedSenses = [...auraData.senses, senseId]
+      setAuraData(prev => ({
+        ...prev,
+        senses: updatedSenses
+      }))
+    }
+    
+    // Save to database immediately
+    try {
+      const requestBody = {
+        name: auraData.name,
+        personality: auraData.personality,
+        senses: updatedSenses, // Use updated senses that include the newly enabled sense
+        selectedStudyId: (auraData as any).selectedStudyId,
+        selectedIndividualId: (auraData as any).selectedIndividualId,
+        locationConfigs: locationConfigs,
+        newsConfigurations: updatedNewsConfigs,
+        weatherAirQualityConfigurations: weatherAirQualityConfigurations,
+      }
+      
+      console.log('📤 Sending PUT request to API:', {
+        url: `/api/auras/${auraData.id}`,
+        newsConfigurations: requestBody.newsConfigurations,
+        senses: requestBody.senses,
+        fullBody: requestBody
+      })
+      
+      const response = await fetch(`/api/auras/${auraData.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(requestBody),
+      })
+      
+      console.log('📥 API response:', {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText
+      })
+      
+      if (response.ok) {
+        const responseData = await response.json()
+        console.log('✅ Successfully saved news configuration to database:', responseData)
+      } else {
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch (parseError) {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
+        }
+        console.error('❌ Failed to save news configuration - API error:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        })
+        throw new Error(errorData?.error || `Failed to save news configuration: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('❌ Error saving news configuration - Network/Parse error:', error)
+      throw error // Re-throw to trigger auto-save error handling
+    }
   }
 
-  const handleWeatherAirQualityConfiguration = (senseId: SenseId, locations: any[]) => {
+  const handleWeatherAirQualityConfiguration = async (senseId: SenseId, locations: any[]) => {
+    console.log('🔄 handleWeatherAirQualityConfiguration called:', {
+      senseId,
+      locations,
+      auraId: auraData.id,
+      currentSenses: auraData.senses
+    })
+    
+    // Update local state immediately for UI feedback
     setWeatherAirQualityConfigurations(prev => ({
       ...prev,
       [senseId]: locations
     }))
+    
+    // Ensure the sense is enabled when locations are configured
+    let updatedSenses = auraData.senses
+    if (locations.length > 0 && !auraData.senses.includes(senseId)) {
+      console.log(`🔄 Auto-enabling ${senseId} sense in AuraEditForm due to configuration`)
+      updatedSenses = [...auraData.senses, senseId]
+      setAuraData(prev => ({
+        ...prev,
+        senses: updatedSenses
+      }))
+    }
+    
+    // Save to database immediately
+    try {
+      console.log('💾 Saving weather/air quality configuration to database:', {
+        senseId,
+        locations,
+        updatedSenses
+      })
+      
+      const response = await fetch(`/api/auras/${auraData.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: auraData.name,
+          personality: auraData.personality,
+          senses: updatedSenses, // Use updated senses that include the newly enabled sense
+          selectedStudyId: (auraData as any).selectedStudyId,
+          selectedIndividualId: (auraData as any).selectedIndividualId,
+          locationConfigs: locationConfigs,
+          newsConfigurations: newsConfigurations,
+          weatherAirQualityConfigurations: {
+            ...weatherAirQualityConfigurations,
+            [senseId]: locations
+          },
+        }),
+      })
+      
+      if (response.ok) {
+        console.log('✅ Successfully saved weather/air quality configuration to database')
+      } else {
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch (parseError) {
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
+        }
+        console.error('❌ Failed to save weather/air quality configuration:', {
+          status: response.status,
+          statusText: response.statusText,
+          error: errorData
+        })
+        throw new Error(errorData?.error || `Failed to save weather/air quality configuration: ${response.status}`)
+      }
+    } catch (error) {
+      console.error('❌ Error saving weather/air quality configuration:', error)
+      throw error // Re-throw to trigger auto-save error handling
+    }
   }
 
   const handleSave = async () => {
@@ -475,7 +769,7 @@ export function AuraEditForm({
                   className="flex items-center gap-2"
                 >
                   <Bot className="w-4 h-4" />
-                  Switch to AI Assistant
+                  Edit with AI Assistant
                 </Button>
                 <Button
                   variant="default"
@@ -483,7 +777,7 @@ export function AuraEditForm({
                   className="flex items-center gap-2"
                 >
                   <Settings className="w-4 h-4" />
-                  Manual Configuration
+                  Edit Manually
                 </Button>
               </div>
             </Card>
@@ -504,7 +798,11 @@ export function AuraEditForm({
                 return (
                   <div key={stepInfo.id} className="flex items-center">
                     <button
-                      onClick={() => setStep(stepInfo.id as Step)}
+                      onClick={() => {
+                        // Save current step before navigating
+                        saveGeneralImmediately()
+                        setStep(stepInfo.id as Step)
+                      }}
                       disabled={stepInfo.id !== "details" && step === "details" && !auraData.name.trim()}
                       className={cn(
                         "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
@@ -557,21 +855,30 @@ export function AuraEditForm({
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div>
-                    <label htmlFor="aura-name" className="block text-sm font-medium text-purple-100 mb-2">
-                      Aura Name
-                    </label>
+                    <div className="flex items-center justify-between mb-2">
+                      <label htmlFor="aura-name" className="block text-sm font-medium text-purple-100">
+                        Aura Name
+                      </label>
+                      <SaveStatusIndicator status={generalSaveStatus} className="text-purple-100" />
+                    </div>
                     {isEditingName ? (
                       <div className="flex items-center gap-2">
                         <Input
                           id="aura-name"
                           value={auraData.name}
-                          onChange={(e) => setAuraData(p => ({ ...p, name: e.target.value }))}
+                          onChange={(e) => {
+                            setAuraData(p => ({ ...p, name: e.target.value }))
+                            debouncedGeneralSave() // Auto-save name changes
+                          }}
                           placeholder="Enter a name for your Aura..."
                           className="text-lg bg-white text-black placeholder-gray-500 border-gray-300 focus:ring-purple-500"
                           autoFocus
                         />
                         <Button
-                          onClick={() => setIsEditingName(false)}
+                          onClick={() => {
+                            setIsEditingName(false)
+                            saveGeneralImmediately() // Save immediately when clicking save
+                          }}
                           disabled={!auraData.name.trim()}
                           className="bg-white text-purple-600 hover:bg-gray-100"
                         >
@@ -672,24 +979,28 @@ export function AuraEditForm({
                 auraId={auraData.id}
                 vesselType={auraData.vesselType}
                 availableSenses={auraData.senses}
+                oauthConnections={oauthConnections}
                 existingRules={auraData.rules}
-                onAddRule={r =>
+                onAddRule={r => {
                   setAuraData(p => ({ ...p, rules: [...p.rules, r] }))
-                }
-                onDeleteRule={id =>
+                  saveGeneralImmediately() // Auto-save rule additions
+                }}
+                onDeleteRule={id => {
                   setAuraData(p => ({
                     ...p,
                     rules: p.rules.filter(r => r.id !== id),
                   }))
-                }
-                onToggleRule={(id, en) =>
+                  saveGeneralImmediately() // Auto-save rule deletions
+                }}
+                onToggleRule={(id, en) => {
                   setAuraData(p => ({
                     ...p,
                     rules: p.rules.map(r =>
                       r.id === id ? { ...r, enabled: en } : r
                     ),
                   }))
-                }
+                  saveGeneralImmediately() // Auto-save rule toggles
+                }}
               />
             </div>
           )}

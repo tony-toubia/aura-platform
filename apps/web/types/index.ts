@@ -304,6 +304,115 @@ export const SENSOR_CONFIGS: Record<string, SensorMetadata> = {
     icon: '📰',
     category: 'digital',
     operators: ['contains']
+  },
+  
+  // Weather sensors
+  'weather.humidity': {
+    id: 'weather.humidity',
+    name: 'Humidity',
+    type: 'numeric',
+    unit: '%',
+    range: { min: 0, max: 100 },
+    icon: '💧',
+    category: 'environmental',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
+  },
+  'weather.pressure': {
+    id: 'weather.pressure',
+    name: 'Atmospheric Pressure',
+    type: 'numeric',
+    unit: 'hPa',
+    range: { min: 900, max: 1100 },
+    icon: '🌡️',
+    category: 'environmental',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
+  },
+  
+  // Air quality sensors
+  'air_quality.aqi': {
+    id: 'air_quality.aqi',
+    name: 'Air Quality Index',
+    type: 'numeric',
+    unit: 'AQI',
+    range: { min: 0, max: 500 },
+    icon: '🌬️',
+    category: 'environmental',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
+  },
+  'air_quality.pm25': {
+    id: 'air_quality.pm25',
+    name: 'PM2.5',
+    type: 'numeric',
+    unit: 'μg/m³',
+    range: { min: 0, max: 500 },
+    icon: '🌫️',
+    category: 'environmental',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
+  },
+  
+  // Additional fitness sensors
+  'fitness.calories': {
+    id: 'fitness.calories',
+    name: 'Calories Burned',
+    type: 'numeric',
+    unit: 'cal',
+    range: { min: 0, max: 10000 },
+    icon: '🔥',
+    category: 'personal',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
+  },
+  'fitness.distance': {
+    id: 'fitness.distance',
+    name: 'Distance Traveled',
+    type: 'numeric',
+    unit: 'km',
+    range: { min: 0, max: 100 },
+    icon: '📏',
+    category: 'personal',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
+  },
+  
+  // Additional sleep sensors
+  'sleep.bedtime': {
+    id: 'sleep.bedtime',
+    name: 'Bedtime',
+    type: 'time',
+    icon: '🛏️',
+    category: 'personal',
+    operators: ['<', '<=', '>', '>=', '==', '!=']
+  },
+  'sleep.wakeTime': {
+    id: 'sleep.wakeTime',
+    name: 'Wake Time',
+    type: 'time',
+    icon: '⏰',
+    category: 'personal',
+    operators: ['<', '<=', '>', '>=', '==', '!=']
+  },
+  
+  // Location sensors
+  'location.city': {
+    id: 'location.city',
+    name: 'Current City',
+    type: 'text',
+    icon: '🏙️',
+    category: 'personal',
+    operators: ['==', '!=', 'contains']
+  },
+  'location.weather': {
+    id: 'location.weather',
+    name: 'Location Weather',
+    type: 'enum',
+    enumValues: [
+      { value: 'sunny', label: 'Sunny' },
+      { value: 'cloudy', label: 'Cloudy' },
+      { value: 'rainy', label: 'Rainy' },
+      { value: 'stormy', label: 'Stormy' },
+      { value: 'snowy', label: 'Snowy' }
+    ],
+    icon: '🌤️',
+    category: 'personal',
+    operators: ['==', '!=']
   }
 }
 

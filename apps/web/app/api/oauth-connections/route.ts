@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid JSON in request body" }, { status: 400 })
   }
   
-  const { provider, sense_type, provider_user_id, access_token, refresh_token, expires_at, scope, aura_id, device_info } = body
+  const { provider, sense_type, provider_user_id, access_token, refresh_token, expires_at, scope, aura_id, device_info, use_library = true } = body
   
   console.log(`[${timestamp}] [${requestId}] 📋 Request details:`, {
     provider,
@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
     hasAccessToken: !!access_token,
     hasRefreshToken: !!refresh_token,
     aura_id,
+    use_library,
     hasDeviceInfo: !!device_info,
     deviceInfoKeys: device_info ? Object.keys(device_info) : [],
     bodyKeys: Object.keys(body),
@@ -52,13 +53,68 @@ export async function POST(req: NextRequest) {
   }
 
   try {
-    // Check for existing connection for this user/provider/sense combination
+    // Check for existing library connection first (if use_library is true)
+    if (use_library) {
+      const { data: existingLibraryConnection } = await supabase
+        .from("oauth_connections")
+        .select("id")
+        .eq("user_id", user.id)
+        .eq("provider", provider)
+        .eq("sense_type", sense_type)
+        .is("aura_id", null) // Library connection
+        .single()
+
+      if (existingLibraryConnection && aura_id) {
+        console.log(`[${timestamp}] [${requestId}] 🔄 Found existing library connection, creating association with aura: ${aura_id}`)
+        
+        // Check if association already exists
+        const { data: existingAssociation } = await supabase
+          .from("aura_oauth_connections")
+          .select("id")
+          .eq("connection_id", existingLibraryConnection.id)
+          .eq("aura_id", aura_id)
+          .single()
+
+        if (!existingAssociation) {
+          // Create association
+          const { data: association, error: associationError } = await supabase
+            .from("aura_oauth_connections")
+            .insert({
+              connection_id: existingLibraryConnection.id,
+              aura_id: aura_id
+            })
+            .select()
+            .single()
+
+          if (associationError) {
+            console.error(`[${timestamp}] [${requestId}] ❌ Failed to create association:`, associationError)
+            return NextResponse.json({ error: associationError.message }, { status: 500 })
+          }
+
+          console.log(`[${timestamp}] [${requestId}] ✅ Successfully associated existing library connection with aura`)
+          return NextResponse.json({
+            id: existingLibraryConnection.id,
+            association_id: association.id,
+            is_library_connection: true
+          }, { status: 200 })
+        } else {
+          console.log(`[${timestamp}] [${requestId}] ⚠️ Association already exists`)
+          return NextResponse.json(
+            { error: "Connection already associated with this aura" },
+            { status: 409 }
+          )
+        }
+      }
+    }
+
+    // Check for existing direct connection for this user/provider/sense combination
     const { data: existingConnection } = await supabase
       .from("oauth_connections")
       .select("id, aura_id")
       .eq("user_id", user.id)
       .eq("provider", provider)
       .eq("sense_type", sense_type)
+      .not("aura_id", "is", null) // Only direct connections
       .single()
 
     if (existingConnection) {
@@ -91,6 +147,10 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Determine where to store the new connection
+    const shouldStoreInLibrary = use_library && !aura_id
+    const targetAuraId = shouldStoreInLibrary ? null : aura_id
+
     // Insert new OAuth connection
     const insertData = {
       user_id: user.id,
@@ -101,7 +161,7 @@ export async function POST(req: NextRequest) {
       refresh_token,
       expires_at: expires_at ? new Date(expires_at).toISOString() : null,
       scope,
-      aura_id: aura_id || null, // Associate with specific aura if provided
+      aura_id: targetAuraId, // null for library, specific aura_id for direct connection
       device_info: device_info || null, // Store device information for location connections
     }
     
@@ -109,6 +169,7 @@ export async function POST(req: NextRequest) {
       ...insertData,
       access_token: '***',
       refresh_token: insertData.refresh_token ? '***' : null,
+      is_library_connection: shouldStoreInLibrary,
       device_info: insertData.device_info ? {
         browser: insertData.device_info.browser,
         os: insertData.device_info.os,
@@ -127,8 +188,30 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: insertError.message }, { status: 500 })
     }
 
+    // If we created a library connection and have an aura_id, create the association
+    if (shouldStoreInLibrary && aura_id) {
+      const { data: association, error: associationError } = await supabase
+        .from("aura_oauth_connections")
+        .insert({
+          connection_id: connection.id,
+          aura_id: aura_id
+        })
+        .select()
+        .single()
+
+      if (associationError) {
+        console.error(`[${timestamp}] [${requestId}] ❌ Failed to create association for new library connection:`, associationError)
+        // Don't fail the whole request, just log the error
+      } else {
+        console.log(`[${timestamp}] [${requestId}] ✅ Successfully created association for new library connection`)
+      }
+    }
+
     console.log(`[${timestamp}] [${requestId}] ✅ Successfully created OAuth connection with ID: ${connection.id}`)
-    return NextResponse.json(connection, { status: 201 })
+    return NextResponse.json({
+      ...connection,
+      is_library_connection: shouldStoreInLibrary
+    }, { status: 201 })
   } catch (error: any) {
     console.error("Unexpected error creating OAuth connection:", error)
     return NextResponse.json(
@@ -148,29 +231,44 @@ export async function GET(req: NextRequest) {
   }
 
   try {
-    // Get aura_id from query parameters if provided
+    // Get query parameters
     const { searchParams } = new URL(req.url)
     const auraId = searchParams.get('aura_id')
+    const includeLibrary = searchParams.get('include_library') === 'true'
 
-    let query = supabase
-      .from("oauth_connections")
-      .select("*")
-      .eq("user_id", user.id)
-
-    // Filter by aura_id if provided - only show connections for this specific aura
     if (auraId) {
-      query = query.eq("aura_id", auraId)
+      // Use the database function to get all connections for an aura (direct + library)
+      const { data: connections, error } = await supabase
+        .rpc('get_aura_oauth_connections', { aura_uuid: auraId })
+
+      if (error) {
+        console.error("Failed to fetch aura OAuth connections:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json(connections || [])
+    } else {
+      // Get all connections for the user
+      let query = supabase
+        .from("oauth_connections")
+        .select("*")
+        .eq("user_id", user.id)
+
+      if (!includeLibrary) {
+        // Exclude library connections (aura_id IS NOT NULL)
+        query = query.not("aura_id", "is", null)
+      }
+
+      const { data: connections, error } = await query
+        .order("created_at", { ascending: false })
+
+      if (error) {
+        console.error("Failed to fetch OAuth connections:", error)
+        return NextResponse.json({ error: error.message }, { status: 500 })
+      }
+
+      return NextResponse.json(connections || [])
     }
-
-    const { data: connections, error } = await query
-      .order("created_at", { ascending: false })
-
-    if (error) {
-      console.error("Failed to fetch OAuth connections:", error)
-      return NextResponse.json({ error: error.message }, { status: 500 })
-    }
-
-    return NextResponse.json(connections)
   } catch (error: any) {
     console.error("Unexpected error fetching OAuth connections:", error)
     return NextResponse.json(

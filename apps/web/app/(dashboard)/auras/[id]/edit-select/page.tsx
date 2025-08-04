@@ -313,7 +313,7 @@ export default function EditSelectPage({ params }: PageProps) {
                     </>
                   ) : (
                     <>
-                      Start Editing
+                      {method.id === 'guided' ? 'Edit with AI Assistant' : 'Edit Manually'}
                       <ArrowRight className="w-4 h-4 ml-2" />
                     </>
                   )}

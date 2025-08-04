@@ -22,7 +22,10 @@ export async function PUT(req: NextRequest, context: RouteParams) {
     hasPersonality: !!personality,
     hasLocationConfigs: !!locationConfigs,
     hasNewsConfigurations: !!newsConfigurations,
-    hasWeatherAirQualityConfigurations: !!weatherAirQualityConfigurations
+    hasWeatherAirQualityConfigurations: !!weatherAirQualityConfigurations,
+    newsConfigurationsDetail: newsConfigurations,
+    weatherAirQualityConfigurationsDetail: weatherAirQualityConfigurations,
+    fullBody: body
   })
 
   // Basic validation
@@ -73,43 +76,43 @@ export async function PUT(req: NextRequest, context: RouteParams) {
 
     // Update senses if provided
     if (senses && senses.length >= 0) {
-      // First, delete existing sense connections
+      console.log(`[${timestamp}] Looking up senses with codes:`, senses)
+      
+      // Get sense IDs from codes
+      const { data: senseData, error: senseError } = await supabase
+        .from("senses")
+        .select("id, code")
+        .in("code", senses)
+
+      console.log(`[${timestamp}] Found senses in database:`, senseData)
+      console.log(`[${timestamp}] Requested ${senses.length} senses, found ${senseData?.length || 0} in database`)
+
+      if (senseError || !senseData) {
+        console.error("Failed to fetch senses:", senseError)
+        return NextResponse.json({ error: "Failed to fetch senses" }, { status: 500 })
+      }
+
+      // Check for missing senses
+      const foundCodes = senseData.map(s => s.code)
+      const missingSenses = senses.filter(code => !foundCodes.includes(code))
+      if (missingSenses.length > 0) {
+        console.warn(`[${timestamp}] Missing senses in database:`, missingSenses)
+      }
+
+      // First, delete senses that are no longer selected
       const { error: deleteError } = await supabase
         .from("aura_senses")
         .delete()
         .eq("aura_id", auraId)
+        .not("sense_id", "in", `(${senseData.map(s => s.id).join(",")})`)
 
       if (deleteError) {
-        console.error("Failed to delete existing senses:", deleteError)
+        console.error("Failed to delete removed senses:", deleteError)
         return NextResponse.json({ error: deleteError.message }, { status: 500 })
       }
 
-      // Then, add new sense connections if any senses are provided
-      if (senses.length > 0) {
-        console.log(`[${timestamp}] Looking up senses with codes:`, senses)
-        
-        // Get sense IDs from codes
-        const { data: senseData, error: senseError } = await supabase
-          .from("senses")
-          .select("id, code")
-          .in("code", senses)
-
-        console.log(`[${timestamp}] Found senses in database:`, senseData)
-        console.log(`[${timestamp}] Requested ${senses.length} senses, found ${senseData?.length || 0} in database`)
-
-        if (senseError || !senseData) {
-          console.error("Failed to fetch senses:", senseError)
-          return NextResponse.json({ error: "Failed to fetch senses" }, { status: 500 })
-        }
-
-        // Check for missing senses
-        const foundCodes = senseData.map(s => s.code)
-        const missingSenses = senses.filter(code => !foundCodes.includes(code))
-        if (missingSenses.length > 0) {
-          console.warn(`[${timestamp}] Missing senses in database:`, missingSenses)
-        }
-
-        // Create aura_senses connections with configurations
+      // Then, upsert sense connections with configurations
+      if (senseData.length > 0) {
         const auraSenses = senseData.map((sense) => {
           // Build config object for this sense (excluding OAuth connections)
           const config: any = {}
@@ -117,32 +120,55 @@ export async function PUT(req: NextRequest, context: RouteParams) {
           // Add location config if available
           if (locationConfigs && locationConfigs[sense.code]) {
             config.location = locationConfigs[sense.code]
+            console.log(`[${timestamp}] Adding location config for ${sense.code}:`, locationConfigs[sense.code])
           }
           
           // Add news configurations if available
           if (newsConfigurations && newsConfigurations[sense.code]) {
             config.newsConfigurations = newsConfigurations[sense.code]
+            console.log(`[${timestamp}] Adding news configurations for ${sense.code}:`, newsConfigurations[sense.code])
           }
           
           // Add weather/air quality configurations if available
           if (weatherAirQualityConfigurations && weatherAirQualityConfigurations[sense.code]) {
             config.weatherAirQualityConfigurations = weatherAirQualityConfigurations[sense.code]
+            console.log(`[${timestamp}] Adding weather/air quality configurations for ${sense.code}:`, weatherAirQualityConfigurations[sense.code])
           }
 
-          return {
+          const auraSenseRecord = {
             aura_id: auraId,
             sense_id: sense.id,
             config: Object.keys(config).length > 0 ? config : {},
           }
+          
+          console.log(`[${timestamp}] Creating aura_sense record for ${sense.code}:`, auraSenseRecord)
+          return auraSenseRecord
         })
+        
+        console.log(`[${timestamp}] Final aura_senses records to upsert:`, auraSenses)
 
-        const { error: insertError } = await supabase
+        // Use upsert to handle existing records gracefully
+        const { error: upsertError } = await supabase
           .from("aura_senses")
-          .insert(auraSenses)
+          .upsert(auraSenses, {
+            onConflict: 'aura_id,sense_id',
+            ignoreDuplicates: false
+          })
 
-        if (insertError) {
-          console.error("Failed to insert new senses:", insertError)
-          return NextResponse.json({ error: insertError.message }, { status: 500 })
+        if (upsertError) {
+          console.error("Failed to upsert senses:", upsertError)
+          return NextResponse.json({ error: upsertError.message }, { status: 500 })
+        }
+      } else {
+        // If no senses selected, delete all existing ones
+        const { error: deleteAllError } = await supabase
+          .from("aura_senses")
+          .delete()
+          .eq("aura_id", auraId)
+
+        if (deleteAllError) {
+          console.error("Failed to delete all senses:", deleteAllError)
+          return NextResponse.json({ error: deleteAllError.message }, { status: 500 })
         }
       }
     }

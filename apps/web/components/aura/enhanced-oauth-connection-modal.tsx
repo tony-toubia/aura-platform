@@ -24,7 +24,16 @@ import {
   Trash2,
   Plus,
   Settings,
+  Library,
+  ChevronDown,
 } from "lucide-react"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 import { GoogleCalendarOAuth } from "@/lib/oauth/google-calendar"
 import { MicrosoftOutlookOAuth } from "@/lib/oauth/microsoft-outlook"
@@ -34,6 +43,13 @@ import { AppleHealthOAuth } from "@/lib/oauth/apple-health"
 import { GoogleFitOAuth } from "@/lib/oauth/google-fit"
 import { FitbitOAuth } from "@/lib/oauth/fitbit"
 import { StravaOAuth } from "@/lib/oauth/strava"
+import { OAuthLibrarySelector, type LibraryConnection as OriginalLibraryConnection } from "./oauth-library-selector"
+
+// Extended interface to handle both library and direct connections
+interface LibraryConnection extends OriginalLibraryConnection {
+  is_direct_connection?: boolean
+  source_aura_id?: string
+}
 
 export type PersonalSenseType = 'calendar' | 'fitness' | 'sleep' | 'location'
 
@@ -249,15 +265,135 @@ export function EnhancedOAuthConnectionModal({
   const [connectionStatus, setConnectionStatus] = useState<Record<string, ConnectionStatus>>({})
   const [locationService] = useState(() => new BrowserLocationService())
   const [showLocationModal, setShowLocationModal] = useState(false)
+  const [libraryConnections, setLibraryConnections] = useState<Record<string, LibraryConnection[]>>({})
+  const [loadingLibrary, setLoadingLibrary] = useState(false)
   
   const senseConfig = SENSE_CONFIG[senseType]
   const providers = OAUTH_PROVIDERS[senseType] || []
   
-  const handleConnect = async (providerId: string) => {
+  // Fetch library connections when modal opens
+  React.useEffect(() => {
+    if (open) {
+      fetchLibraryConnections()
+    }
+  }, [open, senseType])
+
+  const fetchLibraryConnections = async () => {
+    setLoadingLibrary(true)
+    try {
+      // Fetch both library connections and all user connections for this sense type
+      const [libraryResponse, allConnectionsResponse] = await Promise.all([
+        fetch(`/api/oauth-connections/library?sense_type=${encodeURIComponent(senseType)}`),
+        fetch(`/api/oauth-connections?include_library=true`)
+      ])
+      
+      console.log('🔍 API responses:', {
+        library: { ok: libraryResponse.ok, status: libraryResponse.status },
+        all: { ok: allConnectionsResponse.ok, status: allConnectionsResponse.status }
+      })
+      
+      let allAvailableConnections: LibraryConnection[] = []
+      
+      // Get library connections (aura_id = null) - handle gracefully if API fails
+      if (libraryResponse.ok) {
+        try {
+          const libraryData = await libraryResponse.json()
+          allAvailableConnections = [...libraryData]
+        } catch (parseError) {
+          console.warn('⚠️ Failed to parse library connections response:', parseError)
+        }
+      } else {
+        console.warn('⚠️ Library connections API failed:', libraryResponse.status, libraryResponse.statusText)
+      }
+      
+      // Get all user connections and filter for reusable ones - handle gracefully if API fails
+      if (allConnectionsResponse.ok) {
+        try {
+          const allData = await allConnectionsResponse.json()
+          
+          console.log('🔍 All connections data:', {
+            totalConnections: allData.length,
+            senseType,
+            auraId,
+            connections: allData.map((conn: any) => ({
+              id: conn.id,
+              provider: conn.provider,
+              sense_type: conn.sense_type,
+              aura_id: conn.aura_id,
+              created_at: conn.created_at
+            }))
+          })
+          
+          // Filter connections that match the sense type and are not already associated with this aura
+          const reusableConnections = allData
+            .filter((conn: any) => {
+              const matches = conn.sense_type === senseType &&
+                conn.aura_id !== auraId && // Not already connected to this aura
+                conn.aura_id !== null // Direct connections from other auras (exclude library connections)
+              
+              console.log('🔍 Connection filter check:', {
+                id: conn.id,
+                provider: conn.provider,
+                sense_type: conn.sense_type,
+                aura_id: conn.aura_id,
+                targetSenseType: senseType,
+                targetAuraId: auraId,
+                matches
+              })
+              
+              return matches
+            })
+            .map((conn: any) => ({
+              id: conn.id,
+              provider: conn.provider,
+              provider_user_id: conn.provider_user_id,
+              sense_type: conn.sense_type,
+              created_at: conn.created_at,
+              expires_at: conn.expires_at,
+              scope: conn.scope,
+              device_info: conn.device_info,
+              is_direct_connection: true, // Mark as direct connection for UI
+              source_aura_id: conn.aura_id // Track which aura it's from
+            }))
+          
+          console.log('🔍 Filtered reusable connections:', {
+            count: reusableConnections.length,
+            connections: reusableConnections
+          })
+          
+          allAvailableConnections = [...allAvailableConnections, ...reusableConnections]
+        } catch (parseError) {
+          console.warn('⚠️ Failed to parse all connections response:', parseError)
+        }
+      } else {
+        console.warn('⚠️ All connections API failed:', allConnectionsResponse.status, allConnectionsResponse.statusText)
+      }
+      
+      console.log('📚 All available connections:', {
+        senseType,
+        connections: allAvailableConnections,
+        count: allAvailableConnections.length
+      })
+      
+      setLibraryConnections(prev => ({
+        ...prev,
+        [senseType]: allAvailableConnections
+      }))
+      
+    } catch (error) {
+      console.error('❌ Error fetching connections:', error)
+      // Continue gracefully - the UI will just not show library connections
+    } finally {
+      setLoadingLibrary(false)
+    }
+  }
+  
+  const handleConnect = async (providerId: string, useLibrary: boolean = true) => {
     console.log('🎯 handleConnect called:', {
       providerId,
       senseType,
       auraId,
+      useLibrary,
       timestamp: new Date().toISOString()
     })
     
@@ -291,6 +427,9 @@ export function EnhancedOAuthConnectionModal({
           accountEmail: 'Google Account',
           tokens: tokenResponse,
           connectedAt: new Date(),
+          useLibrary,
+          senseType,
+          auraId: useLibrary ? undefined : auraId, // Library connections don't have aura_id
         }
         
         // Reset connection status to idle after successful connection
@@ -326,6 +465,9 @@ export function EnhancedOAuthConnectionModal({
           accountEmail: 'Microsoft Account',
           tokens: tokenResponse,
           connectedAt: new Date(),
+          useLibrary,
+          senseType,
+          auraId: useLibrary ? undefined : auraId, // Library connections don't have aura_id
         }
         
         // Reset connection status to idle after successful connection
@@ -367,6 +509,9 @@ export function EnhancedOAuthConnectionModal({
           accountEmail: 'Apple Health Account',
           tokens: tokenResponse,
           connectedAt: new Date(),
+          useLibrary,
+          senseType,
+          auraId: useLibrary ? undefined : auraId, // Library connections don't have aura_id
         }
         
         // Reset connection status to idle after successful connection
@@ -423,6 +568,9 @@ export function EnhancedOAuthConnectionModal({
           accountEmail: 'Google Fit Account',
           tokens: tokenResponse,
           connectedAt: new Date(),
+          useLibrary,
+          senseType,
+          auraId: useLibrary ? undefined : auraId, // Library connections don't have aura_id
         }
         
         console.log('📋 Created connection data:', connectionData)
@@ -471,6 +619,9 @@ export function EnhancedOAuthConnectionModal({
           accountEmail: 'Fitbit Account',
           tokens: tokenResponse,
           connectedAt: new Date(),
+          useLibrary,
+          senseType,
+          auraId: useLibrary ? undefined : auraId, // Library connections don't have aura_id
         }
         
         // Reset connection status to idle after successful connection
@@ -506,6 +657,9 @@ export function EnhancedOAuthConnectionModal({
           accountEmail: 'Strava Account',
           tokens: tokenResponse,
           connectedAt: new Date(),
+          useLibrary,
+          senseType,
+          auraId: useLibrary ? undefined : auraId, // Library connections don't have aura_id
         }
         
         // Reset connection status to idle after successful connection
@@ -522,6 +676,9 @@ export function EnhancedOAuthConnectionModal({
           providerName: providers.find(p => p.id === providerId)?.name || 'Unknown',
           accountEmail: 'user@example.com',
           connectedAt: new Date(),
+          useLibrary,
+          senseType,
+          auraId: useLibrary ? undefined : auraId, // Library connections don't have aura_id
         }
         
         // Reset connection status to idle after successful connection
@@ -546,6 +703,120 @@ export function EnhancedOAuthConnectionModal({
         alert(`Connection failed: ${error}`)
       }
     }
+  }
+
+  const handleLibraryConnectionSelect = async (connection: LibraryConnection) => {
+    console.log('🎯 handleLibraryConnectionSelect called:', {
+      connection,
+      auraId,
+      isDirectConnection: connection.is_direct_connection,
+      timestamp: new Date().toISOString()
+    })
+
+    if (!auraId) {
+      console.error('❌ No aura ID provided for connection association')
+      alert('Error: No aura ID provided')
+      return
+    }
+
+    try {
+      if (connection.is_direct_connection) {
+        // For direct connections from other auras, we need to create a new association
+        // or convert it to a library connection first
+        console.log('🔄 Handling direct connection reuse')
+        
+        // First, convert the direct connection to a library connection
+        const convertResponse = await fetch('/api/oauth-connections/convert-to-library', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            connection_id: connection.id,
+          }),
+        })
+
+        if (!convertResponse.ok) {
+          throw new Error(`Failed to convert connection to library: ${convertResponse.statusText}`)
+        }
+
+        const convertedConnection = await convertResponse.json()
+        
+        // Now associate the library connection with this aura
+        const associateResponse = await fetch('/api/oauth-connections/library/associate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            library_connection_id: convertedConnection.id,
+            aura_id: auraId,
+          }),
+        })
+
+        if (!associateResponse.ok) {
+          throw new Error(`Failed to associate converted connection: ${associateResponse.statusText}`)
+        }
+
+      } else {
+        // For library connections, just associate with this aura
+        console.log('📚 Handling library connection association')
+        
+        const response = await fetch('/api/oauth-connections/library/associate', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            connection_id: connection.id, // Use connection_id as per API
+            aura_id: auraId,
+          }),
+        })
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.error('❌ Association API error:', { status: response.status, statusText: response.statusText, body: errorText })
+          throw new Error(`Failed to associate library connection: ${response.statusText}`)
+        }
+
+        const result = await response.json()
+        console.log('✅ Association result:', result)
+      }
+
+      // Create connection data in the format expected by the parent component
+      const connectionData = {
+        id: connection.id,
+        providerId: connection.provider,
+        providerName: connection.provider,
+        accountEmail: connection.provider_user_id,
+        connectedAt: new Date(connection.created_at),
+        isLibraryConnection: !connection.is_direct_connection,
+        wasDirectConnection: connection.is_direct_connection,
+      }
+
+      console.log('✅ Connection associated successfully:', connectionData)
+      onConnectionComplete(connection.provider, connectionData)
+      
+    } catch (error) {
+      console.error('❌ Failed to associate connection:', error)
+      alert(`Failed to use existing connection: ${error instanceof Error ? error.message : error}`)
+    }
+  }
+
+  // Get library connections for a specific provider
+  const getProviderLibraryConnections = (providerId: string): LibraryConnection[] => {
+    const connections = libraryConnections[senseType] || []
+    const filtered = connections.filter(conn => conn.provider === providerId)
+    
+    console.log('🔍 getProviderLibraryConnections:', {
+      providerId,
+      senseType,
+      allConnections: connections,
+      filteredConnections: filtered,
+      libraryConnectionsState: libraryConnections
+    })
+    
+    return filtered
   }
 
   const handleLocationConnection = (connectionData: any) => {
@@ -979,36 +1250,116 @@ export function EnhancedOAuthConnectionModal({
                       </div>
                     </div>
                     
-                    <Button
-                      onClick={() => handleConnect(provider.id)}
-                      disabled={isConnecting || shouldPreventConnection}
-                      variant={hasExistingConnection || shouldPreventConnection ? "outline" : "default"}
-                      className={cn(
-                        "min-w-[120px] whitespace-nowrap",
-                        hasError && "border-red-300 text-red-700 bg-red-50",
-                        (hasExistingConnection || shouldPreventConnection) && "border-blue-300 text-blue-700 bg-blue-50",
-                        shouldPreventConnection && "opacity-60 cursor-not-allowed",
-                        provider.comingSoon && "border-orange-300 text-orange-700 bg-orange-50"
-                      )}
-                    >
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(provider.id)}
-                        <span>
-                          {provider.comingSoon
-                            ? 'Coming Soon'
-                            : shouldPreventConnection
-                            ? 'Cannot Connect'
-                            : hasExistingConnection && !isConnecting && !shouldPreventConnection
-                            ? 'Add Another'
-                            : isConnecting
-                            ? 'Connecting...'
-                            : hasError
-                            ? 'Try Again'
-                            : 'Connect'
-                          }
-                        </span>
-                      </div>
-                    </Button>
+                    {(() => {
+                      const providerLibraryConnections = getProviderLibraryConnections(provider.id)
+                      const hasLibraryConnections = providerLibraryConnections.length > 0
+                      
+                      if (hasLibraryConnections && !shouldPreventConnection && !provider.comingSoon) {
+                        // Show simple buttons when library connections are available
+                        return (
+                          <div className="flex gap-2">
+                            <Button
+                              onClick={() => handleConnect(provider.id, true)}
+                              disabled={isConnecting}
+                              variant={hasExistingConnection ? "outline" : "default"}
+                              size="sm"
+                              className={cn(
+                                "whitespace-nowrap",
+                                hasError && "border-red-300 text-red-700 bg-red-50",
+                                hasExistingConnection && "border-blue-300 text-blue-700 bg-blue-50"
+                              )}
+                            >
+                              <div className="flex items-center gap-1">
+                                {getStatusIcon(provider.id)}
+                                <span>
+                                  {isConnecting
+                                    ? 'Connecting...'
+                                    : hasError
+                                    ? 'Try Again'
+                                    : 'Connect New'
+                                  }
+                                </span>
+                              </div>
+                            </Button>
+                            
+                            {providerLibraryConnections.map((connection) => {
+                              const isExpired = connection.expires_at && new Date(connection.expires_at) < new Date()
+                              const isDirectConnection = connection.is_direct_connection
+                              
+                              return (
+                                <Button
+                                  key={connection.id}
+                                  onClick={() => {
+                                    if (!isExpired) {
+                                      console.log('🖱️ Selecting connection:', connection.id, connection.provider)
+                                      handleLibraryConnectionSelect(connection)
+                                    }
+                                  }}
+                                  disabled={Boolean(isExpired)}
+                                  variant="outline"
+                                  size="sm"
+                                  className="whitespace-nowrap"
+                                >
+                                  <div className="flex items-center gap-1">
+                                    {isDirectConnection ? (
+                                      <ExternalLink className="w-3 h-3" />
+                                    ) : (
+                                      <Library className="w-3 h-3" />
+                                    )}
+                                    <span>
+                                      Use {connection.provider_user_id.substring(0, 10)}...
+                                    </span>
+                                    {isDirectConnection ? (
+                                      <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded ml-1">
+                                        Reuse
+                                      </span>
+                                    ) : (
+                                      <span className="text-xs bg-purple-100 text-purple-700 px-1 py-0.5 rounded ml-1">
+                                        Library
+                                      </span>
+                                    )}
+                                  </div>
+                                </Button>
+                              )
+                            })}
+                          </div>
+                        )
+                      } else {
+                        // Show regular button when no library connections or other conditions
+                        return (
+                          <Button
+                            onClick={() => handleConnect(provider.id, true)} // Use library by default
+                            disabled={isConnecting || shouldPreventConnection}
+                            variant={hasExistingConnection || shouldPreventConnection ? "outline" : "default"}
+                            className={cn(
+                              "min-w-[120px] whitespace-nowrap",
+                              hasError && "border-red-300 text-red-700 bg-red-50",
+                              (hasExistingConnection || shouldPreventConnection) && "border-blue-300 text-blue-700 bg-blue-50",
+                              shouldPreventConnection && "opacity-60 cursor-not-allowed",
+                              provider.comingSoon && "border-orange-300 text-orange-700 bg-orange-50"
+                            )}
+                          >
+                            <div className="flex items-center gap-2">
+                              {getStatusIcon(provider.id)}
+                              <span>
+                                {provider.comingSoon
+                                  ? 'Coming Soon'
+                                  : shouldPreventConnection
+                                  ? 'Cannot Connect'
+                                  : hasExistingConnection && !isConnecting && !shouldPreventConnection
+                                  ? 'Add Another'
+                                  : isConnecting
+                                  ? 'Connecting...'
+                                  : hasError
+                                  ? 'Try Again'
+                                  : 'Connect'
+                                }
+                              </span>
+                            </div>
+                          </Button>
+                        )
+                      }
+                    })()}
                   </div>
                 </div>
               )

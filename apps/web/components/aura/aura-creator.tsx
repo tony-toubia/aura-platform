@@ -743,6 +743,7 @@ export function AuraCreator() {
                       vesselType={auraData.vesselType as VesselTypeId}
                       vesselCode={auraData.vesselCode}
                       availableSenses={auraData.senses}
+                      oauthConnections={oauthConnections}
                       existingRules={auraData.rules}
                       onAddRule={(r) =>
                         setAuraData((p) => ({ ...p, rules: [...p.rules, r] }))

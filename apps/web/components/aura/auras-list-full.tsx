@@ -9,7 +9,7 @@ import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
-import { countAuraSenses, countTotalSenses } from '@/lib/utils/sense-counting'
+import { countAuraSenses, countTotalSenses, getAllAuraSenses } from '@/lib/utils/sense-counting'
 import {
   Plus,
   Brain,
@@ -178,31 +178,34 @@ export function AurasList({ initialAuras }: AurasListProps) {
 
                   {/* Senses Preview */}
                   <div className="mb-4 min-h-[60px] flex items-center justify-center px-2">
-                    {aura.senses && aura.senses.length > 0 ? (
-                      <div className="flex flex-wrap gap-1 justify-center">
-                        {aura.senses.slice(0, 4).map((sense, idx) => (
-                          <span 
-                            key={idx}
-                            className="text-xs bg-white/70 text-gray-700 px-2 py-1 rounded-full"
-                          >
-                            {sense.replace(/_/g, ' ')}
-                          </span>
-                        ))}
-                        {aura.senses.length > 4 && (
-                          <span className="text-xs bg-white/70 text-gray-700 px-2 py-1 rounded-full">
-                            +{aura.senses.length - 4} more
-                          </span>
-                        )}
-                      </div>
-                    ) : (
-                      <div className="text-center text-xs text-gray-500">
-                        <p className="mb-2">No senses added yet.</p>
-                        <Link href={`/auras/${aura.id}/edit-select`} className="inline-flex items-center gap-1 text-purple-600 hover:underline font-semibold">
-                          <Plus className="w-3 h-3" />
-                          Add Senses
-                        </Link>
-                      </div>
-                    )}
+                    {(() => {
+                      const allSenses = getAllAuraSenses(aura)
+                      return allSenses.length > 0 ? (
+                        <div className="flex flex-wrap gap-1 justify-center">
+                          {allSenses.slice(0, 4).map((sense, idx) => (
+                            <span
+                              key={idx}
+                              className="text-xs bg-white/70 text-gray-700 px-2 py-1 rounded-full"
+                            >
+                              {sense.replace(/_/g, ' ')}
+                            </span>
+                          ))}
+                          {allSenses.length > 4 && (
+                            <span className="text-xs bg-white/70 text-gray-700 px-2 py-1 rounded-full">
+                              +{allSenses.length - 4} more
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="text-center text-xs text-gray-500">
+                          <p className="mb-2">No senses added yet.</p>
+                          <Link href={`/auras/${aura.id}/edit-select`} className="inline-flex items-center gap-1 text-purple-600 hover:underline font-semibold">
+                            <Plus className="w-3 h-3" />
+                            Add Senses
+                          </Link>
+                        </div>
+                      )
+                    })()}
                   </div>
 
                   {/* Action Buttons */}

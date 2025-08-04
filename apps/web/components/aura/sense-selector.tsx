@@ -186,8 +186,42 @@ export function SenseSelector({
     CONNECTED_SENSE_IDS.includes(s.id as SenseId)
   )
 
-  const isSelected = (id: string) =>
-    selectedSenses.includes(normalizeSenseId(id) as SenseId)
+  const isSelected = (id: string) => {
+    const normalizedId = normalizeSenseId(id) as SenseId
+    
+    // For location-aware senses (news, weather, air_quality), check if they have configurations
+    if (normalizedId === 'news') {
+      const parentLocs = newsConfigurations['news'] || []
+      const localLocs = localNewsConfigurations['news'] || []
+      const hasConfigurations = parentLocs.length > 0 || localLocs.length > 0
+      return hasConfigurations || selectedSenses.includes(normalizedId)
+    }
+    
+    if (normalizedId === 'weather') {
+      const parentLocs = weatherAirQualityConfigurations['weather'] || []
+      const localLocs = localWeatherAirQualityConfigurations['weather'] || []
+      const hasConfigurations = parentLocs.length > 0 || localLocs.length > 0
+      return hasConfigurations || selectedSenses.includes(normalizedId)
+    }
+    
+    if (normalizedId === 'air_quality') {
+      const parentLocs = weatherAirQualityConfigurations['air_quality'] || []
+      const localLocs = localWeatherAirQualityConfigurations['air_quality'] || []
+      const hasConfigurations = parentLocs.length > 0 || localLocs.length > 0
+      return hasConfigurations || selectedSenses.includes(normalizedId)
+    }
+    
+    // For connected senses (location, fitness, sleep, calendar), check if they have OAuth connections
+    if (CONNECTED_SENSE_IDS.includes(normalizedId)) {
+      const sessionConns = sessionConnections[normalizedId] || []
+      const propConns = oauthConnections[normalizedId] || []
+      const hasConnections = sessionConns.length > 0 || propConns.length > 0
+      return hasConnections || selectedSenses.includes(normalizedId)
+    }
+    
+    // For all other senses, use the traditional selectedSenses check
+    return selectedSenses.includes(normalizedId)
+  }
 
   // Map tier names to our config - handle both casing
   const getTierConfig = (tier: string) => {
@@ -249,10 +283,9 @@ export function SenseSelector({
       news: locations
     }))
     
-    // Enable the news sense if locations are configured
-    if (locations.length > 0 && !isSelected('news')) {
-      onToggle('news' as SenseId)
-    }
+    // Don't call onToggle here - let the parent component handle enabling the sense
+    // The parent AuraEditForm already handles this in its handleNewsConfiguration function
+    // Calling onToggle here can create a race condition that toggles the sense off
     
     // Save the news configuration
     if (onNewsConfiguration) {
@@ -276,10 +309,9 @@ export function SenseSelector({
         [configuringSense]: locations
       }))
       
-      // Enable the sense if locations are configured
-      if (locations.length > 0 && !isSelected(configuringSense)) {
-        onToggle(configuringSense as SenseId)
-      }
+      // Don't call onToggle here - let the parent component handle enabling the sense
+      // The parent AuraEditForm already handles this in its handleWeatherAirQualityConfiguration function
+      // Calling onToggle here can create a race condition that toggles the sense off
       
       // Save the configuration via parent callback
       if (onWeatherAirQualityConfiguration) {
@@ -303,13 +335,12 @@ export function SenseSelector({
       if (auraId && onOAuthConnection) {
         // Defer state updates to avoid React render cycle conflicts
         setTimeout(() => {
-          // Only enable the sense if it's not already enabled
-          if (!isSelected(connectingSense)) {
-            onToggle(connectingSense as SenseId)
-          }
-          
           // Notify parent component of the OAuth connection - parent will handle adding to state
           onOAuthConnection(connectingSense as SenseId, providerId, connectionData)
+          
+          // The sense will be automatically considered "active" due to the improved isSelected logic
+          // that checks for OAuth connections, so we don't need to call onToggle here
+          console.log(`✅ OAuth connection completed for ${connectingSense}, sense will be auto-activated`)
         }, 0)
       } else {
         // Fallback for when no auraId is present (e.g., debug mode)
@@ -323,7 +354,7 @@ export function SenseSelector({
           accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
         }
         
-        // Add to session connections
+        // Add to session connections - this will automatically make the sense "active"
         setSessionConnections(prev => ({
           ...prev,
           [connectingSense]: [...(prev[connectingSense] || []), newConnection]
@@ -331,15 +362,11 @@ export function SenseSelector({
         
         // Defer state updates to avoid React render cycle conflicts
         setTimeout(() => {
-          // Only enable the sense if it's not already enabled
-          if (!isSelected(connectingSense)) {
-            onToggle(connectingSense as SenseId)
-          }
-          
           // Notify parent component of the OAuth connection
           if (onOAuthConnection) {
             onOAuthConnection(connectingSense as SenseId, providerId, connectionData)
           }
+          console.log(`✅ OAuth connection completed for ${connectingSense} (fallback mode), sense auto-activated`)
         }, 0)
       }
       
@@ -359,34 +386,25 @@ export function SenseSelector({
           const senseId = connectingSense as SenseId
           onOAuthDisconnect(senseId, connectionId)
           
-          // Check if this was the last connection for this sense
-          const currentConnections = oauthConnections[senseId] || []
-          const remainingConnections = currentConnections.filter(conn => conn.id !== connectionId)
-          
-          // If no connections left, disable the sense
-          if (remainingConnections.length === 0 && isSelected(connectingSense)) {
-            onToggle(connectingSense as SenseId)
-          }
+          // The sense will be automatically considered "inactive" due to the improved isSelected logic
+          // that checks for OAuth connections, so we don't need to manually call onToggle
+          console.log(`✅ OAuth disconnection completed for ${connectingSense}, sense will be auto-deactivated if no connections remain`)
         }, 0)
       } else {
         // Fallback for when no auraId is present (e.g., debug mode)
-        // Remove from session connections
+        // Remove from session connections - this will automatically make the sense "inactive" if no connections remain
         setSessionConnections(prev => {
           const senseConnections = prev[connectingSense] || []
           const updatedConnections = senseConnections.filter(conn => conn.id !== connectionId)
           
           // Defer state updates to avoid React render cycle conflicts
           setTimeout(() => {
-            // If no connections left, disable the sense
-            if (updatedConnections.length === 0 && isSelected(connectingSense)) {
-              onToggle(connectingSense as SenseId)
-            }
-            
             // Notify parent component of the disconnection
             const senseId = connectingSense as SenseId
             if (onOAuthDisconnect) {
               onOAuthDisconnect(senseId, connectionId)
             }
+            console.log(`✅ OAuth disconnection completed for ${connectingSense} (fallback mode), sense auto-deactivated if no connections remain`)
           }, 0)
           
           return {
@@ -464,70 +482,22 @@ export function SenseSelector({
     }
     
     if (allConnections.length === 0) return null
-    if (allConnections.length === 1) {
-      // For location senses, parse and show proper device info
-      if (senseId === 'location') {
-        const device = allConnections[0]
-        
-        console.log('🔍 Parsing device info for OAuth display:', { device, hasDeviceInfo: !!device.deviceInfo })
-        
-        // First, try to get structured device info (preferred method)
-        if (device.deviceInfo?.browser && device.deviceInfo?.os) {
-          const displayName = `${device.deviceInfo.browser} ${device.deviceInfo.os}`
-          console.log('✅ Using structured device info:', displayName)
-          return displayName
-        }
-        
-        // Fallback to parsing from other fields for backward compatibility
-        const deviceInfo = device.name || device.providerId || device.accountEmail || 'unknown'
-        const lowerDeviceInfo = deviceInfo.toLowerCase()
-        
-        console.log('⚠️ Falling back to string parsing:', { deviceInfo })
-        
-        // Parse browser and OS information from string
-        const getBrowser = () => {
-          if (lowerDeviceInfo.includes('chrome')) return 'Chrome'
-          if (lowerDeviceInfo.includes('firefox')) return 'Firefox'
-          if (lowerDeviceInfo.includes('safari')) return 'Safari'
-          if (lowerDeviceInfo.includes('edge')) return 'Edge'
-          return null
-        }
-        
-        const getDeviceType = () => {
-          if (lowerDeviceInfo.includes('mobile') || lowerDeviceInfo.includes('android') || lowerDeviceInfo.includes('iphone')) return 'Mobile'
-          if (lowerDeviceInfo.includes('tablet') || lowerDeviceInfo.includes('ipad')) return 'Tablet'
-          if (lowerDeviceInfo.includes('windows')) return 'Windows'
-          if (lowerDeviceInfo.includes('mac') || lowerDeviceInfo.includes('macos')) return 'Mac'
-          if (lowerDeviceInfo.includes('linux')) return 'Linux'
-          return null
-        }
-        
-        const browser = getBrowser()
-        const deviceType = getDeviceType()
-        
-        // Create display name based on what we can parse
-        if (browser && deviceType) {
-          return `${browser} ${deviceType}`
-        } else if (browser) {
-          return browser
-        } else if (deviceType) {
-          return deviceType
-        } else {
-          // Fallback to cleaned up device name
-          return deviceInfo.length > 20 ? `${deviceInfo.substring(0, 20)}...` : deviceInfo
-        }
-      }
-      return allConnections[0]?.name || 'Connected'
-    }
     
-    // For location senses, show device count; for fitness, show fitness trackers; for others, show calendar count
+    // Always return count format for the first badge - this is used for the main summary badge
+    // Show count format for all OAuth senses
     if (senseId === 'location') {
-      return `${allConnections.length} devices connected`
+      return `${allConnections.length} device${allConnections.length !== 1 ? 's' : ''} connected`
     }
     if (senseId === 'fitness') {
       return `${allConnections.length} fitness tracker${allConnections.length !== 1 ? 's' : ''} connected`
     }
-    return `${allConnections.length} calendar${allConnections.length !== 1 ? 's' : ''} connected`
+    if (senseId === 'sleep') {
+      return `${allConnections.length} sleep monitor${allConnections.length !== 1 ? 's' : ''} connected`
+    }
+    if (senseId === 'calendar') {
+      return `${allConnections.length} calendar${allConnections.length !== 1 ? 's' : ''} connected`
+    }
+    return `${allConnections.length} service${allConnections.length !== 1 ? 's' : ''} connected`
   }
 
   const getLocationDevices = (senseId: string): ConnectedProvider[] => {
@@ -562,8 +532,7 @@ export function SenseSelector({
     const newsLocs = parentLocs.length > 0 ? parentLocs : localLocs
     console.log(`Getting news display for ${senseId}:`, newsLocs)
     if (newsLocs.length === 0) return null
-    if (newsLocs.length === 1) return newsLocs[0]?.displayName || 'Configured'
-    return `${newsLocs.length} news sources configured`
+    return `Tracking ${newsLocs.length} location${newsLocs.length !== 1 ? 's' : ''}`
   }
 
   const getNewsLocations = (senseId: string): NewsLocation[] => {
@@ -580,8 +549,7 @@ export function SenseSelector({
     const locations = parentLocs.length > 0 ? parentLocs : localLocs
     console.log(`Getting weather/air quality display for ${senseId}:`, locations)
     if (locations.length === 0) return null
-    if (locations.length === 1) return locations[0]?.displayName || 'Configured'
-    return `${locations.length} location${locations.length !== 1 ? 's' : ''} configured`
+    return `Tracking ${locations.length} location${locations.length !== 1 ? 's' : ''}`
   }
 
   const getWeatherAirQualityLocations = (senseId: string): WeatherAirQualityLocation[] => {
@@ -814,6 +782,10 @@ export function SenseSelector({
                                     ? active
                                       ? "bg-blue-100 text-blue-700 border border-blue-200"
                                       : "bg-blue-50 text-blue-600 border border-blue-100"
+                                    : location.type === 'device'
+                                    ? active
+                                      ? "bg-blue-100 text-blue-700 border border-blue-200"
+                                      : "bg-blue-50 text-blue-600 border border-blue-100"
                                     : active
                                     ? "bg-green-100 text-green-700 border border-green-200"
                                     : "bg-green-50 text-green-600 border border-green-100"
@@ -821,11 +793,99 @@ export function SenseSelector({
                               >
                                 {location.type === 'global' ? (
                                   <Globe className="w-2.5 h-2.5" />
+                                ) : location.type === 'device' ? (
+                                  <Globe className="w-2.5 h-2.5" />
                                 ) : (
                                   <MapPin className="w-2.5 h-2.5" />
                                 )}
                                 <span className="font-medium">
-                                  {location.type === 'global' ? 'Global' : location.name}
+                                  {location.type === 'global' ? 'Global' :
+                                   location.type === 'device' ? (() => {
+                                     // Get device info from location connections for device location display
+                                     const locationDevices = getLocationDevices('location')
+                                     if (locationDevices.length === 0) return 'Device Location'
+                                     
+                                     const device = locationDevices[0]
+                                     if (!device) return 'Device Location'
+                                     
+                                     // Helper function to get device display info (same logic as location sense)
+                                     const getDeviceDisplayInfo = () => {
+                                       // First, try to get structured device info (preferred method)
+                                       if (device.deviceInfo?.browser && device.deviceInfo?.os) {
+                                         return {
+                                           browser: device.deviceInfo.browser,
+                                           os: device.deviceInfo.os,
+                                           displayName: `${device.deviceInfo.browser} ${device.deviceInfo.os}`
+                                         }
+                                       }
+                                       
+                                       // Second, try to parse from accountEmail if it contains device info
+                                       if (device.accountEmail && device.accountEmail.includes(' on ')) {
+                                         const parts = device.accountEmail.split(' on ')
+                                         if (parts.length === 2 && parts[0] && parts[1]) {
+                                           const browser = parts[0].trim()
+                                           const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+                                           return {
+                                             browser,
+                                             os,
+                                             displayName: `${browser} ${os}`
+                                           }
+                                         }
+                                       }
+                                       
+                                       // Third, try to parse from name field if it contains device info
+                                       if (device.name && device.name.includes(' on ')) {
+                                         const parts = device.name.split(' on ')
+                                         if (parts.length === 2 && parts[0] && parts[1]) {
+                                           const browser = parts[0].trim()
+                                           const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+                                           return {
+                                             browser,
+                                             os,
+                                             displayName: `${browser} ${os}`
+                                           }
+                                         }
+                                       }
+                                       
+                                       // Fallback to parsing from other fields for backward compatibility
+                                       const deviceInfo = device.name || device.providerId || device.accountEmail || 'unknown'
+                                       const lowerDeviceInfo = deviceInfo.toLowerCase()
+                                       
+                                       const getBrowser = () => {
+                                         if (lowerDeviceInfo.includes('chrome')) return 'Chrome'
+                                         if (lowerDeviceInfo.includes('firefox')) return 'Firefox'
+                                         if (lowerDeviceInfo.includes('safari')) return 'Safari'
+                                         if (lowerDeviceInfo.includes('edge')) return 'Edge'
+                                         return 'Browser'
+                                       }
+                                       
+                                       const getDeviceType = () => {
+                                         if (lowerDeviceInfo.includes('mobile') || lowerDeviceInfo.includes('android') || lowerDeviceInfo.includes('iphone')) return 'Mobile'
+                                         if (lowerDeviceInfo.includes('tablet') || lowerDeviceInfo.includes('ipad')) return 'Tablet'
+                                         if (lowerDeviceInfo.includes('windows')) return 'Windows'
+                                         if (lowerDeviceInfo.includes('mac') || lowerDeviceInfo.includes('macos')) return 'Mac'
+                                         if (lowerDeviceInfo.includes('linux')) return 'Linux'
+                                         return 'Device'
+                                       }
+                                       
+                                       const browser = getBrowser()
+                                       const os = getDeviceType()
+                                       
+                                       let displayName
+                                       if (browser !== 'Browser' && os !== 'Device') {
+                                         displayName = `${browser} ${os}`
+                                       } else if (browser !== 'Browser') {
+                                         displayName = browser
+                                       } else {
+                                         displayName = deviceInfo.length > 20 ? `${deviceInfo.substring(0, 20)}...` : deviceInfo
+                                       }
+                                       
+                                       return { browser, os, displayName }
+                                     }
+                                     
+                                     const deviceDisplayInfo = getDeviceDisplayInfo()
+                                     return deviceDisplayInfo.displayName
+                                   })() : (location.displayName || (location.country ? `${location.name}, ${location.country}` : location.name))}
                                 </span>
                               </div>
                             ))}
@@ -838,8 +898,6 @@ export function SenseSelector({
                             "flex items-center gap-1 text-xs px-2 py-1 rounded-md",
                             active
                               ? "text-purple-700 bg-purple-50 border border-purple-200"
-                              : sense.id === 'weather'
-                              ? "text-blue-600 bg-blue-50 border border-blue-200"
                               : "text-green-600 bg-green-50 border border-green-200"
                           )}>
                             {sense.id === 'weather' ? (
@@ -858,24 +916,105 @@ export function SenseSelector({
                                   "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full",
                                   location.type === 'device'
                                     ? active
-                                      ? "bg-purple-100 text-purple-700 border border-purple-200"
-                                      : "bg-purple-50 text-purple-600 border border-purple-100"
-                                    : active
-                                    ? sense.id === 'weather'
                                       ? "bg-blue-100 text-blue-700 border border-blue-200"
-                                      : "bg-green-100 text-green-700 border border-green-200"
-                                    : sense.id === 'weather'
-                                    ? "bg-blue-50 text-blue-600 border border-blue-100"
+                                      : "bg-blue-50 text-blue-600 border border-blue-100"
+                                    : active
+                                    ? "bg-green-100 text-green-700 border border-green-200"
                                     : "bg-green-50 text-green-600 border border-green-100"
                                 )}
                               >
                                 {location.type === 'device' ? (
-                                  <Smartphone className="w-2.5 h-2.5" />
+                                  <Globe className="w-2.5 h-2.5" />
                                 ) : (
                                   <MapPin className="w-2.5 h-2.5" />
                                 )}
                                 <span className="font-medium">
-                                  {location.type === 'device' ? 'Device Location' : location.name}
+                                  {location.type === 'device' ? (() => {
+                                    // Get device info from location connections for device location display
+                                    const locationDevices = getLocationDevices('location')
+                                    if (locationDevices.length === 0) return 'Device Location'
+                                    
+                                    const device = locationDevices[0]
+                                    if (!device) return 'Device Location'
+                                    
+                                    // Helper function to get device display info (same logic as location sense)
+                                    const getDeviceDisplayInfo = () => {
+                                      // First, try to get structured device info (preferred method)
+                                      if (device.deviceInfo?.browser && device.deviceInfo?.os) {
+                                        return {
+                                          browser: device.deviceInfo.browser,
+                                          os: device.deviceInfo.os,
+                                          displayName: `${device.deviceInfo.browser} ${device.deviceInfo.os}`
+                                        }
+                                      }
+                                      
+                                      // Second, try to parse from accountEmail if it contains device info
+                                      if (device.accountEmail && device.accountEmail.includes(' on ')) {
+                                        const parts = device.accountEmail.split(' on ')
+                                        if (parts.length === 2 && parts[0] && parts[1]) {
+                                          const browser = parts[0].trim()
+                                          const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+                                          return {
+                                            browser,
+                                            os,
+                                            displayName: `${browser} ${os}`
+                                          }
+                                        }
+                                      }
+                                      
+                                      // Third, try to parse from name field if it contains device info
+                                      if (device.name && device.name.includes(' on ')) {
+                                        const parts = device.name.split(' on ')
+                                        if (parts.length === 2 && parts[0] && parts[1]) {
+                                          const browser = parts[0].trim()
+                                          const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+                                          return {
+                                            browser,
+                                            os,
+                                            displayName: `${browser} ${os}`
+                                          }
+                                        }
+                                      }
+                                      
+                                      // Fallback to parsing from other fields for backward compatibility
+                                      const deviceInfo = device.name || device.providerId || device.accountEmail || 'unknown'
+                                      const lowerDeviceInfo = deviceInfo.toLowerCase()
+                                      
+                                      const getBrowser = () => {
+                                        if (lowerDeviceInfo.includes('chrome')) return 'Chrome'
+                                        if (lowerDeviceInfo.includes('firefox')) return 'Firefox'
+                                        if (lowerDeviceInfo.includes('safari')) return 'Safari'
+                                        if (lowerDeviceInfo.includes('edge')) return 'Edge'
+                                        return 'Browser'
+                                      }
+                                      
+                                      const getDeviceType = () => {
+                                        if (lowerDeviceInfo.includes('mobile') || lowerDeviceInfo.includes('android') || lowerDeviceInfo.includes('iphone')) return 'Mobile'
+                                        if (lowerDeviceInfo.includes('tablet') || lowerDeviceInfo.includes('ipad')) return 'Tablet'
+                                        if (lowerDeviceInfo.includes('windows')) return 'Windows'
+                                        if (lowerDeviceInfo.includes('mac') || lowerDeviceInfo.includes('macos')) return 'Mac'
+                                        if (lowerDeviceInfo.includes('linux')) return 'Linux'
+                                        return 'Device'
+                                      }
+                                      
+                                      const browser = getBrowser()
+                                      const os = getDeviceType()
+                                      
+                                      let displayName
+                                      if (browser !== 'Browser' && os !== 'Device') {
+                                        displayName = `${browser} ${os}`
+                                      } else if (browser !== 'Browser') {
+                                        displayName = browser
+                                      } else {
+                                        displayName = deviceInfo.length > 20 ? `${deviceInfo.substring(0, 20)}...` : deviceInfo
+                                      }
+                                      
+                                      return { browser, os, displayName }
+                                    }
+                                    
+                                    const deviceDisplayInfo = getDeviceDisplayInfo()
+                                    return deviceDisplayInfo.displayName
+                                  })() : (location.displayName || (location.country ? `${location.name}, ${location.country}` : location.name))}
                                 </span>
                               </div>
                             ))}
@@ -999,7 +1138,7 @@ export function SenseSelector({
                         <div className="space-y-2 mb-2">
                           <div className="flex items-center gap-1 text-xs text-orange-700 px-2 py-1 rounded-md bg-orange-50 border border-orange-200">
                             <Shield className="w-3 h-3" />
-                            <span className="font-medium">{sense.id === 'location' ? 'Device Location' : oauthProvider}</span>
+                            <span className="font-medium">{oauthProvider}</span>
                           </div>
                           {/* Show individual providers for all OAuth senses */}
                           {sense.id === 'location' ? (
@@ -1009,6 +1148,15 @@ export function SenseSelector({
                                 
                                 // Helper function to get device display info
                                 const getDeviceDisplayInfo = () => {
+                                  console.log('🔍 Getting device display info for device:', {
+                                    deviceId: device.id,
+                                    hasDeviceInfo: !!device.deviceInfo,
+                                    deviceInfo: device.deviceInfo,
+                                    name: device.name,
+                                    providerId: device.providerId,
+                                    accountEmail: device.accountEmail
+                                  })
+                                  
                                   // First, try to get structured device info (preferred method)
                                   if (device.deviceInfo?.browser && device.deviceInfo?.os) {
                                     console.log('✅ Using structured device info for chip:', device.deviceInfo)
@@ -1016,6 +1164,36 @@ export function SenseSelector({
                                       browser: device.deviceInfo.browser,
                                       os: device.deviceInfo.os,
                                       displayName: `${device.deviceInfo.browser} ${device.deviceInfo.os}`
+                                    }
+                                  }
+                                  
+                                  // Second, try to parse from accountEmail if it contains device info
+                                  if (device.accountEmail && device.accountEmail.includes(' on ')) {
+                                    console.log('✅ Parsing device info from accountEmail:', device.accountEmail)
+                                    const parts = device.accountEmail.split(' on ')
+                                    if (parts.length === 2 && parts[0] && parts[1]) {
+                                      const browser = parts[0].trim()
+                                      const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+                                      return {
+                                        browser,
+                                        os,
+                                        displayName: `${browser} ${os}`
+                                      }
+                                    }
+                                  }
+                                  
+                                  // Third, try to parse from name field if it contains device info
+                                  if (device.name && device.name.includes(' on ')) {
+                                    console.log('✅ Parsing device info from name:', device.name)
+                                    const parts = device.name.split(' on ')
+                                    if (parts.length === 2 && parts[0] && parts[1]) {
+                                      const browser = parts[0].trim()
+                                      const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+                                      return {
+                                        browser,
+                                        os,
+                                        displayName: `${browser} ${os}`
+                                      }
                                     }
                                   }
                                   
@@ -1374,6 +1552,7 @@ export function SenseSelector({
           const localLocs = localNewsConfigurations['news'] || []
           return parentLocs.length > 0 ? parentLocs : localLocs
         })()}
+        existingLocationConnections={getLocationDevices('location')} // Pass location connections for integration
       />
 
       {/* Weather/Air Quality Configuration Modal */}

@@ -24,12 +24,13 @@ import {
   Trash2,
   Search,
   Info,
+  Smartphone,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export interface NewsLocation {
   id: string
-  type: 'global' | 'specific'
+  type: 'global' | 'specific' | 'device'
   name: string
   displayName: string
   country?: string
@@ -44,6 +45,7 @@ interface NewsConfigurationModalProps {
   vesselName?: string
   onConfigurationComplete: (locations: NewsLocation[]) => void
   existingLocations?: NewsLocation[]
+  existingLocationConnections?: any[] // OAuth connections for location sense
 }
 
 type LocationResult = {
@@ -83,6 +85,7 @@ export function NewsConfigurationModal({
   vesselName = "Your Aura",
   onConfigurationComplete,
   existingLocations = [],
+  existingLocationConnections = [],
 }: NewsConfigurationModalProps) {
   const [locations, setLocations] = useState<NewsLocation[]>(existingLocations)
   const [searchQuery, setSearchQuery] = useState('')
@@ -171,6 +174,32 @@ export function NewsConfigurationModal({
     setError(null)
   }
 
+  const addDeviceLocation = () => {
+    // Check if device location already exists
+    const hasDevice = locations.some(loc => loc.type === 'device')
+    if (hasDevice) {
+      setError('Device location is already configured')
+      return
+    }
+
+    // Check if user has location connections from Additional senses
+    if (!hasLocationConnections) {
+      setError('Please enable location sharing in Additional Senses > Your Location first, then return here to use device location.')
+      return
+    }
+
+    const deviceLocation: NewsLocation = {
+      id: 'device-location',
+      type: 'device',
+      name: 'Device Location',
+      displayName: 'My Device Location',
+      addedAt: new Date(),
+    }
+
+    setLocations(prev => [...prev, deviceLocation])
+    setError(null)
+  }
+
   const addSpecificLocation = (locationResult: LocationResult) => {
     // Check if this location already exists
     const locationKey = `${locationResult.name}, ${locationResult.country}`.toLowerCase()
@@ -217,20 +246,112 @@ export function NewsConfigurationModal({
   }
 
   const getLocationIcon = (location: NewsLocation) => {
-    return location.type === 'global' ? Globe : MapPin
+    if (location.type === 'global') return Globe
+    if (location.type === 'device') return Globe
+    return MapPin
   }
 
   const getLocationColor = (location: NewsLocation) => {
-    return location.type === 'global' 
-      ? 'bg-gradient-to-r from-blue-500 to-indigo-500' 
-      : 'bg-gradient-to-r from-green-500 to-emerald-500'
+    if (location.type === 'global') return 'bg-gradient-to-r from-blue-500 to-indigo-500'
+    if (location.type === 'device') return 'bg-gradient-to-r from-blue-500 to-indigo-500'
+    return 'bg-gradient-to-r from-green-500 to-emerald-500'
   }
 
   const getBadgeColor = (location: NewsLocation) => {
-    return location.type === 'global'
-      ? 'bg-blue-100 text-blue-800 border-blue-200'
-      : 'bg-green-100 text-green-800 border-green-200'
+    if (location.type === 'global') return 'bg-blue-100 text-blue-800 border-blue-200'
+    if (location.type === 'device') return 'bg-blue-100 text-blue-800 border-blue-200'
+    return 'bg-green-100 text-green-800 border-green-200'
   }
+
+  // Helper function to get device display info from location connections
+  const getDeviceLocationDisplay = () => {
+    if (!hasLocationConnections || existingLocationConnections.length === 0) {
+      return 'Device Location'
+    }
+
+    // Get the first location connection to display device info
+    const device = existingLocationConnections[0]
+    
+    // Helper function to get device display info (similar to sense-selector logic)
+    const getDeviceDisplayInfo = () => {
+      // First, try to get structured device info (preferred method)
+      if (device.deviceInfo?.browser && device.deviceInfo?.os) {
+        return {
+          browser: device.deviceInfo.browser,
+          os: device.deviceInfo.os,
+          displayName: `${device.deviceInfo.browser} ${device.deviceInfo.os}`
+        }
+      }
+      
+      // Second, try to parse from accountEmail if it contains device info
+      if (device.accountEmail && device.accountEmail.includes(' on ')) {
+        const parts = device.accountEmail.split(' on ')
+        if (parts.length === 2 && parts[0] && parts[1]) {
+          const browser = parts[0].trim()
+          const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+          return {
+            browser,
+            os,
+            displayName: `${browser} ${os}`
+          }
+        }
+      }
+      
+      // Third, try to parse from name field if it contains device info
+      if (device.name && device.name.includes(' on ')) {
+        const parts = device.name.split(' on ')
+        if (parts.length === 2 && parts[0] && parts[1]) {
+          const browser = parts[0].trim()
+          const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+          return {
+            browser,
+            os,
+            displayName: `${browser} ${os}`
+          }
+        }
+      }
+      
+      // Fallback to parsing from other fields for backward compatibility
+      const deviceInfo = device.name || device.providerId || device.accountEmail || 'unknown'
+      const lowerDeviceInfo = deviceInfo.toLowerCase()
+      
+      const getBrowser = () => {
+        if (lowerDeviceInfo.includes('chrome')) return 'Chrome'
+        if (lowerDeviceInfo.includes('firefox')) return 'Firefox'
+        if (lowerDeviceInfo.includes('safari')) return 'Safari'
+        if (lowerDeviceInfo.includes('edge')) return 'Edge'
+        return 'Browser'
+      }
+      
+      const getDeviceType = () => {
+        if (lowerDeviceInfo.includes('mobile') || lowerDeviceInfo.includes('android') || lowerDeviceInfo.includes('iphone')) return 'Mobile'
+        if (lowerDeviceInfo.includes('tablet') || lowerDeviceInfo.includes('ipad')) return 'Tablet'
+        if (lowerDeviceInfo.includes('windows')) return 'Windows'
+        if (lowerDeviceInfo.includes('mac') || lowerDeviceInfo.includes('macos')) return 'Mac'
+        if (lowerDeviceInfo.includes('linux')) return 'Linux'
+        return 'Device'
+      }
+      
+      const browser = getBrowser()
+      const os = getDeviceType()
+      
+      let displayName
+      if (browser !== 'Browser' && os !== 'Device') {
+        displayName = `${browser} ${os}`
+      } else if (browser !== 'Browser') {
+        displayName = browser
+      } else {
+        displayName = deviceInfo.length > 20 ? `${deviceInfo.substring(0, 20)}...` : deviceInfo
+      }
+      
+      return { browser, os, displayName }
+    }
+    
+    const deviceDisplayInfo = getDeviceDisplayInfo()
+    return deviceDisplayInfo.displayName
+  }
+
+  const hasLocationConnections = existingLocationConnections && existingLocationConnections.length > 0
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -281,7 +402,8 @@ export function NewsConfigurationModal({
                           </h4>
                           <div className="flex items-center gap-2">
                             <Badge className={cn("text-xs", getBadgeColor(location))}>
-                              {location.type === 'global' ? 'Global Coverage' : 'Regional News'}
+                              {location.type === 'global' ? 'Global Coverage' :
+                               location.type === 'device' ? getDeviceLocationDisplay() : 'Regional News'}
                             </Badge>
                             <span className="text-xs text-gray-500">
                               Added {location.addedAt instanceof Date ? location.addedAt.toLocaleDateString() : new Date(location.addedAt).toLocaleDateString()}
@@ -336,6 +458,63 @@ export function NewsConfigurationModal({
                 >
                   <Plus className="w-4 h-4 mr-1" />
                   Add Global
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Device Location Option - Only show if not already added */}
+          {!locations.some(loc => loc.type === 'device') && (
+            <div className={cn(
+              "border-2 border-dashed rounded-xl p-4 transition-colors",
+              hasLocationConnections
+                ? "border-gray-300 hover:border-blue-400"
+                : "border-orange-300 bg-orange-50"
+            )}>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-4">
+                  <div className={cn(
+                    "p-3 rounded-lg text-white",
+                    hasLocationConnections
+                      ? "bg-gradient-to-r from-blue-500 to-indigo-500"
+                      : "bg-gradient-to-r from-orange-500 to-red-500"
+                  )}>
+                    <Globe className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <h4 className="font-semibold text-gray-800">My Device Location</h4>
+                    <p className="text-sm text-gray-600">
+                      Use your device's current location for local news coverage
+                    </p>
+                    {hasLocationConnections ? (
+                      <div className="mt-2 flex items-center gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600" />
+                        <span className="text-xs text-green-700 font-medium">
+                          Location sharing enabled in Additional Senses
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="mt-2 flex items-center gap-2">
+                        <AlertCircle className="w-4 h-4 text-orange-600" />
+                        <span className="text-xs text-orange-700 font-medium">
+                          Enable location sharing in Additional Senses → Your Location first
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+                <Button
+                  onClick={addDeviceLocation}
+                  variant="outline"
+                  size="sm"
+                  disabled={!hasLocationConnections}
+                  className={cn(
+                    "whitespace-nowrap",
+                    !hasLocationConnections && "opacity-50 cursor-not-allowed"
+                  )}
+                >
+                  <Plus className="w-4 h-4 mr-1" />
+                  {hasLocationConnections ? "Add Device" : "Location Required"}
                 </Button>
               </div>
             </div>
@@ -434,9 +613,13 @@ export function NewsConfigurationModal({
               <p className="font-medium text-blue-800 mb-1">News Source Tips</p>
               <ul className="text-blue-700 space-y-1 text-xs">
                 <li>• Global news covers international headlines</li>
+                <li>• Device location uses your current position for local news</li>
                 <li>• Regional news sources provide local coverage for specific areas</li>
                 <li>• You can add multiple regional sources but not duplicates</li>
                 <li>• {vesselName} will aggregate news from all configured sources</li>
+                {hasLocationConnections && (
+                  <li>• Your location sharing from Additional Senses can be used for device location</li>
+                )}
               </ul>
             </div>
           </div>

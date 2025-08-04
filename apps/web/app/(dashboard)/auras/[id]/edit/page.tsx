@@ -173,8 +173,25 @@ export default async function EditAuraPage({ params }: PageProps) {
     return configurations
   }
 
+  // Extract weather/air quality configurations from aura senses
+  const extractWeatherAirQualityConfigurations = (auraSenses: any[]): Record<string, any[]> => {
+    const configurations: Record<string, any[]> = {}
+    
+    auraSenses.forEach((auraSense) => {
+      const senseCode = auraSense.sense.code
+      const config = auraSense.config || {}
+      
+      if (config.weatherAirQualityConfigurations && Array.isArray(config.weatherAirQualityConfigurations)) {
+        configurations[senseCode] = config.weatherAirQualityConfigurations
+      }
+    })
+    
+    return configurations
+  }
+
   const oauthConnectionsData = transformOAuthConnections(oauthConnections || [])
   const newsConfigurations = extractNewsConfigurations(auraRow.aura_senses || [])
+  const weatherAirQualityConfigurations = extractWeatherAirQualityConfigurations(auraRow.aura_senses || [])
   
   // Add OAuth connections to the initialAura object
   initialAura.oauthConnections = oauthConnectionsData
@@ -186,6 +203,7 @@ export default async function EditAuraPage({ params }: PageProps) {
     oauth_connections_raw: oauthConnections,
     oauth_connections_transformed: oauthConnectionsData,
     news_configurations: newsConfigurations,
+    weather_air_quality_configurations: weatherAirQualityConfigurations,
     senses: auraRow.aura_senses?.map((as: any) => ({ code: as.sense.code, config: as.config }))
   })
 
@@ -196,6 +214,7 @@ export default async function EditAuraPage({ params }: PageProps) {
         initialLocationConfigs={locationConfigs}
         initialOAuthConnections={oauthConnectionsData}
         initialNewsConfigurations={newsConfigurations}
+        initialWeatherAirQualityConfigurations={weatherAirQualityConfigurations}
       />
     </div>
   )

@@ -12,7 +12,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
-import { Sparkles, ChevronDown, User, Settings, CreditCard } from 'lucide-react'
+import { Sparkles, ChevronDown, User, Settings, CreditCard, Link2 } from 'lucide-react'
 import { signOut } from '@/app/actions/auth'  // pull in the server action
 
 export default async function Header() {
@@ -151,6 +151,12 @@ export default async function Header() {
                     <Link href="/account" className="flex items-center">
                       <User className="mr-2 h-4 w-4" />
                       <span>My Account</span>
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/connections" className="flex items-center">
+                      <Link2 className="mr-2 h-4 w-4" />
+                      <span>Connected Services</span>
                     </Link>
                   </DropdownMenuItem>
                   <DropdownMenuItem asChild>

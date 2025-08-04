@@ -808,6 +808,7 @@ export function AuraCreatorDigital() {
                 vesselType="digital"
                 vesselCode="digital-only"
                 availableSenses={auraData.availableSenses}
+                oauthConnections={oauthConnections}
                 existingRules={auraData.rules}
                 editingRule={editingRule}
                 onEditRule={handleEditRule}

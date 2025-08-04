@@ -28,6 +28,38 @@ export function countAuraSenses(aura: Aura): number {
 }
 
 /**
+ * Gets all configured senses for an aura as a display-friendly array.
+ * Combines both regular senses and OAuth-connected senses.
+ */
+export function getAllAuraSenses(aura: Aura): string[] {
+  const allSenses: string[] = []
+  
+  // Add all senses from aura_senses table (represented by aura.senses array)
+  if (aura.senses && aura.senses.length > 0) {
+    allSenses.push(...aura.senses)
+  }
+  
+  // Add OAuth connected senses (1 per sense type if any connections exist)
+  const oauthSenses = aura.oauthConnections ? Object.keys(aura.oauthConnections) : []
+  oauthSenses.forEach(senseType => {
+    const connections = aura.oauthConnections?.[senseType] || []
+    if (connections.length > 0) {
+      allSenses.push(senseType)
+    }
+  })
+  
+  // Add location configurations as senses (only if not already present)
+  if (aura.locationConfigs && Object.keys(aura.locationConfigs).length > 0) {
+    if (!allSenses.includes('location')) {
+      allSenses.push('location')
+    }
+  }
+  
+  // Remove duplicates and return
+  return [...new Set(allSenses)]
+}
+
+/**
  * Counts total senses across all auras
  */
 export function countTotalSenses(auras: Aura[]): number {

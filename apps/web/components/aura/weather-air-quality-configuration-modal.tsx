@@ -26,6 +26,7 @@ import {
   Search,
   Info,
   Smartphone,
+  Globe,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -238,22 +239,110 @@ export function WeatherAirQualityConfigurationModal({
   }
 
   const getLocationIcon = (location: WeatherAirQualityLocation) => {
-    return location.type === 'device' ? Smartphone : MapPin
+    return location.type === 'device' ? Globe : MapPin
   }
 
   const getLocationColor = (location: WeatherAirQualityLocation) => {
-    return location.type === 'device' 
-      ? 'bg-gradient-to-r from-purple-500 to-indigo-500' 
+    return location.type === 'device'
+      ? 'bg-gradient-to-r from-blue-500 to-indigo-500'
       : `bg-gradient-to-r ${senseInfo.color}`
   }
 
   const getBadgeColor = (location: WeatherAirQualityLocation) => {
     return location.type === 'device'
-      ? 'bg-purple-100 text-purple-800 border-purple-200'
+      ? 'bg-blue-100 text-blue-800 border-blue-200'
       : senseInfo.bgColor
   }
 
   const hasLocationConnections = existingLocationConnections && existingLocationConnections.length > 0
+
+  // Helper function to get device display info from location connections
+  const getDeviceLocationDisplay = () => {
+    if (!hasLocationConnections || existingLocationConnections.length === 0) {
+      return 'Device Location'
+    }
+
+    // Get the first location connection to display device info
+    const device = existingLocationConnections[0]
+    
+    // Helper function to get device display info (similar to sense-selector logic)
+    const getDeviceDisplayInfo = () => {
+      // First, try to get structured device info (preferred method)
+      if (device.deviceInfo?.browser && device.deviceInfo?.os) {
+        return {
+          browser: device.deviceInfo.browser,
+          os: device.deviceInfo.os,
+          displayName: `${device.deviceInfo.browser} ${device.deviceInfo.os}`
+        }
+      }
+      
+      // Second, try to parse from accountEmail if it contains device info
+      if (device.accountEmail && device.accountEmail.includes(' on ')) {
+        const parts = device.accountEmail.split(' on ')
+        if (parts.length === 2 && parts[0] && parts[1]) {
+          const browser = parts[0].trim()
+          const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+          return {
+            browser,
+            os,
+            displayName: `${browser} ${os}`
+          }
+        }
+      }
+      
+      // Third, try to parse from name field if it contains device info
+      if (device.name && device.name.includes(' on ')) {
+        const parts = device.name.split(' on ')
+        if (parts.length === 2 && parts[0] && parts[1]) {
+          const browser = parts[0].trim()
+          const os = parts[1].split(' •')[0]?.trim() || parts[1].trim() // Remove location part if present
+          return {
+            browser,
+            os,
+            displayName: `${browser} ${os}`
+          }
+        }
+      }
+      
+      // Fallback to parsing from other fields for backward compatibility
+      const deviceInfo = device.name || device.providerId || device.accountEmail || 'unknown'
+      const lowerDeviceInfo = deviceInfo.toLowerCase()
+      
+      const getBrowser = () => {
+        if (lowerDeviceInfo.includes('chrome')) return 'Chrome'
+        if (lowerDeviceInfo.includes('firefox')) return 'Firefox'
+        if (lowerDeviceInfo.includes('safari')) return 'Safari'
+        if (lowerDeviceInfo.includes('edge')) return 'Edge'
+        return 'Browser'
+      }
+      
+      const getDeviceType = () => {
+        if (lowerDeviceInfo.includes('mobile') || lowerDeviceInfo.includes('android') || lowerDeviceInfo.includes('iphone')) return 'Mobile'
+        if (lowerDeviceInfo.includes('tablet') || lowerDeviceInfo.includes('ipad')) return 'Tablet'
+        if (lowerDeviceInfo.includes('windows')) return 'Windows'
+        if (lowerDeviceInfo.includes('mac') || lowerDeviceInfo.includes('macos')) return 'Mac'
+        if (lowerDeviceInfo.includes('linux')) return 'Linux'
+        return 'Device'
+      }
+      
+      const browser = getBrowser()
+      const os = getDeviceType()
+      
+      let displayName
+      if (browser !== 'Browser' && os !== 'Device') {
+        displayName = `${browser} ${os}`
+      } else if (browser !== 'Browser') {
+        displayName = browser
+      } else {
+        displayName = deviceInfo.length > 20 ? `${deviceInfo.substring(0, 20)}...` : deviceInfo
+      }
+      
+      return { browser, os, displayName }
+    }
+    
+    const deviceDisplayInfo = getDeviceDisplayInfo()
+    return deviceDisplayInfo.displayName
+  }
 
   const Icon = senseInfo.icon
 
@@ -306,7 +395,7 @@ export function WeatherAirQualityConfigurationModal({
                           </h4>
                           <div className="flex items-center gap-2">
                             <Badge className={cn("text-xs", getBadgeColor(location))}>
-                              {location.type === 'device' ? 'Device Location' : 'Specific Location'}
+                              {location.type === 'device' ? getDeviceLocationDisplay() : 'Specific Location'}
                             </Badge>
                             <span className="text-xs text-gray-500">
                               Added {location.addedAt instanceof Date ? location.addedAt.toLocaleDateString() : new Date(location.addedAt).toLocaleDateString()}

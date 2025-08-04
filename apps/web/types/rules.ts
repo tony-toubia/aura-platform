@@ -18,6 +18,7 @@ export interface RuleBuilderProps {
   vesselType?: string
   vesselCode?: string
   availableSenses: string[]
+  oauthConnections?: Record<string, any[]>
   existingRules?: BehaviorRule[]
   editingRule?: BehaviorRule | null
   onEditRule?: (rule: BehaviorRule | null) => void
