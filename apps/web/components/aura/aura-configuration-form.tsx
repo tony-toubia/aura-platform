@@ -263,19 +263,19 @@ export function AuraConfigurationForm({
 
       {/* Step Navigation */}
       {showStepNavigation && (
-        <div className="flex justify-center">
-          <div className="flex items-center space-x-4">
+        <div className="flex justify-center px-4">
+          <div className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto pb-2 max-w-full">
             {steps.map((stepInfo, index) => {
               const isActive = stepInfo.id === step
               const isCompleted = index < currentStepIndex
               const Icon = stepInfo.icon
 
               return (
-                <div key={stepInfo.id} className="flex items-center">
+                <div key={stepInfo.id} className="flex items-center flex-shrink-0">
                   <button
                     onClick={() => handleStepNavigation(stepInfo.id as Step)}
                     className={cn(
-                      "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+                      "flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg transition-all whitespace-nowrap",
                       isActive
                         ? "bg-purple-100 text-purple-700 border-2 border-purple-300"
                         : isCompleted
@@ -283,12 +283,12 @@ export function AuraConfigurationForm({
                         : "bg-gray-100 text-gray-500 hover:bg-gray-200"
                     )}
                   >
-                    <Icon className="w-4 h-4" />
-                    <span className="font-medium">{stepInfo.label}</span>
-                    {isCompleted && <CheckCircle className="w-4 h-4" />}
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span className="font-medium text-sm sm:text-base">{stepInfo.label}</span>
+                    {isCompleted && <CheckCircle className="w-4 h-4 flex-shrink-0" />}
                   </button>
                   {index < steps.length - 1 && (
-                    <ArrowRight className="w-4 h-4 text-gray-400 mx-2" />
+                    <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mx-1 sm:mx-2 flex-shrink-0" />
                   )}
                 </div>
               )

@@ -444,25 +444,25 @@ export default function CreateAuraWithAgentPage() {
               </>
             )}
 
-            <div className="flex justify-center mb-8">
-              <Card className="p-2">
-                <div className="flex items-center gap-2">
+            <div className="flex justify-center mb-8 px-4">
+              <Card className="p-2 w-full max-w-md">
+                <div className="flex flex-col sm:flex-row items-center gap-2">
                   <Button
                     variant="default"
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 w-full sm:w-auto justify-center"
                   >
                     <Bot className="w-4 h-4" />
-                    AI Assistant
+                    <span className="text-sm">AI Assistant</span>
                   </Button>
                   <Button
                     variant="outline"
                     size="sm"
                     onClick={handleSwitchToManual}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 w-full sm:w-auto justify-center"
                   >
                     <Settings className="w-4 h-4" />
-                    Manual Configuration
+                    <span className="text-sm">Manual Configuration</span>
                   </Button>
                 </div>
               </Card>

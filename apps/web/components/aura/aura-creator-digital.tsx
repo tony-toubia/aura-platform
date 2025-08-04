@@ -574,9 +574,9 @@ export function AuraCreatorDigital() {
         {step !== "review" && (
           <div className="space-y-4">
             {/* Mode Toggle */}
-            <div className="flex justify-center">
-              <Card className="p-2">
-                <div className="flex items-center gap-2">
+            <div className="flex justify-center px-4">
+              <Card className="p-2 w-full max-w-md">
+                <div className="flex flex-col sm:flex-row items-center gap-2">
                   <Button
                     variant="outline"
                     size="sm"
@@ -595,26 +595,26 @@ export function AuraCreatorDigital() {
                       }).toString()
                       window.location.href = `/auras/create-with-agent?${queryParams}`
                     }}
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 w-full sm:w-auto justify-center"
                   >
                     <Bot className="w-4 h-4" />
-                    Switch to AI Assistant
+                    <span className="text-sm">Switch to AI Assistant</span>
                   </Button>
                   <Button
                     variant="default"
                     size="sm"
-                    className="flex items-center gap-2"
+                    className="flex items-center gap-2 w-full sm:w-auto justify-center"
                   >
                     <Settings className="w-4 h-4" />
-                    Manual Configuration
+                    <span className="text-sm">Manual Configuration</span>
                   </Button>
                 </div>
               </Card>
             </div>
 
             {/* Step Navigation */}
-            <div className="flex justify-center">
-              <div className="flex items-center space-x-4">
+            <div className="flex justify-center px-4">
+              <div className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto pb-2 max-w-full">
                 {steps.slice(0, -1).map((stepInfo, index) => {
                   const actualIndex = index // Adjust for skipping welcome
                   const isActive = stepInfo.id === step
@@ -622,12 +622,12 @@ export function AuraCreatorDigital() {
                   const Icon = stepInfo.icon
 
                   return (
-                    <div key={stepInfo.id} className="flex items-center">
+                    <div key={stepInfo.id} className="flex items-center flex-shrink-0">
                       <button
                         onClick={() => handleStepNavigation(stepInfo.id as DigitalStep)}
                         disabled={stepInfo.id !== "details" && step === "details" && !auraData.name.trim()}
                         className={cn(
-                          "flex items-center gap-2 px-4 py-2 rounded-lg transition-all",
+                          "flex items-center gap-1 sm:gap-2 px-2 sm:px-4 py-2 rounded-lg transition-all whitespace-nowrap",
                           isActive
                             ? "bg-purple-100 text-purple-700 border-2 border-purple-300"
                             : isCompleted
@@ -636,12 +636,12 @@ export function AuraCreatorDigital() {
                           stepInfo.id !== "details" && step === "details" && !auraData.name.trim() && "cursor-not-allowed opacity-50"
                         )}
                       >
-                        <Icon className="w-4 h-4" />
-                        <span className="font-medium">{stepInfo.label}</span>
-                        {isCompleted && <CheckCircle className="w-4 h-4" />}
+                        <Icon className="w-4 h-4 flex-shrink-0" />
+                        <span className="font-medium text-sm sm:text-base">{stepInfo.label}</span>
+                        {isCompleted && <CheckCircle className="w-4 h-4 flex-shrink-0" />}
                       </button>
                       {actualIndex < steps.length - 2 && (
-                        <ArrowRight className="w-4 h-4 text-gray-400 mx-2" />
+                        <ArrowRight className="w-3 h-3 sm:w-4 sm:h-4 text-gray-400 mx-1 sm:mx-2 flex-shrink-0" />
                       )}
                     </div>
                   )
