@@ -137,7 +137,7 @@ export default function EditSelectPage({ params }: PageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto px-2">
       <div className="max-w-6xl mx-auto">
         {/* Back Button */}
         <Button 
@@ -150,7 +150,7 @@ export default function EditSelectPage({ params }: PageProps) {
         </Button>
 
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 px-4">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mb-6">
             <Edit3 className="w-8 h-8 text-white" />
           </div>

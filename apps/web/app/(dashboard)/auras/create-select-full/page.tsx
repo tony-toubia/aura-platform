@@ -67,7 +67,7 @@ export default function CreateSelectPage() {
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-4xl mx-auto">
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 px-4">
           <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full mb-6">
             <Sparkles className="w-8 h-8 text-white" />
           </div>

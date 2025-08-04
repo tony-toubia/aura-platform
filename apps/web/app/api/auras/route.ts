@@ -55,6 +55,7 @@ export async function POST(request: Request) {
       selectedStudyId,
       selectedIndividualId,
       locationConfigs,
+      enabled,
     } = payload
     
     console.log(`[${timestamp}] Creating aura with name: "${name}"`, {
@@ -102,6 +103,7 @@ export async function POST(request: Request) {
       selectedStudyId: selectedStudyId ?? null,
       selectedIndividualId: selectedIndividualId ?? null,
       locationConfigs: locationConfigs ?? null,
+      enabled: enabled ?? true, // Default to true if not specified
     })
 
     // 5. Return the newly created record

@@ -130,7 +130,7 @@ function NameInputCard({ name, onNameChange }: NameInputCardProps) {
                 value={tempName}
                 onChange={(e) => setTempName(e.target.value)}
                 onKeyDown={handleKeyPress}
-                placeholder="Enter a name for your Aura..."
+                placeholder="Name your Aura"
                 className="text-lg bg-white text-black placeholder-gray-500 border-gray-300 focus:ring-purple-500"
                 autoFocus
               />
@@ -263,8 +263,8 @@ export function AuraConfigurationForm({
 
       {/* Step Navigation */}
       {showStepNavigation && (
-        <div className="flex justify-center px-4">
-          <div className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto pb-2 max-w-full">
+        <div className="flex justify-center px-1">
+          <div className="flex items-center space-x-1 sm:space-x-4 overflow-x-auto pb-2 max-w-full">
             {steps.map((stepInfo, index) => {
               const isActive = stepInfo.id === step
               const isCompleted = index < currentStepIndex

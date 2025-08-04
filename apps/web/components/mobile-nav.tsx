@@ -6,7 +6,7 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { SignOutButton } from "@/components/layout/sign-out-button"
-import { Menu, User, X, ArrowRight, Settings, CreditCard } from "lucide-react"
+import { Menu, User, X, ArrowRight, Settings, CreditCard, Link2 } from "lucide-react"
 import type { MobileNavProps } from '@/types/components'
 
 export function MobileNav({ navItems, userEmail, signOutAction }: MobileNavProps) {
@@ -104,6 +104,12 @@ export function MobileNav({ navItems, userEmail, signOutAction }: MobileNavProps
                     <Link href="/account" onClick={() => setIsOpen(false)}>
                       <User className="h-4 w-4 mr-2" />
                       My Account
+                    </Link>
+                  </Button>
+                  <Button asChild variant="ghost" size="sm" className="w-full justify-start">
+                    <Link href="/connections" onClick={() => setIsOpen(false)}>
+                      <Link2 className="h-4 w-4 mr-2" />
+                      Connected Services
                     </Link>
                   </Button>
                   <Button asChild variant="ghost" size="sm" className="w-full justify-start">

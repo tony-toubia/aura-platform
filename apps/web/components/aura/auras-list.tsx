@@ -2,13 +2,15 @@
 
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
 import { countAuraSenses, countTotalSenses, getAllAuraSenses } from '@/lib/utils/sense-counting'
 import {
@@ -22,7 +24,8 @@ import {
   Trash2,
   Settings,
   Activity,
-  ArrowRight
+  ArrowRight,
+  Power
 } from 'lucide-react'
 import { deleteAuraAction } from '@/app/actions/delete-aura'
 import { cn } from '@/lib/utils'
@@ -34,11 +37,83 @@ interface AurasListProps {
 
 export function AurasList({ initialAuras }: AurasListProps) {
   const router = useRouter()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [auraToDelete, setAuraToDelete] = useState<Aura | null>(null)
+  const [auras, setAuras] = useState<Aura[]>(initialAuras)
+
+  const handleDeleteClick = (aura: Aura) => {
+    setAuraToDelete(aura)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (auraToDelete) {
+      try {
+        // Use API call instead of server action for better state management
+        const response = await fetch(`/api/auras/${auraToDelete.id}`, {
+          method: 'DELETE',
+        })
+
+        if (response.ok) {
+          // Update local state to remove the deleted aura
+          setAuras(prevAuras =>
+            prevAuras.filter(a => a.id !== auraToDelete.id)
+          )
+          setAuraToDelete(null)
+          setDeleteDialogOpen(false)
+        } else {
+          console.error('Failed to delete aura')
+          // Optionally show an error message to the user
+        }
+      } catch (error) {
+        console.error('Error deleting aura:', error)
+        // Optionally show an error message to the user
+      }
+    }
+  }
+
+  const handleDeactivateConfirm = async () => {
+    if (auraToDelete) {
+      await handleToggleEnabled(auraToDelete, false)
+      setAuraToDelete(null)
+      setDeleteDialogOpen(false)
+    }
+  }
+
+  const handleToggleEnabled = async (aura: Aura, enabled: boolean) => {
+    try {
+      const response = await fetch(`/api/auras/${aura.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: aura.name,
+          personality: aura.personality,
+          senses: aura.senses,
+          enabled: enabled,
+        }),
+      })
+
+      if (response.ok) {
+        // Update local state
+        setAuras(prevAuras =>
+          prevAuras.map(a =>
+            a.id === aura.id ? { ...a, enabled } : a
+          )
+        )
+      } else {
+        console.error('Failed to update aura status')
+        // Optionally show an error message to the user
+      }
+    } catch (error) {
+      console.error('Error updating aura status:', error)
+      // Optionally show an error message to the user
+    }
+  }
 
   return (
     <div className="w-full">
       {/* Enhanced Header - Only show when auras exist */}
-      {initialAuras.length > 0 && (
+      {auras.length > 0 && (
         <div className="mb-10">
           <div className="text-center mb-8">
             <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
@@ -56,24 +131,24 @@ export function AurasList({ initialAuras }: AurasListProps) {
           {/* Stats Overview */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-4 text-center">
-              <div className="text-2xl font-bold text-purple-700">{initialAuras.length}</div>
+              <div className="text-2xl font-bold text-purple-700">{auras.length}</div>
               <div className="text-sm text-purple-600">Total Auras</div>
             </div>
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-green-700">
-                {initialAuras.filter(a => a.enabled).length}
+                {auras.filter(a => a.enabled).length}
               </div>
               <div className="text-sm text-green-600">Active</div>
             </div>
             <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-200 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-blue-700">
-                {countTotalSenses(initialAuras)}
+                {countTotalSenses(auras)}
               </div>
               <div className="text-sm text-blue-600">Total Senses</div>
             </div>
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-amber-700">
-                {initialAuras.reduce((acc, aura) => acc + (aura.rules?.length || 0), 0)}
+                {auras.reduce((acc, aura) => acc + (aura.rules?.length || 0), 0)}
               </div>
               <div className="text-sm text-amber-600">Total Rules</div>
             </div>
@@ -97,7 +172,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
       )}
 
       {/* Content */}
-      {initialAuras.length === 0 ? (
+      {auras.length === 0 ? (
         <SubscriptionGuard feature="maxAuras">
           <EmptyState
             icon={Brain}
@@ -170,7 +245,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
         </SubscriptionGuard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {initialAuras.map((aura) => {
+          {auras.map((aura) => {
             const config = VESSEL_TYPE_CONFIG[aura.vesselType]
             
             return (
@@ -266,7 +341,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
 
                 {/* Management Controls */}
                 <div className="bg-white border-t border-gray-200 p-4">
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-sm text-gray-500 flex items-center gap-1">
                       <Activity className="w-3 h-3" />
                       Last active: {new Date(aura.updatedAt).toLocaleDateString()}
@@ -285,19 +360,31 @@ export function AurasList({ initialAuras }: AurasListProps) {
                       </Button>
 
                       {/* Delete Button */}
-                      <form action={deleteAuraAction} className="inline">
-                        <input type="hidden" name="auraId" value={aura.id} />
-                        <Button
-                          type="submit"
-                          variant="ghost"
-                          size="sm"
-                          className="hover:bg-red-50 hover:text-red-600"
-                          title="Delete Aura"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </form>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(aura)}
+                        className="hover:bg-red-50 hover:text-red-600"
+                        title="Delete Aura"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
+                  </div>
+
+                  {/* Activation Toggle */}
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-2">
+                      <Power className={cn("w-4 h-4", aura.enabled ? "text-green-600" : "text-gray-400")} />
+                      <span className="text-sm font-medium text-gray-700">
+                        {aura.enabled ? 'Active' : 'Inactive'}
+                      </span>
+                    </div>
+                    <Switch
+                      checked={aura.enabled}
+                      onCheckedChange={(enabled) => handleToggleEnabled(aura, enabled)}
+                      className="data-[state=checked]:bg-green-500"
+                    />
                   </div>
                 </div>
 
@@ -310,7 +397,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
       )}
 
       {/* Enhanced Footer CTA */}
-      {initialAuras.length > 0 && (
+      {auras.length > 0 && (
         <div className="mt-16">
           <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 rounded-3xl p-8 text-white text-center">
             <div className="max-w-3xl mx-auto">
@@ -366,6 +453,20 @@ export function AurasList({ initialAuras }: AurasListProps) {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Aura"
+        description={`Are you sure you want to delete "${auraToDelete?.name}"? This action cannot be undone. Messages, rules and any senses not connected to other Auras will be lost.`}
+        confirmText="Delete Permanently"
+        cancelText="Cancel"
+        deactivateText="Just Deactivate"
+        onConfirm={handleDeleteConfirm}
+        onDeactivate={handleDeactivateConfirm}
+        variant="destructive"
+      />
     </div>
   )
 }

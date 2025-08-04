@@ -1,13 +1,14 @@
-// apps/web/components/aura/auras-list.tsx
+// apps/web/components/aura/auras-list-full.tsx
 
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
+import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
 import { countAuraSenses, countTotalSenses, getAllAuraSenses } from '@/lib/utils/sense-counting'
 import {
@@ -33,6 +34,22 @@ interface AurasListProps {
 
 export function AurasList({ initialAuras }: AurasListProps) {
   const router = useRouter()
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [auraToDelete, setAuraToDelete] = useState<Aura | null>(null)
+
+  const handleDeleteClick = (aura: Aura) => {
+    setAuraToDelete(aura)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleDeleteConfirm = async () => {
+    if (auraToDelete) {
+      const formData = new FormData()
+      formData.append('auraId', auraToDelete.id)
+      await deleteAuraAction(formData)
+      setAuraToDelete(null)
+    }
+  }
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -263,18 +280,15 @@ export function AurasList({ initialAuras }: AurasListProps) {
                       </Button>
 
                       {/* Delete Button */}
-                      <form action={deleteAuraAction} className="inline">
-                        <input type="hidden" name="auraId" value={aura.id} />
-                        <Button 
-                          type="submit" 
-                          variant="ghost" 
-                          size="sm"
-                          className="hover:bg-red-50 hover:text-red-600"
-                          title="Delete Aura"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </form>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleDeleteClick(aura)}
+                        className="hover:bg-red-50 hover:text-red-600"
+                        title="Delete Aura"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
                     </div>
                   </div>
                 </div>
@@ -316,6 +330,18 @@ export function AurasList({ initialAuras }: AurasListProps) {
           </div>
         </div>
       )}
+
+      {/* Confirmation Dialog */}
+      <ConfirmationDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        title="Delete Aura"
+        description={`Are you sure you want to delete "${auraToDelete?.name}"? This action cannot be undone. Messages, rules and any senses not connected to other Auras will be lost.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={handleDeleteConfirm}
+        variant="destructive"
+      />
     </div>
   )
 }

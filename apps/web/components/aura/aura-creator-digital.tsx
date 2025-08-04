@@ -7,6 +7,8 @@ import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
 import { RuleBuilder } from "./rule-builder"
@@ -32,6 +34,7 @@ import {
   Edit,
   Bot,
   Settings,
+  Power,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Personality } from "@/types"
@@ -87,6 +90,7 @@ export function AuraCreatorDigital() {
     rules: [],
     selectedStudyId: undefined,
     selectedIndividualId: undefined,
+    enabled: true, // Default to active when creating new aura
   })
 
   // Auto-scroll to top when step changes and restore form data from URL parameters
@@ -237,6 +241,7 @@ export function AuraCreatorDigital() {
         oauthConnections,
         newsConfigurations,
         weatherAirQualityConfigurations,
+        enabled: data.enabled ?? true, // Include enabled status
       })
     }
 
@@ -568,7 +573,7 @@ export function AuraCreatorDigital() {
   const canGoPrev = currentStepIndex > 0
 
   return (
-    <div ref={containerRef} className="container mx-auto px-4">
+    <div ref={containerRef} className="container mx-auto px-1">
       <div className="max-w-4xl mx-auto space-y-8">
         {/* Mode Toggle and Step Navigation */}
         {step !== "review" && (
@@ -613,8 +618,8 @@ export function AuraCreatorDigital() {
             </div>
 
             {/* Step Navigation */}
-            <div className="flex justify-center px-4">
-              <div className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto pb-2 max-w-full">
+            <div className="flex justify-center px-1">
+              <div className="flex items-center space-x-1 sm:space-x-4 overflow-x-auto pb-2 max-w-full">
                 {steps.slice(0, -1).map((stepInfo, index) => {
                   const actualIndex = index // Adjust for skipping welcome
                   const isActive = stepInfo.id === step
@@ -710,7 +715,7 @@ export function AuraCreatorDigital() {
                           id="aura-name"
                           value={auraData.name}
                           onChange={(e) => setAuraData(prev => ({ ...prev, name: e.target.value }))}
-                          placeholder="Enter a name for your digital Aura..."
+                          placeholder="Name your Aura"
                           className="text-lg bg-white text-black placeholder-gray-500 border-gray-300 focus:ring-purple-500"
                         />
                         <Button onClick={() => setIsEditingName(false)} disabled={!auraData.name.trim()}>
@@ -740,6 +745,32 @@ export function AuraCreatorDigital() {
                         <p className="text-sm text-purple-100">
                           Pure consciousness exploring the world through data streams
                         </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Activation Status */}
+                  <div className="pt-4 border-t border-purple-300/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="aura-enabled" className="text-sm font-medium text-purple-100">
+                          Activation Status
+                        </Label>
+                        <p className="text-xs text-purple-200 mt-1">
+                          {auraData.enabled ? 'Your aura will be active and ready to interact' : 'Your aura will be created but remain inactive'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Power className={cn("w-4 h-4", auraData.enabled ? "text-green-300" : "text-gray-400")} />
+                        <Switch
+                          id="aura-enabled"
+                          checked={auraData.enabled ?? true}
+                          onCheckedChange={(enabled) => setAuraData(prev => ({ ...prev, enabled }))}
+                          className="data-[state=checked]:bg-green-500"
+                        />
+                        <span className="text-sm text-purple-100 min-w-[60px]">
+                          {auraData.enabled ? 'Active' : 'Inactive'}
+                        </span>
                       </div>
                     </div>
                   </div>

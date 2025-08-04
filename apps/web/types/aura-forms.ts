@@ -14,10 +14,11 @@ export interface AuraFormData {
   plantType?: string
   personality: Personality
   senses: SenseId[]
-  availableSenses: SenseId[] 
+  availableSenses: SenseId[]
   rules: BehaviorRule[]
   selectedStudyId?: string
   selectedIndividualId?: string
+  enabled?: boolean // Whether the aura is active/inactive
   // Location and news configuration from agent
   locationInfo?: {
     city: string

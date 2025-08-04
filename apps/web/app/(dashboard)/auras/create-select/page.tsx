@@ -25,7 +25,7 @@ export default function CreateSelectPage() {
   const router = useRouter()
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    <div className="container mx-auto px-2 py-4">
       <div className="max-w-4xl mx-auto">
         {/* Back Button */}
         <Button
@@ -38,7 +38,7 @@ export default function CreateSelectPage() {
         </Button>
 
         {/* Header */}
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 px-4">
           <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
             <Brain className="w-4 h-4" />
             Aura Creation

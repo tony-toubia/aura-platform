@@ -255,10 +255,6 @@ export default async function BillingPage() {
                     </div>
                   </div>
                 ))}
-                
-                <div className="text-center pt-4 border-t">
-                  <CustomerPortalButton variant="outline" size="sm" />
-                </div>
               </div>
             )}
           </CardContent>

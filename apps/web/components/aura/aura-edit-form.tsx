@@ -12,6 +12,8 @@ import {
 } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
+import { Label } from "@/components/ui/label"
 import { PersonalityMatrix } from "./personality-matrix"
 import { SenseSelector } from "./sense-selector"
 import { type LocationConfig } from "./sense-location-modal"
@@ -29,6 +31,7 @@ import {
   Edit,
   Bot,
   Settings,
+  Power,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Aura, Personality } from "@/types"
@@ -189,6 +192,7 @@ export function AuraEditForm({
         senses: auraData.senses,
         selectedStudyId: (auraData as any).selectedStudyId,
         selectedIndividualId: (auraData as any).selectedIndividualId,
+        enabled: auraData.enabled,
         locationConfigs: locationConfigs,
         newsConfigurations: newsConfigurations,
         weatherAirQualityConfigurations: weatherAirQualityConfigurations,
@@ -674,6 +678,7 @@ export function AuraEditForm({
           senses: auraData.senses,
           selectedStudyId: (auraData as any).selectedStudyId,
           selectedIndividualId: (auraData as any).selectedIndividualId,
+          enabled: auraData.enabled,
           locationConfigs: locationConfigs,
           newsConfigurations: newsConfigurations,
           weatherAirQualityConfigurations: weatherAirQualityConfigurations,
@@ -730,7 +735,7 @@ export function AuraEditForm({
   const steps: Step[] = ["details", "senses", "rules"]
 
   return (
-    <div className="container mx-auto px-4" ref={containerRef}>
+    <div className="container mx-auto px-1" ref={containerRef}>
       <div className="max-w-4xl mx-auto space-y-4">
         {/* Back Button */}
         <Button
@@ -784,8 +789,8 @@ export function AuraEditForm({
           </div>
 
           {/* Step Navigation */}
-          <div className="flex justify-center px-4">
-            <div className="flex items-center space-x-2 sm:space-x-4 overflow-x-auto pb-2 max-w-full">
+          <div className="flex justify-center px-1">
+            <div className="flex items-center space-x-1 sm:space-x-4 overflow-x-auto pb-2 max-w-full">
               {[
                 { id: "details", label: "Personality", icon: Sparkles },
                 { id: "senses", label: "Senses", icon: Heart },
@@ -870,7 +875,7 @@ export function AuraEditForm({
                             setAuraData(p => ({ ...p, name: e.target.value }))
                             debouncedGeneralSave() // Auto-save name changes
                           }}
-                          placeholder="Enter a name for your Aura..."
+                          placeholder="Name your Aura"
                           className="text-lg bg-white text-black placeholder-gray-500 border-gray-300 focus:ring-purple-500"
                           autoFocus
                         />
@@ -918,6 +923,35 @@ export function AuraEditForm({
                       </div>
                     </div>
                   )}
+
+                  {/* Activation Status */}
+                  <div className="pt-4 border-t border-purple-300/30">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <Label htmlFor="aura-enabled-edit" className="text-sm font-medium text-purple-100">
+                          Activation Status
+                        </Label>
+                        <p className="text-xs text-purple-200 mt-1">
+                          {auraData.enabled ? 'Your aura is active and ready to interact' : 'Your aura is inactive and won\'t respond to interactions'}
+                        </p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Power className={cn("w-4 h-4", auraData.enabled ? "text-green-300" : "text-gray-400")} />
+                        <Switch
+                          id="aura-enabled-edit"
+                          checked={auraData.enabled ?? true}
+                          onCheckedChange={(enabled) => {
+                            setAuraData(p => ({ ...p, enabled }))
+                            debouncedGeneralSave() // Auto-save enabled status changes
+                          }}
+                          className="data-[state=checked]:bg-green-500"
+                        />
+                        <span className="text-sm text-purple-100 min-w-[60px]">
+                          {auraData.enabled ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
 

@@ -16,6 +16,7 @@ export interface CreateAuraServerInput {
   voiceProfile?: string
   selectedStudyId?: number | null
   selectedIndividualId?: string | null
+  enabled?: boolean // Whether the aura is active/inactive
   locationConfigs?: Record<string, any> | null
   oauthConnections?: Record<string, any[]> | null
   newsConfigurations?: Record<string, any[]> | null
@@ -28,6 +29,7 @@ export interface UpdateAuraInput {
   senses?: string[]
   selectedStudyId?: number | null
   selectedIndividualId?: string | null
+  enabled?: boolean // Whether the aura is active/inactive
   oauthConnections?: Record<string, any[]> | null
   newsConfigurations?: Record<string, any[]> | null
   weatherAirQualityConfigurations?: Record<string, any[]> | null
@@ -246,6 +248,7 @@ export class AuraServiceServer {
       avatar: this.getAvatarForVessel(input.vesselType, input.vesselCode),
       selected_study_id: input.selectedStudyId,
       selected_individual_id: input.selectedIndividualId,
+      enabled: input.enabled ?? true, // Default to true if not specified
       location_configs: input.locationConfigs || null,
     }
     
@@ -348,6 +351,7 @@ export class AuraServiceServer {
     if (input.personality !== undefined) updateData.personality = input.personality
     if (input.selectedStudyId !== undefined) updateData.selected_study_id = input.selectedStudyId
     if (input.selectedIndividualId !== undefined) updateData.selected_individual_id = input.selectedIndividualId
+    if (input.enabled !== undefined) updateData.enabled = input.enabled
 
     const { data: aura, error: auraError } = await supabase
       .from('auras')

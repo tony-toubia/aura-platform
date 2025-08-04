@@ -12,7 +12,7 @@ export default async function DashboardLayout({
     <div className="min-h-screen bg-gradient-to-br from-purple-50/50 via-blue-50/50 to-pink-50/50">
       {/* The entire header is now handled by this single component */}
       <Header />
-      <main className="container mx-auto px-4 py-8">{children}</main>
+      <main className="container mx-auto px-2 py-4">{children}</main>
     </div>
   );
 }

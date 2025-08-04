@@ -14,7 +14,7 @@ export async function PUT(req: NextRequest, context: RouteParams) {
   const timestamp = new Date().toISOString()
   const { id: auraId } = await context.params
   const body = await req.json()
-  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, locationConfigs, newsConfigurations, weatherAirQualityConfigurations } = body
+  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, enabled, locationConfigs, newsConfigurations, weatherAirQualityConfigurations } = body
   
   console.log(`[${timestamp}] PUT /api/auras/${auraId} called with:`, {
     name,
@@ -56,6 +56,11 @@ export async function PUT(req: NextRequest, context: RouteParams) {
       selected_study_id: selectedStudyId,
       selected_individual_id: selectedIndividualId,
       updated_at: new Date().toISOString(),
+    }
+    
+    // Add enabled field if provided
+    if (enabled !== undefined) {
+      updateData.enabled = enabled
     }
     
     // Add location configs if provided
