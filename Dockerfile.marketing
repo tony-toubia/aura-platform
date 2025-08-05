@@ -35,8 +35,7 @@ COPY apps/marketing/package.json ./apps/marketing/
 COPY . .
 
 # Build the marketing application
-WORKDIR /app/apps/marketing
-RUN npx next build
+RUN cd apps/marketing && npx next build
 
 # Production image
 FROM base AS runner

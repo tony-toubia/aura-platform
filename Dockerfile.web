@@ -33,8 +33,7 @@ COPY apps/web/package.json ./apps/web/
 COPY . .
 
 # Build the web application
-WORKDIR /app/apps/web
-RUN npx next build
+RUN cd apps/web && npx next build
 
 # Production image, copy all the files and run next
 FROM base AS runner
