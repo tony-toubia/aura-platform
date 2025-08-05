@@ -34,7 +34,7 @@ COPY . .
 
 # Build the web application
 WORKDIR /app/apps/web
-RUN ../../node_modules/.bin/next build
+RUN /app/node_modules/.bin/next build
 
 # Production image, copy all the files and run next
 FROM base AS runner

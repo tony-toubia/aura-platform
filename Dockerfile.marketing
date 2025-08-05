@@ -36,7 +36,7 @@ COPY . .
 
 # Build the marketing application
 WORKDIR /app/apps/marketing
-RUN ../../node_modules/.bin/next build
+RUN /app/node_modules/.bin/next build
 
 # Production image
 FROM base AS runner
