@@ -4,6 +4,9 @@ import path from "path";
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true, // Re-enabled after fixing duplicate aura creation
+  
+  // Enable standalone output for Docker deployment
+  output: 'standalone',
 
   // If you ever switch to Turbopack:
   turbopack: {

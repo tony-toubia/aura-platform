@@ -73,6 +73,15 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
+  // Handle cross-domain redirects for production
+  const host = request.headers.get('host')
+  if (host === 'aura-link.app' && isProtectedRoute) {
+    // Redirect from marketing site to dashboard subdomain for protected routes
+    const dashboardUrl = new URL(request.url)
+    dashboardUrl.host = 'dash.aura-link.app'
+    return NextResponse.redirect(dashboardUrl)
+  }
+
   return response
 }
 
