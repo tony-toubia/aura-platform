@@ -120,8 +120,15 @@ export function AuraCard({ aura, onDelete, onExport, onEdit, className }: AuraCa
 
       <CardFooter className="flex space-x-2">
         <Button
-          className="flex-1"
+          className={cn(
+            "flex-1",
+            aura.enabled
+              ? ""
+              : "bg-gray-300 text-gray-500 cursor-not-allowed hover:bg-gray-300"
+          )}
           onClick={() => router.push(`/auras/${aura.id}`)}
+          disabled={!aura.enabled}
+          title={aura.enabled ? "Chat with this aura" : "Activate aura to enable chat"}
         >
           <MessageCircle className="w-4 h-4 mr-2" />
           Interact

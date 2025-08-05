@@ -41,11 +41,12 @@ export default async function SubscriptionPage() {
     ? SUBSCRIPTION_TIERS[subscriptionRow.tier as keyof typeof SUBSCRIPTION_TIERS] ?? SUBSCRIPTION_TIERS.free
     : SUBSCRIPTION_TIERS.free
 
-  // usage stats
+  // usage stats - only count enabled/active auras
   const { count: auraCount } = await supabase
     .from("auras")
     .select("*", { count: "exact", head: true })
     .eq("user_id", user.id)
+    .eq("enabled", true)
 
   const startOfMonth = new Date()
   startOfMonth.setDate(1)
@@ -129,6 +130,30 @@ export default async function SubscriptionPage() {
               </div>
             </div>
           </div>
+
+          {subscription.id === "free" && (
+            <Card className="bg-yellow-50 border-yellow-200 text-yellow-800 shadow-sm mt-6">
+              <CardHeader>
+                <CardTitle className="text-lg flex items-center">
+                  <Crown className="w-5 h-5 mr-2 text-yellow-600" />
+                  Unlock Premium Senses
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-sm mb-4">
+                  Upgrade to a Starter plan or higher to enable personal connected senses like{" "}
+                  <span className="font-semibold">Your Sleep</span>,{" "}
+                  <span className="font-semibold">Your Fitness</span>, and{" "}
+                  <span className="font-semibold">Your Location</span>.
+                </p>
+                <Button asChild size="sm" className="bg-yellow-600 hover:bg-yellow-700 text-white">
+                  <Link href="#available-plans">
+                    View Plans
+                  </Link>
+                </Button>
+              </CardContent>
+            </Card>
+          )}
 
           {subscription.id !== "free" && (
             <div className="text-center pt-4">

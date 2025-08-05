@@ -397,9 +397,9 @@ export function DashboardContent({ stats }: DashboardContentProps) {
             <SubscriptionGuard
               feature="maxAuras"
               fallback={
-                <div className="inline-flex items-center gap-2 text-sm text-white/90 bg-white/20 px-6 py-4 rounded-lg border border-white/30 h-12">
-                  <span>Upgrade to create more auras</span>
-                  <Button asChild size="sm" className="bg-white text-purple-600 hover:bg-gray-100">
+                <div className="flex flex-col sm:flex-row items-center gap-3 text-sm text-white/90 bg-white/20 px-4 py-3 rounded-lg border border-white/30 w-full sm:w-auto">
+                  <span className="text-center sm:text-left">Upgrade to create more auras</span>
+                  <Button asChild size="sm" className="bg-white text-purple-600 hover:bg-gray-100 w-full sm:w-auto">
                     <Link href="/subscription">
                       View Plans
                     </Link>
@@ -410,7 +410,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
               <Button
                 asChild
                 size="lg"
-                className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8 h-12"
+                className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8 h-12 w-full sm:w-auto"
               >
                 <Link href="/auras/create-select" data-help="create-aura-button">
                   <Sparkles className="w-5 h-5 mr-2" />

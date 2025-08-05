@@ -11,6 +11,7 @@ interface SubscriptionGuardProps {
   requiredTier?: SubscriptionTier['id']
   fallback?: React.ReactNode
   onBlock?: () => void
+  refreshKey?: string | number // Add refresh key to force re-evaluation
 }
 
 export function SubscriptionGuard({
@@ -18,7 +19,8 @@ export function SubscriptionGuard({
   feature,
   requiredTier,
   fallback,
-  onBlock
+  onBlock,
+  refreshKey
 }: SubscriptionGuardProps) {
   const [user, setUser] = useState<any>(null)
   const [hasAccess, setHasAccess] = useState<boolean | null>(null)
@@ -47,8 +49,9 @@ export function SubscriptionGuard({
     } else {
       setHasAccess(false)
       setUserTier(null)
+      setIsLoading(false)
     }
-  }, [user, feature, requiredTier])
+  }, [user, feature, requiredTier, refreshKey]) // Include refreshKey in dependencies
 
   const checkAccess = async () => {
     if (!user) {
@@ -80,9 +83,14 @@ export function SubscriptionGuard({
     }
   }
 
-  // Show children optimistically while loading, or if access is granted
-  if (isLoading || hasAccess === true) {
+  // Only show children if access is explicitly granted
+  if (hasAccess === true) {
     return <>{children}</>
+  }
+
+  // Show loading state while checking access
+  if (isLoading) {
+    return null // Don't show anything while loading to prevent flash of content
   }
 
   // Access denied - trigger callback

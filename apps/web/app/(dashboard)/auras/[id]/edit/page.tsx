@@ -39,12 +39,20 @@ export default async function EditAuraPage({ params }: PageProps) {
     .eq("id", auraId)
     .single()
 
-  // Fetch OAuth connections for this specific aura ONLY
+  // Fetch OAuth connections for this specific aura ONLY (excluding device_location)
   const { data: oauthConnections, error: oauthError } = await supabase
     .from("oauth_connections")
     .select("*")
     .eq("user_id", user.id)
     .eq("aura_id", auraId)
+    .neq("provider", "device_location")
+
+  // Fetch device_location connections separately (they can be library connections)
+  const { data: deviceLocationConnections, error: deviceLocationError } = await supabase
+    .from("oauth_connections")
+    .select("*")
+    .eq("user_id", user.id)
+    .eq("provider", "device_location")
 
   // Log OAuth query results for debugging
   console.log('🔍 OAuth connections query result:', {
@@ -52,11 +60,18 @@ export default async function EditAuraPage({ params }: PageProps) {
     userId: user.id,
     connectionsFound: oauthConnections?.length || 0,
     connections: oauthConnections,
-    oauthError
+    oauthError,
+    deviceLocationConnectionsFound: deviceLocationConnections?.length || 0,
+    deviceLocationConnections,
+    deviceLocationError
   })
 
   if (oauthError) {
     console.error('❌ Error fetching OAuth connections:', oauthError)
+  }
+
+  if (deviceLocationError) {
+    console.error('❌ Error fetching device location connections:', deviceLocationError)
   }
 
   if (error || !auraRow) {
@@ -90,14 +105,40 @@ export default async function EditAuraPage({ params }: PageProps) {
     })),
   }
 
-  // Extract location configs from the database
-  const locationConfigs = auraRow.location_configs || {}
+  // Extract location configs from both sources (auras table and aura_senses config)
+  const extractLocationConfigs = (auraRow: any): Record<string, any> => {
+    const configs: Record<string, any> = {}
+    
+    // First, get configs from auras.location_configs
+    if (auraRow.location_configs) {
+      Object.assign(configs, auraRow.location_configs)
+    }
+    
+    // Then, get configs from aura_senses config (which may override)
+    if (auraRow.aura_senses) {
+      auraRow.aura_senses.forEach((auraSense: any) => {
+        const senseCode = auraSense.sense.code
+        const config = auraSense.config || {}
+        
+        if (config.location) {
+          configs[senseCode] = config.location
+        }
+      })
+    }
+    
+    console.log('🔍 Extracted location configs:', configs)
+    return configs
+  }
+
+  const locationConfigs = extractLocationConfigs(auraRow)
   
   // Transform OAuth connections from the oauth_connections table
-  const transformOAuthConnections = (oauthConns: any[]): Record<string, any[]> => {
+  const transformOAuthConnections = (oauthConns: any[], deviceLocationConns: any[]): Record<string, any[]> => {
     console.log('🔄 Transforming OAuth connections:', {
       inputConnections: oauthConns,
-      count: oauthConns?.length || 0
+      count: oauthConns?.length || 0,
+      deviceLocationConnections: deviceLocationConns,
+      deviceLocationCount: deviceLocationConns?.length || 0
     })
     
     const connections: Record<string, any[]> = {}
@@ -152,6 +193,47 @@ export default async function EditAuraPage({ params }: PageProps) {
       connections[senseType].push(transformedConnection)
       console.log(`✅ Added connection to ${senseType}:`, transformedConnection)
     })
+
+    // Process device_location connections and check if this aura is associated with them
+    if (deviceLocationConns && deviceLocationConns.length > 0) {
+      console.log('🔄 Processing device_location connections for location sense')
+      
+      for (const conn of deviceLocationConns) {
+        let isAssociated = false
+        
+        if (conn.aura_id === auraId) {
+          // Direct connection to this aura
+          isAssociated = true
+        } else if (!conn.aura_id) {
+          // Library connection - check if this aura is associated via aura_oauth_connections
+          // We'll need to fetch this association
+          // For now, we'll include all device_location connections for the location sense
+          // This matches the behavior in the location-info API endpoint
+          isAssociated = true
+        }
+        
+        if (isAssociated) {
+          if (!connections['location']) {
+            connections['location'] = []
+          }
+          
+          const transformedConnection = {
+            id: conn.id,
+            name: 'Device Location',
+            type: 'location',
+            connectedAt: conn.created_at ? new Date(conn.created_at) : new Date(),
+            providerId: 'device_location',
+            accountEmail: conn.provider_user_id || 'Device Location Service',
+            deviceInfo: conn.device_info,
+            expiresAt: conn.expires_at ? new Date(conn.expires_at) : null,
+            scope: conn.scope,
+          }
+          
+          connections['location'].push(transformedConnection)
+          console.log(`✅ Added device_location connection to location sense:`, transformedConnection)
+        }
+      }
+    }
     
     console.log('🔄 Final transformed connections:', connections)
     return connections
@@ -189,9 +271,46 @@ export default async function EditAuraPage({ params }: PageProps) {
     return configurations
   }
 
-  const oauthConnectionsData = transformOAuthConnections(oauthConnections || [])
+  const oauthConnectionsData = transformOAuthConnections(oauthConnections || [], deviceLocationConnections || [])
   const newsConfigurations = extractNewsConfigurations(auraRow.aura_senses || [])
   const weatherAirQualityConfigurations = extractWeatherAirQualityConfigurations(auraRow.aura_senses || [])
+  
+  // Create virtual device location connections for senses that have device location configured
+  // This ensures the UI shows device location properly when editing
+  const createVirtualDeviceConnections = () => {
+    const hasDeviceLocation = (configs: any[]): boolean => {
+      return configs.some(config => config.type === 'device')
+    }
+    
+    // Check if any sense has device location configured
+    const needsVirtualConnection =
+      (newsConfigurations.news && hasDeviceLocation(newsConfigurations.news)) ||
+      (weatherAirQualityConfigurations.weather && hasDeviceLocation(weatherAirQualityConfigurations.weather)) ||
+      (weatherAirQualityConfigurations.air_quality && hasDeviceLocation(weatherAirQualityConfigurations.air_quality))
+    
+    // If device location is used but no actual device connections exist, create a virtual one
+    if (needsVirtualConnection && (!oauthConnectionsData.location || oauthConnectionsData.location.length === 0)) {
+      console.log('🔄 Creating virtual device location connection for UI display')
+      oauthConnectionsData.location = [{
+        id: 'virtual-device-location',
+        name: 'Device Location',
+        type: 'location',
+        connectedAt: new Date(),
+        providerId: 'device_location',
+        accountEmail: 'Current Device',
+        deviceInfo: {
+          browser: 'Browser',
+          os: 'Device',
+          platform: 'Web',
+          language: navigator?.language || 'en',
+          screenInfo: 'Unknown',
+          userAgent: 'Unknown'
+        }
+      }]
+    }
+  }
+  
+  createVirtualDeviceConnections()
   
   // Add OAuth connections to the initialAura object
   initialAura.oauthConnections = oauthConnectionsData

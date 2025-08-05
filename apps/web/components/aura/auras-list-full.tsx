@@ -34,8 +34,10 @@ interface AurasListProps {
 
 export function AurasList({ initialAuras }: AurasListProps) {
   const router = useRouter()
+  const [auras, setAuras] = useState(initialAuras)
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [auraToDelete, setAuraToDelete] = useState<Aura | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
 
   const handleDeleteClick = (aura: Aura) => {
     setAuraToDelete(aura)
@@ -43,11 +45,26 @@ export function AurasList({ initialAuras }: AurasListProps) {
   }
 
   const handleDeleteConfirm = async () => {
-    if (auraToDelete) {
-      const formData = new FormData()
-      formData.append('auraId', auraToDelete.id)
-      await deleteAuraAction(formData)
-      setAuraToDelete(null)
+    if (auraToDelete && !isDeleting) {
+      setIsDeleting(true)
+      try {
+        const formData = new FormData()
+        formData.append('auraId', auraToDelete.id)
+        await deleteAuraAction(formData)
+        
+        // Update local state to remove the deleted aura
+        setAuras(prevAuras => prevAuras.filter(a => a.id !== auraToDelete.id))
+        
+        // Refresh the page to update subscription guards and server state
+        router.refresh()
+        
+        setAuraToDelete(null)
+        setDeleteDialogOpen(false)
+      } catch (error) {
+        console.error('Error deleting aura:', error)
+      } finally {
+        setIsDeleting(false)
+      }
     }
   }
 
@@ -69,27 +86,27 @@ export function AurasList({ initialAuras }: AurasListProps) {
         </div>
 
         {/* Stats Overview */}
-        {initialAuras.length > 0 && (
+        {auras.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-4 text-center">
-              <div className="text-2xl font-bold text-purple-700">{initialAuras.length}</div>
+              <div className="text-2xl font-bold text-purple-700">{auras.length}</div>
               <div className="text-sm text-purple-600">Total Auras</div>
             </div>
             <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-green-700">
-                {initialAuras.filter(a => a.enabled).length}
+                {auras.filter(a => a.enabled).length}
               </div>
               <div className="text-sm text-green-600">Active</div>
             </div>
             <div className="bg-gradient-to-r from-blue-50 to-sky-50 border border-blue-200 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-blue-700">
-                {countTotalSenses(initialAuras)}
+                {countTotalSenses(auras)}
               </div>
               <div className="text-sm text-blue-600">Total Senses</div>
             </div>
             <div className="bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-amber-700">
-                {initialAuras.reduce((acc, aura) => acc + (aura.rules?.length || 0), 0)}
+                {auras.reduce((acc, aura) => acc + (aura.rules?.length || 0), 0)}
               </div>
               <div className="text-sm text-amber-600">Total Rules</div>
             </div>
@@ -98,7 +115,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
 
         {/* Create Button */}
         <div className="text-center">
-          <SubscriptionGuard feature="maxAuras">
+          <SubscriptionGuard feature="maxAuras" key={`guard-${auras.filter(a => a.enabled).length}`}>
             <Button
               onClick={() => router.push('/auras/create-select')}
               size="lg"
@@ -112,7 +129,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
       </div>
 
       {/* Content */}
-      {initialAuras.length === 0 ? (
+      {auras.length === 0 ? (
         <EmptyState
           icon={Brain}
           iconGradient="from-purple-500 to-blue-500"
@@ -143,7 +160,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
         </EmptyState>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-          {initialAuras.map((aura) => {
+          {auras.map((aura) => {
             const config = VESSEL_TYPE_CONFIG[aura.vesselType]
             
             return (
@@ -229,7 +246,14 @@ export function AurasList({ initialAuras }: AurasListProps) {
                   <div className="flex gap-2 justify-center">
                     <Button
                       onClick={() => router.push(`/auras/${aura.id}`)}
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md flex-1"
+                      disabled={!aura.enabled}
+                      className={cn(
+                        "shadow-md flex-1",
+                        aura.enabled
+                          ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      )}
+                      title={aura.enabled ? "Chat with this aura" : "Activate aura to enable chat"}
                     >
                       <Heart className="w-4 h-4 mr-2" />
                       Chat
@@ -302,14 +326,14 @@ export function AurasList({ initialAuras }: AurasListProps) {
       )}
 
       {/* Quick Actions Footer */}
-      {initialAuras.length > 0 && (
+      {auras.length > 0 && (
         <div className="mt-16 text-center">
           <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-8">
             <h3 className="text-lg font-semibold text-gray-800 mb-4">
               Ready to expand your collection?
             </h3>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <SubscriptionGuard feature="maxAuras">
+              <SubscriptionGuard feature="maxAuras" key={`guard-footer-${auras.filter(a => a.enabled).length}`}>
                 <Button
                   onClick={() => router.push('/auras/create-select')}
                   className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
@@ -337,7 +361,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
         onOpenChange={setDeleteDialogOpen}
         title="Delete Aura"
         description={`Are you sure you want to delete "${auraToDelete?.name}"? This action cannot be undone. Messages, rules and any senses not connected to other Auras will be lost.`}
-        confirmText="Delete"
+        confirmText={isDeleting ? "Deleting..." : "Delete"}
         cancelText="Cancel"
         onConfirm={handleDeleteConfirm}
         variant="destructive"

@@ -21,6 +21,7 @@ interface SubscriptionStatusProps {
   subscription: SubscriptionTier
   usage: {
     auras: number
+    activeAuras?: number
     messages: number
     rules?: number
   }
@@ -114,14 +115,17 @@ export function SubscriptionStatus({
           {/* Auras */}
           <div className="space-y-2">
             <div className="flex items-center justify-between text-sm">
-              <span className="font-medium">Auras</span>
+              <span className="font-medium">Active Auras</span>
               <span className="text-muted-foreground">
-                {usage.auras} / {subscription.features.maxAuras === -1 ? '∞' : subscription.features.maxAuras}
+                {usage.activeAuras ?? usage.auras} / {subscription.features.maxAuras === -1 ? '∞' : subscription.features.maxAuras}
+                {usage.activeAuras !== undefined && usage.auras > usage.activeAuras && (
+                  <span className="text-xs ml-1">({usage.auras} total)</span>
+                )}
               </span>
             </div>
             {subscription.features.maxAuras !== -1 && (
-              <Progress 
-                value={getUsagePercentage(usage.auras, subscription.features.maxAuras)}
+              <Progress
+                value={getUsagePercentage(usage.activeAuras ?? usage.auras, subscription.features.maxAuras)}
                 className="h-2"
               />
             )}

@@ -438,14 +438,14 @@ export function NewsConfigurationModal({
           {/* Global News Option - Only show if not already added */}
           {!locations.some(loc => loc.type === 'global') && (
             <div className="border-2 border-dashed border-gray-300 rounded-xl p-4 hover:border-blue-400 transition-colors">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
-                  <div className="p-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 text-white">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start gap-4">
+                  <div className="p-3 rounded-lg bg-gradient-to-r from-blue-500 to-indigo-500 text-white flex-shrink-0">
                     <Globe className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-gray-800">Global News</h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 break-words">
                       Major world events, international headlines, and breaking news
                     </p>
                   </div>
@@ -454,10 +454,11 @@ export function NewsConfigurationModal({
                   onClick={addGlobalNews}
                   variant="outline"
                   size="sm"
-                  className="whitespace-nowrap"
+                  className="w-full sm:w-auto flex-shrink-0"
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  Add Global
+                  <span className="sm:hidden">Add Global News</span>
+                  <span className="hidden sm:inline">Add Global</span>
                 </Button>
               </div>
             </div>
@@ -471,32 +472,32 @@ export function NewsConfigurationModal({
                 ? "border-gray-300 hover:border-blue-400"
                 : "border-orange-300 bg-orange-50"
             )}>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-start gap-4">
                   <div className={cn(
-                    "p-3 rounded-lg text-white",
+                    "p-3 rounded-lg text-white flex-shrink-0",
                     hasLocationConnections
                       ? "bg-gradient-to-r from-blue-500 to-indigo-500"
                       : "bg-gradient-to-r from-orange-500 to-red-500"
                   )}>
                     <Globe className="w-5 h-5" />
                   </div>
-                  <div>
+                  <div className="flex-1 min-w-0">
                     <h4 className="font-semibold text-gray-800">My Device Location</h4>
-                    <p className="text-sm text-gray-600">
+                    <p className="text-sm text-gray-600 break-words">
                       Use your device's current location for local news coverage
                     </p>
                     {hasLocationConnections ? (
-                      <div className="mt-2 flex items-center gap-2">
-                        <CheckCircle className="w-4 h-4 text-green-600" />
-                        <span className="text-xs text-green-700 font-medium">
+                      <div className="mt-2 flex items-start gap-2">
+                        <CheckCircle className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-xs text-green-700 font-medium break-words">
                           Location sharing enabled in Additional Senses
                         </span>
                       </div>
                     ) : (
-                      <div className="mt-2 flex items-center gap-2">
-                        <AlertCircle className="w-4 h-4 text-orange-600" />
-                        <span className="text-xs text-orange-700 font-medium">
+                      <div className="mt-2 flex items-start gap-2">
+                        <AlertCircle className="w-4 h-4 text-orange-600 mt-0.5 flex-shrink-0" />
+                        <span className="text-xs text-orange-700 font-medium break-words">
                           Enable location sharing in Additional Senses → Your Location first
                         </span>
                       </div>
@@ -509,12 +510,13 @@ export function NewsConfigurationModal({
                   size="sm"
                   disabled={!hasLocationConnections}
                   className={cn(
-                    "whitespace-nowrap",
+                    "w-full sm:w-auto flex-shrink-0",
                     !hasLocationConnections && "opacity-50 cursor-not-allowed"
                   )}
                 >
                   <Plus className="w-4 h-4 mr-1" />
-                  {hasLocationConnections ? "Add Device" : "Location Required"}
+                  <span className="sm:hidden">{hasLocationConnections ? "Add Device Location" : "Location Required"}</span>
+                  <span className="hidden sm:inline">{hasLocationConnections ? "Add Device" : "Location Required"}</span>
                 </Button>
               </div>
             </div>
@@ -626,25 +628,33 @@ export function NewsConfigurationModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex justify-between items-center pt-6 border-t mt-8 mb-4">
-          <p className="text-sm text-gray-500">
+        <div className="pt-6 border-t mt-8 mb-4">
+          <p className="text-sm text-gray-500 mb-4 sm:mb-0 sm:hidden">
             {locations.length === 0
               ? 'Add at least one news source to continue'
               : `${locations.length} news source${locations.length !== 1 ? 's' : ''} configured`
             }
           </p>
-          <div className="flex gap-3">
-            <Button variant="outline" onClick={() => onOpenChange(false)} className="whitespace-nowrap">
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSave}
-              disabled={locations.length === 0}
-              className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 whitespace-nowrap"
-            >
-              <CheckCircle className="w-4 h-4 mr-2" />
-              Save
-            </Button>
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+            <p className="text-sm text-gray-500 hidden sm:block">
+              {locations.length === 0
+                ? 'Add at least one news source to continue'
+                : `${locations.length} news source${locations.length !== 1 ? 's' : ''} configured`
+              }
+            </p>
+            <div className="flex gap-3">
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none">
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSave}
+                disabled={locations.length === 0}
+                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600 flex-1 sm:flex-none"
+              >
+                <CheckCircle className="w-4 h-4 mr-2" />
+                Save
+              </Button>
+            </div>
           </div>
         </div>
       </DialogContent>

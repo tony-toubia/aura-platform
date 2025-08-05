@@ -2,7 +2,7 @@
 
 'use client'
 
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
@@ -11,6 +11,14 @@ import { Switch } from '@/components/ui/switch'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
 import { ConfirmationDialog } from '@/components/ui/confirmation-dialog'
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
 import { countAuraSenses, countTotalSenses, getAllAuraSenses } from '@/lib/utils/sense-counting'
 import {
@@ -25,7 +33,9 @@ import {
   Settings,
   Activity,
   ArrowRight,
-  Power
+  Power,
+  Crown,
+  AlertTriangle
 } from 'lucide-react'
 import { deleteAuraAction } from '@/app/actions/delete-aura'
 import { cn } from '@/lib/utils'
@@ -40,6 +50,17 @@ export function AurasList({ initialAuras }: AurasListProps) {
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [auraToDelete, setAuraToDelete] = useState<Aura | null>(null)
   const [auras, setAuras] = useState<Aura[]>(initialAuras)
+  const [limitDialogOpen, setLimitDialogOpen] = useState(false)
+  const [limitErrorMessage, setLimitErrorMessage] = useState<string>('')
+  const [activeAuraCount, setActiveAuraCount] = useState(auras.filter(a => a.enabled).length)
+  const [refreshKey, setRefreshKey] = useState(0)
+
+  // Update active aura count and refresh key when auras change
+  useEffect(() => {
+    const newActiveCount = auras.filter(a => a.enabled).length
+    setActiveAuraCount(newActiveCount)
+    setRefreshKey(prev => prev + 1) // Force subscription guard refresh
+  }, [auras])
 
   const handleDeleteClick = (aura: Aura) => {
     setAuraToDelete(aura)
@@ -61,6 +82,9 @@ export function AurasList({ initialAuras }: AurasListProps) {
           )
           setAuraToDelete(null)
           setDeleteDialogOpen(false)
+          
+          // Refresh the page to update subscription guards
+          router.refresh()
         } else {
           console.error('Failed to delete aura')
           // Optionally show an error message to the user
@@ -81,34 +105,60 @@ export function AurasList({ initialAuras }: AurasListProps) {
   }
 
   const handleToggleEnabled = async (aura: Aura, enabled: boolean) => {
+    console.log('Toggle aura:', aura.id, 'to', enabled);
+    
     try {
-      const response = await fetch(`/api/auras/${aura.id}`, {
-        method: 'PUT',
+      // Use the new limit management API
+      const response = await fetch('/api/auras/limit-management', {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          name: aura.name,
-          personality: aura.personality,
-          senses: aura.senses,
-          enabled: enabled,
+          action: enabled ? 'enable' : 'disable',
+          auraId: aura.id
         }),
-      })
+      });
+
+      console.log('API response status:', response.status);
 
       if (response.ok) {
-        // Update local state
-        setAuras(prevAuras =>
-          prevAuras.map(a =>
-            a.id === aura.id ? { ...a, enabled } : a
-          )
-        )
+        const responseData = await response.json();
+        console.log('API response data:', responseData);
+        
+        // Update local state with confirmed data from server
+        if (responseData.aura) {
+          console.log('Updating aura state:', responseData.aura);
+          setAuras(prevAuras =>
+            prevAuras.map(a =>
+              a.id === aura.id ? { ...a, enabled: responseData.aura.enabled } : a
+            )
+          );
+        } else {
+          // Fallback: update with the intended state if no aura data returned
+          console.log('No aura data in response, using fallback update');
+          setAuras(prevAuras =>
+            prevAuras.map(a =>
+              a.id === aura.id ? { ...a, enabled } : a
+            )
+          );
+        }
       } else {
-        console.error('Failed to update aura status')
-        // Optionally show an error message to the user
+        const errorData = await response.json();
+        console.error('API error response:', errorData);
+        
+        // Check if it's a subscription limit error
+        if (response.status === 403) {
+          setLimitErrorMessage(errorData.error || 'You have reached your subscription limit for active auras.');
+          setLimitDialogOpen(true);
+          return; // Don't proceed with the update
+        }
+        
+        console.error('Failed to update aura status:', errorData.error);
       }
     } catch (error) {
-      console.error('Error updating aura status:', error)
-      // Optionally show an error message to the user
+      console.error('Error updating aura status:', error);
     }
-  }
+  };
+
 
   return (
     <div className="w-full">
@@ -154,9 +204,12 @@ export function AurasList({ initialAuras }: AurasListProps) {
             </div>
           </div>
 
-          {/* Create Button */}
-          <div className="text-center">
-            <SubscriptionGuard feature="maxAuras">
+          {/* Action Buttons */}
+          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+            <SubscriptionGuard
+              feature="maxAuras"
+              refreshKey={refreshKey}
+            >
               <Button
                 onClick={() => router.push('/auras/create-select')}
                 size="lg"
@@ -167,13 +220,14 @@ export function AurasList({ initialAuras }: AurasListProps) {
                 Create New Aura
               </Button>
             </SubscriptionGuard>
+            
           </div>
         </div>
       )}
 
       {/* Content */}
       {auras.length === 0 ? (
-        <SubscriptionGuard feature="maxAuras">
+        <SubscriptionGuard feature="maxAuras" refreshKey={refreshKey}>
           <EmptyState
             icon={Brain}
             iconGradient="from-purple-500 to-blue-500"
@@ -331,7 +385,14 @@ export function AurasList({ initialAuras }: AurasListProps) {
                   <div className="flex gap-2 justify-center">
                     <Button
                       onClick={() => router.push(`/auras/${aura.id}`)}
-                      className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md flex-1"
+                      disabled={!aura.enabled}
+                      className={cn(
+                        "shadow-md flex-1",
+                        aura.enabled
+                          ? "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white"
+                          : "bg-gray-300 text-gray-500 cursor-not-allowed"
+                      )}
+                      title={aura.enabled ? "Chat with this aura" : "Activate aura to enable chat"}
                     >
                       <Heart className="w-4 h-4 mr-2" />
                       Chat
@@ -410,10 +471,11 @@ export function AurasList({ initialAuras }: AurasListProps) {
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
                 <SubscriptionGuard
                   feature="maxAuras"
+                  refreshKey={refreshKey}
                   fallback={
-                    <div className="inline-flex items-center gap-2 text-sm text-white/90 bg-white/20 px-6 py-4 rounded-lg border border-white/30 h-12">
-                      <span>Upgrade to create more auras</span>
-                      <Button asChild size="sm" className="bg-white text-purple-600 hover:bg-gray-100">
+                    <div className="flex flex-col sm:flex-row items-center gap-3 text-sm text-white/90 bg-white/20 px-4 py-3 rounded-lg border border-white/30 w-full sm:w-auto">
+                      <span className="text-center sm:text-left">Upgrade to create more auras</span>
+                      <Button asChild size="sm" className="bg-white text-purple-600 hover:bg-gray-100 w-full sm:w-auto">
                         <Link href="/subscription">
                           View Plans
                         </Link>
@@ -424,7 +486,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                   <Button
                     onClick={() => router.push('/auras/create-select')}
                     size="lg"
-                    className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8 h-12"
+                    className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg px-8 h-12 w-full sm:w-auto"
                     data-help="create-aura-button"
                   >
                     <Plus className="w-5 h-5 mr-2" />
@@ -467,6 +529,73 @@ export function AurasList({ initialAuras }: AurasListProps) {
         onDeactivate={handleDeactivateConfirm}
         variant="destructive"
       />
+
+      {/* Subscription Limit Dialog */}
+      <Dialog open={limitDialogOpen} onOpenChange={setLimitDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-left">Active Aura Limit Reached</DialogTitle>
+              </div>
+            </div>
+          </DialogHeader>
+          <DialogDescription className="text-left mt-2">
+            {limitErrorMessage}
+          </DialogDescription>
+          
+          <div className="mt-4 text-sm text-gray-600">
+            To activate this aura, you can:
+          </div>
+          
+          <div className="mt-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-semibold text-purple-700">1</span>
+              </div>
+              <div>
+                <p className="font-medium text-sm">Deactivate or delete another aura</p>
+                <p className="text-sm text-gray-600">Free up a slot by deactivating or deleting one of your currently active auras</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="w-px h-8 bg-gray-200 ml-3"></div>
+              <span className="text-xs text-gray-500">OR</span>
+              <div className="flex-1 h-px bg-gray-200"></div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-semibold text-purple-700">2</span>
+              </div>
+              <div>
+                <p className="font-medium text-sm">Upgrade your plan</p>
+                <p className="text-sm text-gray-600">Get more active aura slots with a higher tier plan</p>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setLimitDialogOpen(false)}
+            >
+              Got it
+            </Button>
+            <Button
+              onClick={() => router.push('/subscription')}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            >
+              <Crown className="w-4 h-4 mr-2" />
+              Upgrade Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

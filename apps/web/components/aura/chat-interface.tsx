@@ -39,7 +39,19 @@ export function ChatInterface({
   const [senseData, setSenseData] = useState<Record<string, any>>({})
   const [isLoadingSenses, setIsLoadingSenses] = useState(false)
   const [showSenseStatus, setShowSenseStatus] = useState(true)
+  const [isMobile, setIsMobile] = useState(false)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+
+  // Check if we're on mobile
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth < 768)
+    }
+    
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
 
   // Auto-scroll
   useEffect(() => {
@@ -181,7 +193,8 @@ export function ChatInterface({
     >
       <div
         className={cn(
-          "max-w-[80%] rounded-2xl px-6 py-4 shadow-md",
+          "rounded-2xl shadow-md",
+          isMobile ? "max-w-[85%] px-4 py-3" : "max-w-[80%] px-6 py-4",
           message.role === "user"
             ? "bg-gradient-to-r from-purple-600 to-blue-600 text-white"
             : "bg-white border border-gray-200"
@@ -191,10 +204,13 @@ export function ChatInterface({
 
         {/* Rule Trigger Display */}
         {message.metadata?.triggeredRule && (
-          <div className="flex items-center gap-2 mt-3 p-2 bg-amber-50 border border-amber-200 rounded-lg">
-            <Zap className="w-4 h-4 text-amber-600" />
+          <div className={cn(
+            "flex items-center gap-2 bg-amber-50 border border-amber-200 rounded-lg",
+            isMobile ? "mt-2 p-1.5" : "mt-3 p-2"
+          )}>
+            <Zap className="w-3 h-3 sm:w-4 sm:h-4 text-amber-600" />
             <span className="text-xs text-amber-700 font-medium">
-              Rule triggered: {message.metadata.triggeredRule}
+              Rule: {message.metadata.triggeredRule}
             </span>
           </div>
         )}
@@ -202,107 +218,118 @@ export function ChatInterface({
         {/* Influence Display */}
         {showInfluence && <MessageInfluence message={message} />}
 
-        <p className="text-xs mt-3 opacity-60 flex items-center gap-1">
-          <span>
-            {new Date(message.created_at).toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </span>
-          {message.role === "aura" && showInfluence && (
-            <span className="ml-2 bg-black/10 px-2 py-0.5 rounded text-[10px]">
-              AI Response
-            </span>
-          )}
+        <p className={cn("text-xs opacity-60", isMobile ? "mt-2" : "mt-3")}>
+          {new Date(message.created_at).toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
         </p>
       </div>
     </div>
   )
 
+  // Use dynamic height for mobile
+  const containerHeight = isMobile ? "h-[calc(100vh-4rem)]" : "h-[700px]"
+  
   return (
-    <Card className="flex flex-col h-[700px] border-2 border-purple-100 shadow-xl overflow-hidden">
+    <Card className={cn("flex flex-col border-2 border-purple-100 shadow-xl overflow-hidden", containerHeight)}>
       {/* Header */}
-      <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 p-4 sm:p-6 text-white">
-        <div className="flex flex-col space-y-4">
-          {/* Top row - Avatar and Name only */}
-          <div className="flex items-center space-x-3 sm:space-x-4">
-            <div className="text-3xl sm:text-4xl bg-white/20 p-2 sm:p-3 rounded-xl backdrop-blur-sm flex-shrink-0">
-              {aura.avatar}
+      <div className="bg-gradient-to-r from-purple-500 via-blue-500 to-pink-500 p-3 sm:p-6 text-white">
+        <div className="flex flex-col space-y-3 sm:space-y-4">
+          {/* Top row - Avatar and Name */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
+              <div className="text-2xl sm:text-4xl bg-white/20 p-2 sm:p-3 rounded-lg sm:rounded-xl backdrop-blur-sm flex-shrink-0">
+                {aura.avatar}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h3 className="text-base sm:text-xl font-bold truncate">{aura.name}</h3>
+                <div className="flex items-center space-x-2 text-xs sm:text-sm text-white/80 sm:hidden">
+                  <div className="w-1.5 h-1.5 bg-green-400 rounded-full animate-pulse" />
+                  <span>Online</span>
+                  {!showSenseStatus && aura.senses.length > 0 && (
+                    <>
+                      <span>•</span>
+                      <span>{aura.senses.length} senses</span>
+                    </>
+                  )}
+                </div>
+              </div>
             </div>
-            <div className="min-w-0 flex-1">
-              <h3 className="text-lg sm:text-xl font-bold truncate">{aura.name}</h3>
+
+            {/* Control buttons - Compact on mobile */}
+            <div className="flex items-center space-x-1 sm:space-x-2 flex-shrink-0">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setVoiceEnabled((v) => !v)}
+                className={cn(
+                  "text-white hover:bg-white/20 border border-white/30",
+                  isMobile ? "w-8 h-8" : "w-9 h-9",
+                  voiceEnabled && "bg-white/20"
+                )}
+                title={voiceEnabled ? "Voice On" : "Voice Off"}
+              >
+                {voiceEnabled ? <Volume2 className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowInfluence((s) => !s)}
+                className={cn(
+                  "text-white hover:bg-white/20 border border-white/30",
+                  isMobile ? "w-8 h-8" : "w-9 h-9",
+                  showInfluence && "bg-white/20"
+                )}
+                title={showInfluence ? "Hide insights" : "Show insights"}
+              >
+                {showInfluence ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowSenseStatus((v) => !v)}
+                className={cn(
+                  "text-white hover:bg-white/20 border border-white/30",
+                  isMobile ? "w-8 h-8" : "w-9 h-9",
+                  showSenseStatus && "bg-white/20"
+                )}
+                title={showSenseStatus ? "Hide senses" : "Show senses"}
+              >
+                <Brain className="w-4 h-4" />
+              </Button>
             </div>
           </div>
 
-          {/* Status and Controls row */}
-          <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl">
-            <div className="flex items-start justify-between text-white/80 text-sm -mt-1">
-              <div className="flex flex-col space-y-2 min-w-0 flex-1">
-                <div className="flex items-center space-x-2 flex-shrink-0">
-                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                  <span className="whitespace-nowrap">Online &amp; Sensing</span>
-                </div>
-
-                {/* Sense icons - show when SenseStatus is hidden */}
+          {/* Status row - Desktop only */}
+          {!isMobile && (
+            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/20 shadow-2xl">
+              <div className="flex items-center space-x-2 text-white/80 text-sm">
+                <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                <span>Online & Sensing</span>
                 {!showSenseStatus && (
-                  <div className="flex items-center space-x-2 overflow-hidden">
-                    {aura.senses.slice(0, 5).map((id: string) => {
-                      const Icon = SENSE_ICONS[id as keyof typeof SENSE_ICONS]
-                      return Icon ? (
-                        <Icon key={id} className="w-4 h-4 text-white opacity-80 flex-shrink-0" />
-                      ) : null
-                    })}
-                    {aura.senses.length > 5 && (
-                      <span className="text-xs opacity-70 flex-shrink-0">+{aura.senses.length - 5}</span>
-                    )}
-                  </div>
+                  <>
+                    <span>•</span>
+                    <div className="flex items-center space-x-2">
+                      {aura.senses.slice(0, 5).map((id: string) => {
+                        const Icon = SENSE_ICONS[id as keyof typeof SENSE_ICONS]
+                        return Icon ? (
+                          <Icon key={id} className="w-4 h-4 text-white opacity-80" />
+                        ) : null
+                      })}
+                      {aura.senses.length > 5 && (
+                        <span className="text-xs opacity-70">+{aura.senses.length - 5}</span>
+                      )}
+                    </div>
+                  </>
                 )}
               </div>
-
-              {/* Control buttons */}
-              <div className="flex items-center space-x-2 flex-shrink-0 ml-2 self-center">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setVoiceEnabled((v) => !v)}
-                  className={cn(
-                    "text-white hover:bg-white/20 border border-white/30 w-8 h-8 sm:w-9 sm:h-9",
-                    voiceEnabled && "bg-white/20"
-                  )}
-                >
-                  {voiceEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <Mic className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowInfluence((s) => !s)}
-                  className={cn(
-                    "text-white hover:bg-white/20 border border-white/30 w-8 h-8 sm:w-9 sm:h-9",
-                    showInfluence && "bg-white/20"
-                  )}
-                  title={showInfluence ? "Hide influence details" : "Show influence details"}
-                >
-                  {showInfluence ? <Eye className="w-3.5 h-3.5 sm:w-4 sm:h-4" /> : <EyeOff className="w-3.5 h-3.5 sm:w-4 sm:h-4" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowSenseStatus((v) => !v)}
-                  className={cn(
-                    "text-white hover:bg-white/20 border border-white/30 w-8 h-8 sm:w-9 sm:h-9",
-                    !showSenseStatus && "opacity-60"
-                  )}
-                  title={showSenseStatus ? "Hide Live Awareness" : "Show Live Awareness"}
-                >
-                  <Brain className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                </Button>
-              </div>
             </div>
-          </div>
+          )}
 
-          {/* Bottom row - Conditional Live Awareness */}
+          {/* Live Awareness - Responsive */}
           {showSenseStatus && (
-            <div className="border-t border-white/20 pt-4">
+            <div className={cn("border-t border-white/20", isMobile ? "pt-3" : "pt-4")}>
               <SenseStatus
                 senses={aura.senses}
                 senseData={senseData}
@@ -317,18 +344,24 @@ export function ChatInterface({
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-gradient-to-br from-purple-50/50 to-blue-50/50">
         {messages.length === 0 ? (
-          <div className="text-center py-12">
-            <div className="w-16 h-16 bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-4">
-              <MessageCircle className="w-8 h-8 text-white" />
+          <div className={cn("text-center", isMobile ? "py-8" : "py-12")}>
+            <div className={cn(
+              "bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto",
+              isMobile ? "w-12 h-12 mb-3" : "w-16 h-16 mb-4"
+            )}>
+              <MessageCircle className={isMobile ? "w-6 h-6" : "w-8 h-8"} />
             </div>
-            <h4 className="text-lg font-semibold text-gray-800 mb-2">
-              Start a conversation with {aura.name}
+            <h4 className={cn("font-semibold text-gray-800", isMobile ? "text-base mb-1" : "text-lg mb-2")}>
+              Start chatting with {aura.name}
             </h4>
-            <p className="text-gray-600 mb-4">
-              I can sense and respond to: {aura.senses.join(", ")}
+            <p className={cn("text-gray-600", isMobile ? "text-sm mb-3" : "mb-4")}>
+              I can sense: {aura.senses.join(", ")}
             </p>
-            <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm">
-              <Sparkles className="w-4 h-4" />
+            <div className={cn(
+              "inline-flex items-center gap-2 bg-purple-100 text-purple-700 rounded-full",
+              isMobile ? "px-3 py-1.5 text-xs" : "px-4 py-2 text-sm"
+            )}>
+              <Sparkles className="w-3 h-3 sm:w-4 sm:h-4" />
               Ready to chat!
             </div>
           </div>
@@ -339,9 +372,12 @@ export function ChatInterface({
             {/* Typing Indicator */}
             {isTyping && (
               <div className="flex justify-start">
-                <div className="bg-white border border-gray-200 rounded-2xl px-6 py-4 shadow-md">
-                  <div className="flex items-center gap-3">
-                    <div className="text-2xl">{aura.avatar}</div>
+                <div className={cn(
+                  "bg-white border border-gray-200 rounded-2xl shadow-md",
+                  isMobile ? "px-4 py-3" : "px-6 py-4"
+                )}>
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className={isMobile ? "text-xl" : "text-2xl"}>{aura.avatar}</div>
                     <div className="flex space-x-1">
                       <div className="w-2 h-2 bg-purple-400 rounded-full animate-bounce" />
                       <div
@@ -353,7 +389,7 @@ export function ChatInterface({
                         style={{ animationDelay: "0.2s" }}
                       />
                     </div>
-                    <span className="text-xs text-gray-500">{aura.name} is thinking...</span>
+                    {!isMobile && <span className="text-xs text-gray-500">{aura.name} is thinking...</span>}
                   </div>
                 </div>
               </div>
@@ -365,35 +401,67 @@ export function ChatInterface({
       </div>
 
       {/* Input */}
-      <div className="p-6 border-t bg-white">
+      <div className={cn("border-t bg-white", isMobile ? "p-3" : "p-6")}>
         <form
           onSubmit={(e) => {
             e.preventDefault()
             handleSend()
           }}
-          className="flex space-x-3"
+          className={cn("flex", isMobile ? "space-x-2" : "space-x-3")}
         >
           <Input
             value={input}
-            onChange={(e) => {
-              console.log('Input changed:', e.target.value)
-              setInput(e.target.value)
-            }}
+            onChange={(e) => setInput(e.target.value)}
             placeholder={`Message ${aura.name}...`}
-            className="flex-1 py-6 text-lg border-2 border-purple-200 focus:border-purple-400 rounded-xl"
+            className={cn(
+              "flex-1 border-2 border-purple-200 focus:border-purple-400",
+              isMobile
+                ? "py-2.5 text-base rounded-full px-4"
+                : "py-6 text-lg rounded-xl"
+            )}
             disabled={isTyping}
           />
           <Button
             type="submit"
-            size="lg"
+            size={isMobile ? "icon" : "lg"}
             disabled={isTyping || !input.trim()}
-            onClick={() => console.log('Button clicked', { isTyping, inputTrim: input.trim() })}
-            className="px-6 py-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 rounded-xl shadow-lg"
+            className={cn(
+              "bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg",
+              isMobile
+                ? "h-10 w-10 rounded-full"
+                : "px-6 py-6 rounded-xl"
+            )}
           >
-            <Send className="w-5 h-5" />
+            <Send className={isMobile ? "w-4 h-4" : "w-5 h-5"} />
           </Button>
         </form>
-        {showInfluence && (
+        
+        {/* Active Features Indicator - Mobile */}
+        {isMobile && (voiceEnabled || showInfluence || showSenseStatus) && (
+          <div className="flex items-center justify-center gap-4 mt-2 text-xs text-gray-500">
+            {voiceEnabled && (
+              <span className="flex items-center gap-1">
+                <Volume2 className="w-3 h-3" />
+                Voice
+              </span>
+            )}
+            {showInfluence && (
+              <span className="flex items-center gap-1">
+                <Eye className="w-3 h-3" />
+                Insights
+              </span>
+            )}
+            {showSenseStatus && (
+              <span className="flex items-center gap-1">
+                <Brain className="w-3 h-3" />
+                Senses
+              </span>
+            )}
+          </div>
+        )}
+        
+        {/* Desktop influence indicator */}
+        {!isMobile && showInfluence && (
           <div className="mt-3 text-center">
             <span className="text-xs text-purple-600 bg-purple-50 px-3 py-1 rounded-full">
               <Eye className="w-3 h-3 inline mr-1" />

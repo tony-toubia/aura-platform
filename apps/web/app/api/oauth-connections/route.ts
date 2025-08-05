@@ -2,7 +2,9 @@
 
 import { NextResponse } from "next/server"
 import { createServerSupabase } from "@/lib/supabase/server.server"
+import { SubscriptionService } from "@/lib/services/subscription-service"
 import type { NextRequest } from "next/server"
+import { AVAILABLE_SENSES } from "@/lib/constants"
 
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString()
@@ -50,6 +52,19 @@ export async function POST(req: NextRequest) {
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
+  }
+
+  // Check if the sense_type is a premium sense and if the user has access
+  const isPremiumSense = AVAILABLE_SENSES.find(s => s.id === sense_type)?.tier === 'Premium'
+  if (isPremiumSense) {
+    const hasPersonalConnectedSenses = await SubscriptionService.checkFeatureAccess(user.id, 'hasPersonalConnectedSenses')
+    if (!hasPersonalConnectedSenses) {
+      console.log(`[${timestamp}] [${requestId}] ❌ User ${user.id} attempted to connect premium sense ${sense_type} without access.`)
+      return NextResponse.json(
+        { error: "Upgrade your plan to enable personal connected senses." },
+        { status: 403 }
+      )
+    }
   }
 
   try {

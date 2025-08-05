@@ -10,11 +10,12 @@ export async function GET() {
   }
 
   try {
-    // Fetch all OAuth connections (both direct and library)
+    // Fetch all OAuth connections (both direct and library), excluding device_location
     const { data: oauthConnections, error: oauthError } = await supabase
       .from("oauth_connections")
       .select("*")
       .eq("user_id", user.id)
+      .neq("provider", "device_location")
       .order("created_at", { ascending: false })
 
     if (oauthError) {

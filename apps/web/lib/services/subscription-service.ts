@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/client'
 import type StripeModule from 'stripe'
+import { AuraLimitService } from './aura-limit-service'
 
 export interface SubscriptionTier {
   id: 'free' | 'personal' | 'family' | 'business'
@@ -23,6 +24,7 @@ export interface SubscriptionFeatures {
   hasCustomAvatars: boolean
   hasDataExport: boolean
   supportLevel: 'community' | 'email' | 'priority' | 'dedicated'
+  hasPersonalConnectedSenses: boolean
 }
 
 export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier> = {
@@ -42,6 +44,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
       hasCustomAvatars: false,
       hasDataExport: false,
       supportLevel: 'community',
+      hasPersonalConnectedSenses: false,
     },
   },
   personal: {
@@ -72,6 +75,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
       hasCustomAvatars: true,
       hasDataExport: true,
       supportLevel: 'email',
+      hasPersonalConnectedSenses: true,
     },
   },
   family: {
@@ -101,6 +105,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
       hasCustomAvatars: true,
       hasDataExport: true,
       supportLevel: 'priority',
+      hasPersonalConnectedSenses: true,
     },
   },
   business: {
@@ -120,6 +125,7 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
       hasCustomAvatars: true,
       hasDataExport: true,
       supportLevel: 'dedicated',
+      hasPersonalConnectedSenses: true,
     },
   },
 }
@@ -205,6 +211,7 @@ export class SubscriptionService {
       .from('auras')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
+      .eq('enabled', true) // Only count active auras
   }
 
   private static async getUserMessageCount(userId: string) {
@@ -483,17 +490,24 @@ export class SubscriptionService {
         console.log('Subscription updated:', { userId, subscriptionId: sub.id, status: sub.status })
         
         if (userId) {
+          // Get current subscription tier before update
+          const { data: currentSub } = await supabase
+            .from('subscriptions')
+            .select('tier')
+            .eq('user_id', userId)
+            .single()
+
           const priceId = sub.items.data[0]?.price.id
-          let tierId: SubscriptionTier['id'] = 'free'
+          let newTierId: SubscriptionTier['id'] = 'free'
           
-          if (priceId === process.env.STRIPE_PERSONAL_PRICE_ID) tierId = 'personal'
-          else if (priceId === process.env.STRIPE_FAMILY_PRICE_ID) tierId = 'family'
-          else if (priceId === process.env.STRIPE_BUSINESS_PRICE_ID) tierId = 'business'
+          if (priceId === process.env.STRIPE_PERSONAL_PRICE_ID) newTierId = 'personal'
+          else if (priceId === process.env.STRIPE_FAMILY_PRICE_ID) newTierId = 'family'
+          else if (priceId === process.env.STRIPE_BUSINESS_PRICE_ID) newTierId = 'business'
 
           const { error } = await supabase
             .from('subscriptions')
             .update({
-              tier: tierId.toLowerCase(),
+              tier: newTierId.toLowerCase(),
               status: sub.status === 'active' ? 'active' : 'cancelled',
             })
             .eq('user_id', userId)
@@ -501,7 +515,34 @@ export class SubscriptionService {
           if (error) {
             console.error('Failed to update subscription:', error)
           } else {
-            console.log('Updated subscription tier:', { userId, tierId, status: sub.status })
+            console.log('Updated subscription tier:', { userId, newTierId, status: sub.status })
+            
+            // Check if this is a downgrade and enforce aura limits
+            const currentTierId = currentSub?.tier as SubscriptionTier['id'] || 'free'
+            const tierHierarchy = ['free', 'personal', 'family', 'business']
+            const currentTierIndex = tierHierarchy.indexOf(currentTierId)
+            const newTierIndex = tierHierarchy.indexOf(newTierId)
+            
+            if (newTierIndex < currentTierIndex) {
+              console.log('🔽 Subscription downgrade detected, enforcing aura limits...', {
+                from: currentTierId,
+                to: newTierId
+              })
+              
+              try {
+                const enforcementResult = await AuraLimitService.enforceAuraLimits(userId, newTierId)
+                console.log('✅ Aura limit enforcement completed:', enforcementResult)
+                
+                // Log the enforcement action for audit purposes
+                if (enforcementResult.disabledAuraIds.length > 0) {
+                  console.log(`🚫 Disabled ${enforcementResult.disabledAuraIds.length} auras due to downgrade:`,
+                    enforcementResult.disabledAuraIds)
+                }
+              } catch (limitError) {
+                console.error('❌ Failed to enforce aura limits:', limitError)
+                // Don't fail the webhook - subscription update should still succeed
+              }
+            }
           }
         }
         break
@@ -525,6 +566,22 @@ export class SubscriptionService {
             console.error('Failed to cancel subscription:', error)
           } else {
             console.log('Cancelled subscription for user:', userId)
+            
+            // Enforce free tier limits (1 aura max)
+            console.log('🔽 Subscription cancelled, enforcing free tier limits...')
+            
+            try {
+              const enforcementResult = await AuraLimitService.enforceAuraLimits(userId, 'free')
+              console.log('✅ Free tier limit enforcement completed:', enforcementResult)
+              
+              if (enforcementResult.disabledAuraIds.length > 0) {
+                console.log(`🚫 Disabled ${enforcementResult.disabledAuraIds.length} auras due to cancellation:`,
+                  enforcementResult.disabledAuraIds)
+              }
+            } catch (limitError) {
+              console.error('❌ Failed to enforce free tier limits:', limitError)
+              // Don't fail the webhook - subscription cancellation should still succeed
+            }
           }
         } else {
           console.log('No userId found for subscription deletion, skipping database update')

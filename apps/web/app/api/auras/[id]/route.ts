@@ -2,7 +2,9 @@
 
 import { NextResponse } from "next/server"
 import { createServerSupabase } from "@/lib/supabase/server.server"
+import { SubscriptionService } from "@/lib/services/subscription-service"
 import type { NextRequest } from "next/server"
+import { AVAILABLE_SENSES, type SenseId } from "@/lib/constants"
 
 type RouteParams = {
   params: Promise<{
@@ -58,8 +60,37 @@ export async function PUT(req: NextRequest, context: RouteParams) {
       updated_at: new Date().toISOString(),
     }
     
-    // Add enabled field if provided
+    // Check subscription limits before enabling an aura
     if (enabled !== undefined) {
+      // If trying to enable an aura, check subscription limits first
+      if (enabled === true) {
+        // Get current aura status to see if it's already enabled
+        const { data: currentAura, error: fetchError } = await supabase
+          .from("auras")
+          .select("enabled")
+          .eq("id", auraId)
+          .eq("user_id", user.id)
+          .single()
+        
+        if (fetchError) {
+          console.error("Failed to fetch current aura status:", fetchError)
+          return NextResponse.json({ error: "Failed to check aura status" }, { status: 500 })
+        }
+        
+        // Only check limits if the aura is currently disabled
+        if (!currentAura.enabled) {
+          const hasAccess = await SubscriptionService.checkFeatureAccess(user.id, 'maxAuras')
+          
+          if (!hasAccess) {
+            console.log(`User ${user.id} has reached their active aura limit`)
+            return NextResponse.json(
+              { error: "You've reached your limit of active auras. Please deactivate another aura or upgrade your plan." },
+              { status: 403 }
+            )
+          }
+        }
+      }
+      
       updateData.enabled = enabled
     }
     
@@ -81,6 +112,19 @@ export async function PUT(req: NextRequest, context: RouteParams) {
 
     // Update senses if provided
     if (senses && senses.length >= 0) {
+      // Check for premium senses and user subscription
+      const premiumSenses = AVAILABLE_SENSES.filter(s => s.tier === 'Premium').map(s => s.id)
+      const attemptingToAddPremiumSense = senses.some((senseId: SenseId) => premiumSenses.includes(senseId))
+
+      if (attemptingToAddPremiumSense) {
+        const hasPersonalConnectedSenses = await SubscriptionService.checkFeatureAccess(user.id, 'hasPersonalConnectedSenses')
+        if (!hasPersonalConnectedSenses) {
+          return NextResponse.json(
+            { error: "Upgrade your plan to enable personal connected senses." },
+            { status: 403 }
+          )
+        }
+      }
       console.log(`[${timestamp}] Looking up senses with codes:`, senses)
       
       // Get sense IDs from codes

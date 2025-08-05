@@ -104,6 +104,7 @@ export function PricingCards({
     { key: 'hasApiAccess', label: 'API Access', format: (v) => v },
     { key: 'hasCustomAvatars', label: 'Custom Avatars', format: (v) => v },
     { key: 'hasDataExport', label: 'Data Export', format: (v) => v },
+    { key: 'hasPersonalConnectedSenses', label: 'Personal Connected Senses', format: (v) => v },
   ]
 
   const handleUpgrade = async (tierId: string) => {

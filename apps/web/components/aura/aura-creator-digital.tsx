@@ -187,7 +187,7 @@ export function AuraCreatorDigital() {
     const userId = await getCurrentUserId()
     if (!userId) throw new Error("User not authenticated")
 
-    const senseCodes = data.availableSenses.map((s) =>
+    const senseCodes = data.senses.map((s) =>
       s.includes(".") ? s.replace(/\./g, "_") : s
     )
 
@@ -199,7 +199,7 @@ export function AuraCreatorDigital() {
       rulesCount: data.rules.length,
       personality: data.personality,
       rules: data.rules,
-      originalSenses: data.availableSenses,
+      originalSenses: data.senses,
       normalizedSenses: senseCodes,
       locationConfigs,
       oauthConnections,
@@ -285,6 +285,17 @@ export function AuraCreatorDigital() {
   const handleLocationConfig = async (senseId: SenseId, config: LocationConfig) => {
     setLocationConfigs(prev => ({ ...prev, [senseId]: config }))
     
+    // Auto-enable the sense if not already enabled
+    if (!auraData.senses.includes(senseId)) {
+      console.log(`🔄 Auto-enabling ${senseId} sense due to location configuration`)
+      const updatedSenses = [...auraData.senses, senseId]
+      setAuraData(prev => ({
+        ...prev,
+        senses: updatedSenses,
+        availableSenses: updatedSenses,
+      }))
+    }
+    
     // Auto-save if we have an aura ID
     if (auraData.id) {
       console.log('🔄 Auto-saving after location configuration for sense:', senseId)
@@ -297,10 +308,25 @@ export function AuraCreatorDigital() {
       senseId,
       providerId,
       connectionData,
-      auraId: auraData.id
+      auraId: auraData.id,
+      currentSenses: auraData.senses,
+      useLibrary: connectionData.useLibrary,
+      isLibraryConnection: connectionData.isLibraryConnection
     })
     
-    // Helper function to get user-friendly provider names (consistent with edit form)
+    // Ensure the sense is enabled when OAuth connection is made
+    let updatedSenses = auraData.senses
+    if (!auraData.senses.includes(senseId)) {
+      console.log(`🔄 Auto-enabling ${senseId} sense in AuraCreatorDigital due to OAuth connection`)
+      updatedSenses = [...auraData.senses, senseId]
+      setAuraData(prev => ({
+        ...prev,
+        senses: updatedSenses,
+        availableSenses: updatedSenses,
+      }))
+    }
+    
+    // Helper function to get user-friendly provider names (matching edit page logic)
     const getProviderDisplayName = (provider: string): string => {
       const providerNames: Record<string, string> = {
         'google': 'Google',
@@ -315,24 +341,35 @@ export function AuraCreatorDigital() {
       return providerNames[provider] || provider.charAt(0).toUpperCase() + provider.slice(1).replace(/_/g, ' ')
     }
     
+    // Handle library connection association (when selecting from library)
+    if (connectionData.isLibraryConnection) {
+      console.log('📚 Handling library connection association')
+      
+      // Update local state with the library connection
+      setOauthConnections(prev => ({
+        ...prev,
+        [senseId]: [...(prev[senseId] || []), {
+          id: connectionData.id,
+          name: getProviderDisplayName(providerId),
+          type: senseId,
+          connectedAt: connectionData.connectedAt,
+          providerId: providerId,
+          accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
+          deviceInfo: connectionData.deviceInfo || null,
+          isLibraryConnection: true,
+        }]
+      }))
+      
+      return // Library association is handled by the modal
+    }
+    
     // We should always have an aura ID at this point since we auto-save when transitioning to senses
     if (!auraData.id) {
       console.error('❌ No aura ID available - this should not happen after auto-save implementation')
       return
     }
     
-    // Check if this connection already exists to prevent duplicates
-    const existingConnections = oauthConnections[senseId] || []
-    const isDuplicate = existingConnections.some(conn =>
-      conn.providerId === providerId &&
-      conn.accountEmail === (connectionData.accountEmail || connectionData.providerName)
-    )
-    
-    if (isDuplicate) {
-      console.log('⚠️ Connection already exists, skipping duplicate')
-      return
-    }
-    
+    // Save to database via API (for new connections)
     try {
       const requestBody = {
         provider: providerId,
@@ -342,7 +379,9 @@ export function AuraCreatorDigital() {
         refresh_token: connectionData.tokens?.refresh_token,
         expires_at: connectionData.tokens?.expires_at,
         scope: connectionData.tokens?.scope,
-        aura_id: auraData.id, // Associate connection with this specific aura
+        aura_id: connectionData.useLibrary ? null : auraData.id, // Library connections have null aura_id
+        device_info: connectionData.deviceInfo || null, // Include device information for location connections
+        use_library: connectionData.useLibrary || false, // Flag to indicate library storage
       }
       
       console.log('📤 Making API request to save OAuth connection:', requestBody)
@@ -363,19 +402,19 @@ export function AuraCreatorDigital() {
         const savedConnection = await response.json()
         console.log('✅ Successfully saved OAuth connection:', savedConnection)
         
-        // Only add to local state if API save was successful
-        const newConnection = {
-          id: savedConnection.id,
-          name: getProviderDisplayName(providerId),
-          type: senseId,
-          connectedAt: new Date(savedConnection.created_at),
-          providerId: providerId,
-          accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
-        }
-        
+        // Update local state with the saved connection using consistent naming
         setOauthConnections(prev => ({
           ...prev,
-          [senseId]: [...(prev[senseId] || []), newConnection]
+          [senseId]: [...(prev[senseId] || []), {
+            id: savedConnection.id,
+            name: getProviderDisplayName(providerId),
+            type: senseId,
+            connectedAt: new Date(savedConnection.created_at),
+            providerId: providerId,
+            accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
+            deviceInfo: connectionData.deviceInfo || null, // Include device info in local state
+            isLibraryConnection: connectionData.useLibrary || false,
+          }]
         }))
       } else {
         const errorData = await response.json()
@@ -384,40 +423,22 @@ export function AuraCreatorDigital() {
           statusText: response.statusText,
           error: errorData
         })
-        
-        // Only add to local state if it's not a duplicate error
-        if (response.status !== 409) { // 409 = Conflict (duplicate)
-          const newConnection = {
-            id: `${providerId}-${Date.now()}`,
-            name: getProviderDisplayName(providerId),
-            type: senseId,
-            connectedAt: new Date(),
-            providerId: providerId,
-            accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
-          }
-          
-          setOauthConnections(prev => ({
-            ...prev,
-            [senseId]: [...(prev[senseId] || []), newConnection]
-          }))
-        }
       }
     } catch (error) {
       console.error('❌ Failed to save OAuth connection - Network/Parse error:', error)
-      
-      // Still update local state for UI feedback (only if not duplicate)
-      const newConnection = {
-        id: `${providerId}-${Date.now()}`,
-        name: getProviderDisplayName(providerId),
-        type: senseId,
-        connectedAt: new Date(),
-        providerId: providerId,
-        accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
-      }
-      
+      // Still update local state for UI feedback with consistent naming
       setOauthConnections(prev => ({
         ...prev,
-        [senseId]: [...(prev[senseId] || []), newConnection]
+        [senseId]: [...(prev[senseId] || []), {
+          id: `${providerId}-${Date.now()}`,
+          name: getProviderDisplayName(providerId),
+          type: senseId,
+          connectedAt: new Date(),
+          providerId: providerId,
+          accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
+          deviceInfo: connectionData.deviceInfo || null, // Include device info in fallback state
+          isLibraryConnection: connectionData.useLibrary || false,
+        }]
       }))
     }
   }
@@ -467,6 +488,17 @@ export function AuraCreatorDigital() {
       [senseId]: locations
     }))
     
+    // Auto-enable the sense if not already enabled and locations are configured
+    if (locations.length > 0 && !auraData.senses.includes(senseId)) {
+      console.log(`🔄 Auto-enabling ${senseId} sense due to news configuration`)
+      const updatedSenses = [...auraData.senses, senseId]
+      setAuraData(prev => ({
+        ...prev,
+        senses: updatedSenses,
+        availableSenses: updatedSenses,
+      }))
+    }
+    
     // Auto-save if we have an aura ID
     if (auraData.id) {
       console.log('🔄 Auto-saving after news configuration for sense:', senseId)
@@ -479,6 +511,17 @@ export function AuraCreatorDigital() {
       ...prev,
       [senseId]: locations
     }))
+    
+    // Auto-enable the sense if not already enabled and locations are configured
+    if (locations.length > 0 && !auraData.senses.includes(senseId)) {
+      console.log(`🔄 Auto-enabling ${senseId} sense due to weather/air quality configuration`)
+      const updatedSenses = [...auraData.senses, senseId]
+      setAuraData(prev => ({
+        ...prev,
+        senses: updatedSenses,
+        availableSenses: updatedSenses,
+      }))
+    }
     
     // Auto-save if we have an aura ID
     if (auraData.id) {
@@ -580,7 +623,7 @@ export function AuraCreatorDigital() {
           <div className="space-y-4">
             {/* Mode Toggle */}
             <div className="flex justify-center px-4">
-              <Card className="p-2 w-full max-w-md">
+              <Card className="p-2 max-w-md">
                 <div className="flex flex-col sm:flex-row items-center gap-2">
                   <Button
                     variant="outline"
@@ -835,10 +878,11 @@ export function AuraCreatorDigital() {
               </div>
 
               <RuleBuilder
+                key={JSON.stringify(auraData.senses)}
                 auraId={auraData.id}
                 vesselType="digital"
                 vesselCode="digital-only"
-                availableSenses={auraData.availableSenses}
+                availableSenses={auraData.senses}
                 oauthConnections={oauthConnections}
                 existingRules={auraData.rules}
                 editingRule={editingRule}

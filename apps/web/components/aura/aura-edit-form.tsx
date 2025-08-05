@@ -32,11 +32,21 @@ import {
   Bot,
   Settings,
   Power,
+  AlertTriangle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Aura, Personality } from "@/types"
 import { useAutoSave } from "@/lib/hooks/use-auto-save"
+import { useSubscription } from "@/lib/hooks/use-subscription"
 import { SaveStatusIndicator } from "@/components/ui/save-status-indicator"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 type Step = "details" | "senses" | "rules"
 
@@ -95,11 +105,22 @@ export function AuraEditForm({
   const router = useRouter()
   const searchParams = useSearchParams()
   const initialTab = searchParams.get("tab") as Step | null
+  const { subscription } = useSubscription()
+  const [isPremiumTier, setIsPremiumTier] = useState(false)
+  const [showUpgradeDialog, setShowUpgradeDialog] = useState(false)
+
+  useEffect(() => {
+    if (subscription) {
+      const premiumTiers = ['personal', 'family', 'business']
+      setIsPremiumTier(premiumTiers.includes(subscription.id))
+    }
+  }, [subscription])
 
   const [step, setStep] = useState<Step>(initialTab || "details")
   const [isEditingName, setIsEditingName] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [limitDialogOpen, setLimitDialogOpen] = useState(false)
   const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>(initialLocationConfigs)
   const [oauthConnections, setOAuthConnections] = useState<Record<string, any[]>>(initialOAuthConnections)
   const [newsConfigurations, setNewsConfigurations] = useState<Record<string, any[]>>(initialNewsConfigurations)
@@ -279,6 +300,12 @@ export function AuraEditForm({
   }
 
   const toggleSense = (senseId: SenseId) => {
+    const isPremium = AVAILABLE_SENSES.find(s => s.id === senseId)?.tier === 'Premium'
+    if (isPremium && !isPremiumTier) {
+      setShowUpgradeDialog(true)
+      return
+    }
+
     const isCurrentlySelected = auraData.senses.includes(senseId)
     const newSenses = isCurrentlySelected
       ? auraData.senses.filter(id => id !== senseId)
@@ -751,7 +778,7 @@ export function AuraEditForm({
         <div className="space-y-4">
           {/* Mode Toggle */}
           <div className="flex justify-center px-4">
-            <Card className="p-2 w-full max-w-md">
+            <Card className="p-2 max-w-md">
               <div className="flex flex-col sm:flex-row items-center gap-2">
                 <Button
                   variant="outline"
@@ -940,9 +967,52 @@ export function AuraEditForm({
                         <Switch
                           id="aura-enabled-edit"
                           checked={auraData.enabled ?? true}
-                          onCheckedChange={(enabled) => {
-                            setAuraData(p => ({ ...p, enabled }))
-                            debouncedGeneralSave() // Auto-save enabled status changes
+                          onCheckedChange={async (enabled) => {
+                            console.log('Toggle aura:', auraData.id, 'to', enabled);
+                            
+                            try {
+                              // Use the same limit management API as the main auras list
+                              const response = await fetch('/api/auras/limit-management', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                  action: enabled ? 'enable' : 'disable',
+                                  auraId: auraData.id
+                                }),
+                              });
+
+                              console.log('API response status:', response.status);
+
+                              if (response.ok) {
+                                const responseData = await response.json();
+                                console.log('API response data:', responseData);
+                                
+                                // Update local state with confirmed data from server
+                                if (responseData.aura) {
+                                  console.log('Updating aura state:', responseData.aura);
+                                  setAuraData(p => ({ ...p, enabled: responseData.aura.enabled }));
+                                } else {
+                                  // Fallback: update with the intended state if no aura data returned
+                                  console.log('No aura data in response, using fallback update');
+                                  setAuraData(p => ({ ...p, enabled }));
+                                }
+                              } else {
+                                const errorData = await response.json();
+                                console.error('API error response:', errorData);
+                                
+                                // Check if it's a subscription limit error
+                                if (response.status === 403) {
+                                  setLimitDialogOpen(true);
+                                  return; // Don't proceed with the update
+                                }
+                                
+                                console.error('Failed to update aura status:', errorData.error);
+                                setError(errorData.error || 'Failed to update aura status');
+                              }
+                            } catch (error) {
+                              console.error('Error updating aura status:', error);
+                              setError(error instanceof Error ? error.message : 'Failed to update aura status');
+                            }
                           }}
                           className="data-[state=checked]:bg-green-500"
                         />
@@ -992,6 +1062,7 @@ export function AuraEditForm({
                 newsConfigurations={newsConfigurations}
                 onWeatherAirQualityConfiguration={handleWeatherAirQualityConfiguration}
                 weatherAirQualityConfigurations={weatherAirQualityConfigurations}
+                hasPersonalConnectedSenses={subscription?.features.hasPersonalConnectedSenses ?? false}
               />
             </div>
           )}
@@ -1010,6 +1081,7 @@ export function AuraEditForm({
               </div>
 
               <RuleBuilder
+                key={JSON.stringify(auraData.senses)}
                 auraId={auraData.id}
                 vesselType={auraData.vesselType}
                 availableSenses={auraData.senses}
@@ -1098,6 +1170,104 @@ export function AuraEditForm({
           </div>
         </div>
       </div>
+
+      {/* Subscription Limit Dialog */}
+      <Dialog open={limitDialogOpen} onOpenChange={setLimitDialogOpen}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center">
+                <AlertTriangle className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-left">Active Aura Limit Reached</DialogTitle>
+              </div>
+            </div>
+          </DialogHeader>
+          <DialogDescription className="text-left mt-2">
+            You've reached your limit of active auras. To activate this aura, you'll need to:
+          </DialogDescription>
+          
+          <div className="mt-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-semibold text-purple-700">1</span>
+              </div>
+              <div>
+                <p className="font-medium text-sm">Deactivate or delete another aura</p>
+                <p className="text-sm text-gray-600">Free up a slot by deactivating or deleting one of your currently active auras</p>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <div className="w-px h-8 bg-gray-200 ml-3"></div>
+              <span className="text-xs text-gray-500">OR</span>
+              <div className="flex-1 h-px bg-gray-200"></div>
+            </div>
+            
+            <div className="flex items-start gap-3">
+              <div className="w-6 h-6 rounded-full bg-purple-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                <span className="text-xs font-semibold text-purple-700">2</span>
+              </div>
+              <div>
+                <p className="font-medium text-sm">Upgrade your plan</p>
+                <p className="text-sm text-gray-600">Get more active aura slots with a higher tier plan</p>
+              </div>
+            </div>
+          </div>
+          
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setLimitDialogOpen(false)}
+            >
+              Got it
+            </Button>
+            <Button
+              onClick={() => router.push('/subscription')}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Upgrade Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Upgrade Dialog for Premium Senses */}
+      <Dialog open={showUpgradeDialog} onOpenChange={setShowUpgradeDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-purple-100 rounded-full flex items-center justify-center">
+                <Sparkles className="w-5 h-5 text-purple-600" />
+              </div>
+              <div className="flex-1">
+                <DialogTitle className="text-left">Unlock Premium Senses</DialogTitle>
+              </div>
+            </div>
+          </DialogHeader>
+          <DialogDescription className="text-left mt-2">
+            This sense is only available on Starter plans and above. Upgrade your plan to enable this and other premium features.
+          </DialogDescription>
+          
+          <DialogFooter className="flex-col-reverse sm:flex-row sm:justify-end sm:space-x-2 gap-2 mt-6">
+            <Button
+              variant="outline"
+              onClick={() => setShowUpgradeDialog(false)}
+            >
+              Got it
+            </Button>
+            <Button
+              onClick={() => router.push('/subscription')}
+              className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+            >
+              <Sparkles className="w-4 h-4 mr-2" />
+              Upgrade Plan
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -25,36 +25,36 @@ export default function CreateSelectPage() {
   const router = useRouter()
 
   return (
-    <div className="container mx-auto px-2 py-4">
-      <div className="max-w-4xl mx-auto">
-        {/* Back Button */}
-        <Button
-          variant="ghost"
-          onClick={() => router.push('/auras')}
-          className="hover:bg-gray-100 mb-8"
-        >
-          <ArrowLeft className="w-4 h-4 mr-2" />
-          Back to Auras
-        </Button>
+    <SubscriptionGuard feature="maxAuras">
+      <div className="container mx-auto px-2 py-4">
+        <div className="max-w-4xl mx-auto">
+          {/* Back Button */}
+          <Button
+            variant="ghost"
+            onClick={() => router.push('/auras')}
+            className="hover:bg-gray-100 mb-8"
+          >
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Auras
+          </Button>
 
-        {/* Header */}
-        <div className="text-center mb-12 px-4">
-          <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
-            <Brain className="w-4 h-4" />
-            Aura Creation
+          {/* Header */}
+          <div className="text-center mb-12 px-4">
+            <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+              <Brain className="w-4 h-4" />
+              Aura Creation
+            </div>
+            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+              Create Your New Aura
+            </h1>
+            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+              Choose your path to bring an AI companion to life
+            </p>
           </div>
-          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Create Your New Aura
-          </h1>
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-            Choose your path to bring an AI companion to life
-          </p>
-        </div>
 
-        {/* Creation Options */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-          {/* AI-Guided Option */}
-          <SubscriptionGuard feature="maxAuras">
+          {/* Creation Options */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
+            {/* AI-Guided Option */}
             <Link href="/auras/create-with-agent" className="block">
               <Card className="h-full border-2 border-purple-200 bg-gradient-to-br from-purple-50 via-white to-blue-50 hover:border-purple-400 hover:shadow-xl transition-all duration-300 cursor-pointer group">
                 <CardContent className="p-8 h-full flex flex-col">
@@ -66,7 +66,7 @@ export default function CreateSelectPage() {
                       AI-Guided Creation
                     </h3>
                     <p className="text-gray-600 mb-6 leading-relaxed">
-                      Let our AI assistant help you design the perfect companion through conversation. 
+                      Let our AI assistant help you design the perfect companion through conversation.
                       Perfect for beginners or anyone who wants a guided experience.
                     </p>
                     <div className="inline-flex items-center gap-2 text-sm text-purple-600 font-medium mb-6">
@@ -83,10 +83,8 @@ export default function CreateSelectPage() {
                 </CardContent>
               </Card>
             </Link>
-          </SubscriptionGuard>
 
-          {/* Manual Option */}
-          <SubscriptionGuard feature="maxAuras">
+            {/* Manual Option */}
             <Link href="/auras/create" className="block">
               <Card className="h-full border-2 border-green-200 bg-gradient-to-br from-green-50 via-white to-emerald-50 hover:border-green-400 hover:shadow-xl transition-all duration-300 cursor-pointer group">
                 <CardContent className="p-8 h-full flex flex-col">
@@ -98,7 +96,7 @@ export default function CreateSelectPage() {
                       Custom Creation
                     </h3>
                     <p className="text-gray-600 mb-6 leading-relaxed">
-                      Take full control and design every aspect of your Aura's personality, 
+                      Take full control and design every aspect of your Aura's personality,
                       senses, and behaviors with our advanced configuration tools.
                     </p>
                     <div className="inline-flex items-center gap-2 text-sm text-green-600 font-medium mb-6">
@@ -115,23 +113,23 @@ export default function CreateSelectPage() {
                 </CardContent>
               </Card>
             </Link>
-          </SubscriptionGuard>
-        </div>
+          </div>
 
-        {/* Additional Info */}
-        <div className="mt-12 text-center">
-          <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 max-w-2xl mx-auto">
-            <h4 className="font-semibold text-blue-900 mb-2">
-              💡 Not sure which to choose?
-            </h4>
-            <p className="text-blue-700 text-sm leading-relaxed">
-              Start with <strong>AI-Guided Creation</strong> for a smooth, conversational experience.
-              You can always fine-tune your Aura later using the manual editor, and both modes 
-              allow switching between AI and manual configuration at any time!
-            </p>
+          {/* Additional Info */}
+          <div className="mt-12 text-center">
+            <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 max-w-2xl mx-auto">
+              <h4 className="font-semibold text-blue-900 mb-2">
+                💡 Not sure which to choose?
+              </h4>
+              <p className="text-blue-700 text-sm leading-relaxed">
+                Start with <strong>AI-Guided Creation</strong> for a smooth, conversational experience.
+                You can always fine-tune your Aura later using the manual editor, and both modes
+                allow switching between AI and manual configuration at any time!
+              </p>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </SubscriptionGuard>
   )
 }

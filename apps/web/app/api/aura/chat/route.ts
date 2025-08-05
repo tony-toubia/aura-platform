@@ -36,6 +36,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Aura not found' }, { status: 404 })
   }
 
+  // Check if aura is enabled
+  if (!auraData.enabled) {
+    return NextResponse.json({
+      error: 'This aura is currently inactive and cannot be used for chat. Please activate it first.'
+    }, { status: 403 })
+  }
+
   // Transform to Aura type
   const aura = {
     id: auraData.id,
