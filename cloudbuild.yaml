@@ -32,12 +32,14 @@ steps:
       - 'push'
       - 'gcr.io/$PROJECT_ID/aura-dashboard:$COMMIT_SHA'
     waitFor: ['build-dashboard']
+    id: 'push-dashboard-sha'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'gcr.io/$PROJECT_ID/aura-dashboard:latest'
     waitFor: ['build-dashboard']
+    id: 'push-dashboard-latest'
 
   # Push marketing image
   - name: 'gcr.io/cloud-builders/docker'
@@ -45,12 +47,14 @@ steps:
       - 'push'
       - 'gcr.io/$PROJECT_ID/aura-marketing:$COMMIT_SHA'
     waitFor: ['build-marketing']
+    id: 'push-marketing-sha'
 
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
       - 'gcr.io/$PROJECT_ID/aura-marketing:latest'
     waitFor: ['build-marketing']
+    id: 'push-marketing-latest'
 
   # Deploy dashboard to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -78,7 +82,7 @@ steps:
       - '10'
       - '--set-env-vars'
       - 'NODE_ENV=production'
-    waitFor: ['build-dashboard']
+    waitFor: ['push-dashboard-sha']
 
   # Deploy marketing to Cloud Run
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -106,7 +110,7 @@ steps:
       - '5'
       - '--set-env-vars'
       - 'NODE_ENV=production'
-    waitFor: ['build-marketing']
+    waitFor: ['push-marketing-sha']
 
 # Store images in Google Container Registry
 images:
