@@ -26,10 +26,16 @@ RUN npm install -g pnpm
 
 COPY --from=deps /app/node_modules ./node_modules
 COPY --from=deps /app/packages ./packages
+
+# Copy package files first
+COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+COPY apps/marketing/package.json ./apps/marketing/
+
+# Copy source code
 COPY . .
 
 # Build the marketing application
-RUN cd apps/marketing && pnpm build
+RUN pnpm --filter marketing build
 
 # Production image
 FROM base AS runner
