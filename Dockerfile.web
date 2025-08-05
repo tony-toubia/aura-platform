@@ -27,7 +27,7 @@ COPY --from=deps /app/packages ./packages
 COPY . .
 
 # Build the web application
-RUN pnpm --filter web build
+RUN cd apps/web && pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner

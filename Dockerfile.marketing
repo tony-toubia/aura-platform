@@ -29,7 +29,7 @@ COPY --from=deps /app/packages ./packages
 COPY . .
 
 # Build the marketing application
-RUN pnpm --filter marketing build 2>/dev/null || echo "Marketing app not found, using web app"
+RUN cd apps/marketing && pnpm build
 
 # Production image
 FROM base AS runner
