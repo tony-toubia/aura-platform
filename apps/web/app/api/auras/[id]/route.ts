@@ -16,7 +16,7 @@ export async function PUT(req: NextRequest, context: RouteParams) {
   const timestamp = new Date().toISOString()
   const { id: auraId } = await context.params
   const body = await req.json()
-  const { name, vesselType, personality, senses, selectedStudyId, selectedIndividualId, enabled, locationConfigs, newsConfigurations, weatherAirQualityConfigurations } = body
+  const { name, personality, senses, selectedStudyId, selectedIndividualId, enabled, locationConfigs, newsConfigurations, weatherAirQualityConfigurations } = body
   
   console.log(`[${timestamp}] PUT /api/auras/${auraId} called with:`, {
     name,
@@ -52,7 +52,15 @@ export async function PUT(req: NextRequest, context: RouteParams) {
 
   try {
     // Update the aura basic info
-    const updateData: any = {
+    const updateData: {
+      name: string
+      personality: object
+      selected_study_id?: string
+      selected_individual_id?: string
+      updated_at: string
+      enabled?: boolean
+      location_configs?: Record<string, unknown>
+    } = {
       name,
       personality,
       selected_study_id: selectedStudyId,
@@ -113,7 +121,7 @@ export async function PUT(req: NextRequest, context: RouteParams) {
     // Update senses if provided
     if (senses && senses.length >= 0) {
       // Check for premium senses and user subscription
-      const premiumSenses = AVAILABLE_SENSES.filter(s => s.tier === 'Premium').map(s => s.id)
+      const premiumSenses = AVAILABLE_SENSES.filter(s => s.tier === 'Premium').map(s => s.id) as SenseId[]
       const attemptingToAddPremiumSense = senses.some((senseId: SenseId) => premiumSenses.includes(senseId))
 
       if (attemptingToAddPremiumSense) {
@@ -164,7 +172,7 @@ export async function PUT(req: NextRequest, context: RouteParams) {
       if (senseData.length > 0) {
         const auraSenses = senseData.map((sense) => {
           // Build config object for this sense (excluding OAuth connections)
-          const config: any = {}
+          const config: Record<string, unknown> = {}
           
           // Add location config if available
           if (locationConfigs && locationConfigs[sense.code]) {
@@ -223,7 +231,7 @@ export async function PUT(req: NextRequest, context: RouteParams) {
     }
 
     return NextResponse.json({ success: true }, { status: 200 })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Unexpected error updating aura:", error)
     return NextResponse.json(
       { error: "An unexpected error occurred" },
@@ -272,8 +280,37 @@ export async function GET(req: NextRequest, context: RouteParams) {
     }
 
     // Transform OAuth connections to match expected format
-    const transformOAuthConnections = (oauthConns: any[]): Record<string, any[]> => {
-      const connections: Record<string, any[]> = {}
+    const transformOAuthConnections = (oauthConns: Array<{
+      id: string
+      provider: string
+      sense_type: string
+      created_at: string
+      provider_user_id?: string
+      expires_at?: string
+      scope?: string
+      device_info?: unknown
+    }>): Record<string, Array<{
+      id: string
+      name: string
+      type: string
+      connectedAt: Date
+      providerId: string
+      accountEmail: string
+      expiresAt: Date | null
+      scope?: string
+      deviceInfo?: unknown
+    }>> => {
+      const connections: Record<string, Array<{
+        id: string
+        name: string
+        type: string
+        connectedAt: Date
+        providerId: string
+        accountEmail: string
+        expiresAt: Date | null
+        scope?: string
+        deviceInfo?: unknown
+      }>> = {}
       
       // Helper function to get user-friendly provider names
       const getProviderDisplayName = (provider: string): string => {
@@ -325,7 +362,7 @@ export async function GET(req: NextRequest, context: RouteParams) {
       name: aura.name,
       vesselType: aura.vessel_type,
       personality: aura.personality,
-      senses: aura.aura_senses?.map((as: any) => as.sense.code) || [],
+      senses: aura.aura_senses?.map((as: { sense: { code: string } }) => as.sense.code) || [],
       avatar: aura.avatar,
       rules: [], // Load separately if needed
       enabled: aura.enabled,
@@ -337,7 +374,7 @@ export async function GET(req: NextRequest, context: RouteParams) {
     }
 
     return NextResponse.json(transformedAura)
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Unexpected error fetching aura:", error)
     return NextResponse.json(
       { error: "An unexpected error occurred" },
@@ -370,7 +407,7 @@ export async function DELETE(req: NextRequest, context: RouteParams) {
     }
 
     return NextResponse.json({ success: true })
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error("Unexpected error deleting aura:", error)
     return NextResponse.json(
       { error: "An unexpected error occurred" },

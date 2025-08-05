@@ -10,10 +10,11 @@ import { ContextualHelpProvider } from '@/components/help/contextual-help-provid
 import { AuraLimitService } from '@/lib/services/aura-limit-service'
 
 interface AurasPageProps {
-  searchParams: { [key: string]: string | string[] | undefined }
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }
 
 export default async function AurasPage({ searchParams }: AurasPageProps) {
+  const resolvedSearchParams = await searchParams
   const supabase = await createServerSupabase()
   const {
     data: { user },
@@ -26,8 +27,8 @@ export default async function AurasPage({ searchParams }: AurasPageProps) {
   const auras = await AuraService.getUserAuras()
   
   // Check if user was redirected due to limit exceeded
-  const limitExceeded = searchParams.limitExceeded === 'true'
-  const disabledAuraId = typeof searchParams.disabledAura === 'string' ? searchParams.disabledAura : null
+  const limitExceeded = resolvedSearchParams.limitExceeded === 'true'
+  const disabledAuraId = typeof resolvedSearchParams.disabledAura === 'string' ? resolvedSearchParams.disabledAura : null
   
   // Get limit status for notifications
   let limitStatus = null
