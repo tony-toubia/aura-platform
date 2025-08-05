@@ -4,10 +4,17 @@ import { NextRequest, NextResponse } from "next/server"
 import { createServerSupabase } from "@/lib/supabase/server.server"
 import Stripe from "stripe"
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {})
+function getStripeClient(): Stripe {
+  const secretKey = process.env.STRIPE_SECRET_KEY
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured')
+  }
+  return new Stripe(secretKey, {})
+}
 
 export async function POST(request: NextRequest) {
   try {
+    const stripe = getStripeClient()
     const supabase = await createServerSupabase()
     const {
       data: { user },

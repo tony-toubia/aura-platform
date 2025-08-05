@@ -3,7 +3,13 @@ import { headers } from 'next/headers'
 import { SubscriptionService } from '@/lib/services/subscription-service'
 import Stripe from 'stripe'
 
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+function getStripeClient(): Stripe {
+  const secretKey = process.env.STRIPE_SECRET_KEY
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured')
+  }
+  return new Stripe(secretKey)
+}
 
 export async function POST(request: NextRequest) {
   console.log('🔔 Webhook received at:', new Date().toISOString())
@@ -22,6 +28,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔐 Verifying webhook signature...')
+    const stripe = getStripeClient()
     const event = stripe.webhooks.constructEvent(
       body,
       signature,

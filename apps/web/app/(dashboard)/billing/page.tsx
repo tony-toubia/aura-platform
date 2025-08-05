@@ -58,9 +58,9 @@ export default async function BillingPage() {
 
   // Get real payment history from Stripe
   let paymentHistory: any[] = []
-  if (subscription.id !== 'free' && user.email) {
+  if (subscription.id !== 'free' && user.email && process.env.STRIPE_SECRET_KEY) {
     try {
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY)
       
       // Find the user's Stripe customer
       const customers = await stripe.customers.list({

@@ -280,7 +280,11 @@ export class SubscriptionService {
   ) {
     // lazy‐load stripe, only on server
     const Stripe = (await import('stripe')).default as typeof StripeModule
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+    const secretKey = process.env.STRIPE_SECRET_KEY
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not configured')
+    }
+    const stripe = new Stripe(secretKey)
 
     const tier = SUBSCRIPTION_TIERS[tierId]
     if (!tier.priceId) {
@@ -359,7 +363,11 @@ export class SubscriptionService {
     userEmail?: string
   ) {
     const Stripe = (await import('stripe')).default as typeof StripeModule
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+    const secretKey = process.env.STRIPE_SECRET_KEY
+    if (!secretKey) {
+      throw new Error('STRIPE_SECRET_KEY is not configured')
+    }
+    const stripe = new Stripe(secretKey)
 
     const tier = SUBSCRIPTION_TIERS[tierId]
     if (!tier.priceId) {
@@ -446,7 +454,11 @@ export class SubscriptionService {
       console.log('✅ Supabase client created successfully')
       
       const Stripe = (await import('stripe')).default as typeof StripeModule
-      const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+      const secretKey = process.env.STRIPE_SECRET_KEY
+      if (!secretKey) {
+        throw new Error('STRIPE_SECRET_KEY is not configured')
+      }
+      const stripe = new Stripe(secretKey)
 
       console.log('🔄 Processing webhook event:', event.type, event.id)
 

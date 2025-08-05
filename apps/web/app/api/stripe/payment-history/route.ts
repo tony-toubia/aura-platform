@@ -2,6 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import Stripe from 'stripe'
 
+function getStripeClient(): Stripe {
+  const secretKey = process.env.STRIPE_SECRET_KEY
+  if (!secretKey) {
+    throw new Error('STRIPE_SECRET_KEY is not configured')
+  }
+  return new Stripe(secretKey)
+}
+
 export async function GET(request: NextRequest) {
   try {
     const supabase = await createServerSupabase()
@@ -11,7 +19,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+    const stripe = getStripeClient()
 
     // Find the user's Stripe customer
     const customers = await stripe.customers.list({
