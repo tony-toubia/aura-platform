@@ -252,7 +252,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                       <div className="flex-1">
                         <h3 className="font-semibold text-amber-900">Upgrade Required</h3>
                         <p className="text-sm text-amber-700 mt-1">
-                          You've reached the maximum number of active Auras for your current plan.
+                          You&apos;ve reached the maximum number of active Auras for your current plan.
                         </p>
                         <Button 
                           onClick={() => router.push('/billing')}
