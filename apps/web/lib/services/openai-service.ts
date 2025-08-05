@@ -4,13 +4,25 @@ import { createClient } from '@/lib/supabase/client'
 import type { Aura, Message } from '@/types'
 import type { SenseData } from './sense-data-service'
 
-// ensure the key is present at startup (server-only)
-const OPENAI_API_KEY = process.env.OPENAI_API_KEY
-if (!OPENAI_API_KEY) {
-  throw new Error('Missing OPENAI_API_KEY in environment')
+// Create OpenAI client lazily to avoid build-time environment variable checks
+let openaiClient: OpenAI | null = null
+
+function getOpenAIClient(): OpenAI {
+  if (!openaiClient) {
+    const OPENAI_API_KEY = process.env.OPENAI_API_KEY
+    if (!OPENAI_API_KEY) {
+      throw new Error('Missing OPENAI_API_KEY in environment')
+    }
+    openaiClient = new OpenAI({ apiKey: OPENAI_API_KEY })
+  }
+  return openaiClient
 }
 
-export const openai = new OpenAI({ apiKey: OPENAI_API_KEY })
+export const openai = {
+  get chat() {
+    return getOpenAIClient().chat
+  }
+}
 
 // Licensed character profiles (reuse from personality-preview-service)
 const LICENSED_CHARACTERS: Record<string, {
