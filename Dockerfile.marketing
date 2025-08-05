@@ -52,7 +52,8 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy built application
-COPY --from=builder /app/apps/marketing/public ./public
+# Create public directory and copy if it exists
+RUN mkdir -p ./public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/marketing/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/marketing/.next/static ./.next/static
 
