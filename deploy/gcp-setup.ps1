@@ -4,7 +4,7 @@
 param(
     [string]$ProjectId = "aura-platform-prod",
     [string]$Region = "us-central1",
-    [string]$GitHubUsername = "YOUR_GITHUB_USERNAME"
+    [string]$GitHubUsername = "tony-toubia"
 )
 
 $ErrorActionPreference = "Stop"

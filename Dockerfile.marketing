@@ -13,9 +13,8 @@ RUN npm install -g pnpm
 COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
 COPY packages ./packages
 
-# Create a simple marketing app structure if it doesn't exist
-RUN mkdir -p apps/marketing
-COPY apps/marketing/package.json ./apps/marketing/ 2>/dev/null || echo '{"name":"marketing","version":"0.1.0","private":true,"scripts":{"dev":"next dev --port 3001","build":"next build","start":"next start"},"dependencies":{"next":"^15.3.0","react":"^19.1.0","react-dom":"^19.1.0"},"devDependencies":{"@types/node":"^22.15.3","@types/react":"19.1.0","@types/react-dom":"19.1.1","typescript":"5.8.2"}}' > ./apps/marketing/package.json
+# Copy marketing app files
+COPY apps/marketing/package.json ./apps/marketing/
 
 # Install dependencies
 RUN pnpm install --frozen-lockfile
