@@ -10,13 +10,34 @@ import { Input } from "@/components/ui/input"
 import { Switch } from "@/components/ui/switch"
 import { Label } from "@/components/ui/label"
 import { PersonalityMatrix } from "./personality-matrix"
-import { SenseSelector } from "./sense-selector"
+import { SenseSelector, type OAuthConnectionData } from "./sense-selector"
 import { RuleBuilder } from "./rule-builder"
 import type { LocationConfig } from "./sense-location-modal"
+import type { NewsLocation } from "./news-configuration-modal"
+import type { WeatherAirQualityLocation } from "./weather-air-quality-configuration-modal"
+import type { PersonalSenseType } from "./enhanced-oauth-connection-modal"
+
+// Define a more flexible connection type that works with all senses
+interface FlexibleConnectedProvider {
+  id: string
+  name: string
+  type: PersonalSenseType
+  connectedAt: Date
+  providerId?: string
+  accountEmail?: string
+  deviceInfo?: {
+    browser: string
+    os: string
+    platform: string
+    language: string
+    screenInfo: string
+    userAgent: string
+  }
+  isLibraryConnection?: boolean
+}
 import {
   VESSEL_SENSE_CONFIG,
   AVAILABLE_SENSES,
-  COMING_SOON_VESSELS,
   type VesselTypeId,
   type SenseId,
 } from "@/lib/constants"
@@ -27,8 +48,6 @@ import {
   Heart,
   ArrowRight,
   CheckCircle,
-  Rocket,
-  Gift,
   Star,
   ArrowLeft,
   Edit,
@@ -38,7 +57,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Personality } from "@/types"
-import { useAsync, useFormSubmit } from "@/hooks/use-async"
+import { useFormSubmit } from "@/hooks/use-async"
 import { auraApi } from "@/lib/api/client"
 import { getCurrentUserId } from "@/lib/oauth/token-storage"
 
@@ -60,13 +79,13 @@ export function AuraCreatorDigital() {
   const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>({})
   
   // OAuth connections for connected senses
-  const [oauthConnections, setOauthConnections] = useState<Record<string, any[]>>({})
+  const [oauthConnections, setOauthConnections] = useState<Record<string, FlexibleConnectedProvider[]>>({})
   
   // News configurations for news sense
-  const [newsConfigurations, setNewsConfigurations] = useState<Record<string, any[]>>({})
+  const [newsConfigurations, setNewsConfigurations] = useState<Record<string, NewsLocation[]>>({})
   
   // Weather/Air Quality configurations
-  const [weatherAirQualityConfigurations, setWeatherAirQualityConfigurations] = useState<Record<string, any[]>>({})
+  const [weatherAirQualityConfigurations, setWeatherAirQualityConfigurations] = useState<Record<string, WeatherAirQualityLocation[]>>({})
 
   const [auraData, setAuraData] = useState<AuraFormData>({
     id: '',
@@ -303,7 +322,7 @@ export function AuraCreatorDigital() {
     }
   }
 
-  const handleOAuthConnection = async (senseId: SenseId, providerId: string, connectionData: any) => {
+  const handleOAuthConnection = async (senseId: SenseId, providerId: string, connectionData: OAuthConnectionData) => {
     console.log('🔗 handleOAuthConnection called:', {
       senseId,
       providerId,
@@ -349,13 +368,13 @@ export function AuraCreatorDigital() {
       setOauthConnections(prev => ({
         ...prev,
         [senseId]: [...(prev[senseId] || []), {
-          id: connectionData.id,
+          id: connectionData.id as string,
           name: getProviderDisplayName(providerId),
-          type: senseId,
-          connectedAt: connectionData.connectedAt,
+          type: senseId as PersonalSenseType,
+          connectedAt: connectionData.connectedAt as Date,
           providerId: providerId,
           accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
-          deviceInfo: connectionData.deviceInfo || null,
+          deviceInfo: connectionData.deviceInfo || undefined,
           isLibraryConnection: true,
         }]
       }))
@@ -408,7 +427,7 @@ export function AuraCreatorDigital() {
           [senseId]: [...(prev[senseId] || []), {
             id: savedConnection.id,
             name: getProviderDisplayName(providerId),
-            type: senseId,
+            type: senseId as PersonalSenseType,
             connectedAt: new Date(savedConnection.created_at),
             providerId: providerId,
             accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
@@ -417,22 +436,33 @@ export function AuraCreatorDigital() {
           }]
         }))
       } else {
-        const errorData = await response.json()
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch {
+          errorData = { error: response.statusText || 'Unknown error' }
+        }
+        
         console.error('❌ Failed to save OAuth connection - API error:', {
           status: response.status,
           statusText: response.statusText,
           error: errorData
         })
+        
+        // Show user-friendly error message
+        const errorMessage = errorData.error || errorData.message || 'Failed to save connection'
+        alert(`Failed to save connection: ${errorMessage}`)
       }
     } catch (error) {
       console.error('❌ Failed to save OAuth connection - Network/Parse error:', error)
+      alert(`Failed to save connection: ${error instanceof Error ? error.message : 'Network error'}`)
       // Still update local state for UI feedback with consistent naming
       setOauthConnections(prev => ({
         ...prev,
         [senseId]: [...(prev[senseId] || []), {
           id: `${providerId}-${Date.now()}`,
           name: getProviderDisplayName(providerId),
-          type: senseId,
+          type: senseId as PersonalSenseType,
           connectedAt: new Date(),
           providerId: providerId,
           accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
@@ -482,7 +512,7 @@ export function AuraCreatorDigital() {
     }))
   }
 
-  const handleNewsConfiguration = async (senseId: SenseId, locations: any[]) => {
+  const handleNewsConfiguration = async (senseId: SenseId, locations: NewsLocation[]) => {
     setNewsConfigurations(prev => ({
       ...prev,
       [senseId]: locations
@@ -506,7 +536,7 @@ export function AuraCreatorDigital() {
     }
   }
 
-  const handleWeatherAirQualityConfiguration = async (senseId: SenseId, locations: any[]) => {
+  const handleWeatherAirQualityConfiguration = async (senseId: SenseId, locations: WeatherAirQualityLocation[]) => {
     setWeatherAirQualityConfigurations(prev => ({
       ...prev,
       [senseId]: locations
@@ -856,7 +886,7 @@ export function AuraCreatorDigital() {
                 locationConfigs={locationConfigs}
                 onOAuthConnection={handleOAuthConnection}
                 onOAuthDisconnect={handleOAuthDisconnect}
-                oauthConnections={oauthConnections}
+                oauthConnections={oauthConnections as Record<string, import("./sense-selector").ConnectedProvider[]>}
                 onNewsConfiguration={handleNewsConfiguration}
                 newsConfigurations={newsConfigurations}
                 onWeatherAirQualityConfiguration={handleWeatherAirQualityConfiguration}

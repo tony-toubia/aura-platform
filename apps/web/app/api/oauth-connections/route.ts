@@ -55,9 +55,34 @@ export async function POST(req: NextRequest) {
   }
 
   // Check if the sense_type is a premium sense and if the user has access
-  const isPremiumSense = AVAILABLE_SENSES.find(s => s.id === sense_type)?.tier === 'Premium'
+  const senseData = AVAILABLE_SENSES.find(s => s.id === sense_type)
+  const isPremiumSense = senseData?.tier === 'Premium'
+  console.log(`[${timestamp}] [${requestId}] 🔍 Premium sense check:`, {
+    sense_type,
+    isPremiumSense,
+    senseData,
+    tier: senseData?.tier
+  })
+  
   if (isPremiumSense) {
-    const hasPersonalConnectedSenses = await SubscriptionService.checkFeatureAccess(user.id, 'hasPersonalConnectedSenses')
+    console.log(`[${timestamp}] [${requestId}] 🔍 Checking subscription access for premium sense...`)
+    
+    // Get user subscription details for debugging
+    const userSubscription = await SubscriptionService.getUserSubscription(user.id, supabase)
+    console.log(`[${timestamp}] [${requestId}] 📋 User subscription:`, {
+      userId: user.id,
+      subscriptionTier: userSubscription.id,
+      subscriptionName: userSubscription.name,
+      hasPersonalConnectedSenses: userSubscription.features.hasPersonalConnectedSenses,
+      availableSenses: userSubscription.features.availableSenses
+    })
+    
+    const hasPersonalConnectedSenses = await SubscriptionService.checkFeatureAccess(user.id, 'hasPersonalConnectedSenses', supabase)
+    console.log(`[${timestamp}] [${requestId}] 🔍 Feature access check result:`, {
+      hasPersonalConnectedSenses,
+      subscriptionFeatures: userSubscription.features
+    })
+    
     if (!hasPersonalConnectedSenses) {
       console.log(`[${timestamp}] [${requestId}] ❌ User ${user.id} attempted to connect premium sense ${sense_type} without access.`)
       return NextResponse.json(
@@ -65,6 +90,8 @@ export async function POST(req: NextRequest) {
         { status: 403 }
       )
     }
+    
+    console.log(`[${timestamp}] [${requestId}] ✅ User has access to premium sense ${sense_type}`)
   }
 
   try {
@@ -82,42 +109,47 @@ export async function POST(req: NextRequest) {
       if (existingLibraryConnection && aura_id) {
         console.log(`[${timestamp}] [${requestId}] 🔄 Found existing library connection, creating association with aura: ${aura_id}`)
         
-        // Check if association already exists
-        const { data: existingAssociation } = await supabase
-          .from("aura_oauth_connections")
-          .select("id")
-          .eq("connection_id", existingLibraryConnection.id)
-          .eq("aura_id", aura_id)
-          .single()
-
-        if (!existingAssociation) {
-          // Create association
-          const { data: association, error: associationError } = await supabase
+        // Try to use junction table first
+        try {
+          // Check if association already exists
+          const { data: existingAssociation } = await supabase
             .from("aura_oauth_connections")
-            .insert({
-              connection_id: existingLibraryConnection.id,
-              aura_id: aura_id
-            })
-            .select()
+            .select("id")
+            .eq("connection_id", existingLibraryConnection.id)
+            .eq("aura_id", aura_id)
             .single()
 
-          if (associationError) {
-            console.error(`[${timestamp}] [${requestId}] ❌ Failed to create association:`, associationError)
-            return NextResponse.json({ error: associationError.message }, { status: 500 })
-          }
+          if (!existingAssociation) {
+            // Create association
+            const { data: _association, error: associationError } = await supabase
+              .from("aura_oauth_connections")
+              .insert({
+                connection_id: existingLibraryConnection.id,
+                aura_id: aura_id
+              })
+              .select()
+              .single()
 
-          console.log(`[${timestamp}] [${requestId}] ✅ Successfully associated existing library connection with aura`)
-          return NextResponse.json({
-            id: existingLibraryConnection.id,
-            association_id: association.id,
-            is_library_connection: true
-          }, { status: 200 })
-        } else {
-          console.log(`[${timestamp}] [${requestId}] ⚠️ Association already exists`)
-          return NextResponse.json(
-            { error: "Connection already associated with this aura" },
-            { status: 409 }
-          )
+            if (associationError) {
+              console.error(`[${timestamp}] [${requestId}] ❌ Failed to create association:`, associationError)
+              // Don't return error - fall through to create new connection
+            } else {
+              console.log(`[${timestamp}] [${requestId}] ✅ Successfully associated existing library connection with aura`)
+              return NextResponse.json({
+                id: existingLibraryConnection.id,
+                association_id: _association.id,
+                is_library_connection: true
+              }, { status: 200 })
+            }
+          } else {
+            console.log(`[${timestamp}] [${requestId}] ⚠️ Association already exists`)
+            return NextResponse.json(
+              { error: "Connection already associated with this aura" },
+              { status: 409 }
+            )
+          }
+        } catch (tableError) {
+          console.log(`[${timestamp}] [${requestId}] Junction table not available, will create direct connection`)
         }
       }
     }
@@ -199,8 +231,27 @@ export async function POST(req: NextRequest) {
       .single()
 
     if (insertError) {
-      console.error(`[${timestamp}] [${requestId}] ❌ Failed to create OAuth connection:`, insertError)
-      return NextResponse.json({ error: insertError.message }, { status: 500 })
+      console.error(`[${timestamp}] [${requestId}] ❌ Failed to create OAuth connection:`, {
+        error: insertError,
+        code: insertError.code,
+        message: insertError.message,
+        details: insertError.details,
+        hint: insertError.hint
+      })
+      
+      // Provide more specific error messages
+      if (insertError.code === '23505') {
+        return NextResponse.json({
+          error: "This connection already exists. Please try disconnecting and reconnecting.",
+          code: insertError.code
+        }, { status: 409 })
+      }
+      
+      return NextResponse.json({
+        error: insertError.message || "Failed to save connection",
+        code: insertError.code,
+        details: insertError.details
+      }, { status: 500 })
     }
 
     // If we created a library connection and have an aura_id, create the association
@@ -227,10 +278,33 @@ export async function POST(req: NextRequest) {
       ...connection,
       is_library_connection: shouldStoreInLibrary
     }, { status: 201 })
-  } catch (error: any) {
-    console.error("Unexpected error creating OAuth connection:", error)
+  } catch (error) {
+    console.error(`[${timestamp}] [${requestId}] ❌ Unexpected error creating OAuth connection:`, error)
+    
+    // Provide more specific error messages based on the error type
+    let errorMessage = "An unexpected error occurred"
+    if (error && typeof error === 'object' && 'message' in error) {
+      errorMessage = (error as any).message
+    } else if (error && typeof error === 'object' && 'code' in error) {
+      // Handle specific database error codes
+      const errorCode = (error as any).code
+      switch (errorCode) {
+        case '23505': // unique_violation
+          errorMessage = "A connection with these details already exists"
+          break
+        case '23503': // foreign_key_violation
+          errorMessage = "Invalid aura or user reference"
+          break
+        case '23514': // check_violation
+          errorMessage = "Invalid connection data provided"
+          break
+        default:
+          errorMessage = `Database error: ${errorCode}`
+      }
+    }
+    
     return NextResponse.json(
-      { error: "An unexpected error occurred" },
+      { error: errorMessage },
       { status: 500 }
     )
   }
@@ -284,7 +358,7 @@ export async function GET(req: NextRequest) {
 
       return NextResponse.json(connections || [])
     }
-  } catch (error: any) {
+  } catch (error) {
     console.error("Unexpected error fetching OAuth connections:", error)
     return NextResponse.json(
       { error: "An unexpected error occurred" },

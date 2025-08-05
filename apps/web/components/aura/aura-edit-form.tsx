@@ -487,29 +487,34 @@ export function AuraEditForm({
           }]
         }))
       } else {
-        const errorData = await response.json()
+        let errorData
+        try {
+          errorData = await response.json()
+        } catch (parseError) {
+          console.error('❌ Failed to parse error response JSON:', parseError)
+          errorData = { error: `HTTP ${response.status}: ${response.statusText}` }
+        }
+        
         console.error('❌ Failed to save OAuth connection - API error:', {
           status: response.status,
           statusText: response.statusText,
           error: errorData
         })
+        
+        // Show error to user
+        const errorMessage = errorData?.error || `Failed to save OAuth connection: ${response.status} ${response.statusText}`
+        setError(`❌ Failed to save OAuth connection - ${errorMessage}`)
+        throw new Error(errorMessage)
       }
     } catch (error) {
       console.error('❌ Failed to save OAuth connection - Network/Parse error:', error)
-      // Still update local state for UI feedback with consistent naming
-      setOAuthConnections(prev => ({
-        ...prev,
-        [senseId]: [...(prev[senseId] || []), {
-          id: `${providerId}-${Date.now()}`,
-          name: getProviderDisplayName(providerId),
-          type: senseId,
-          connectedAt: new Date(),
-          providerId: providerId,
-          accountEmail: connectionData.accountEmail || `Connected ${getProviderDisplayName(providerId)} account`,
-          deviceInfo: connectionData.deviceInfo || null, // Include device info in fallback state
-          isLibraryConnection: connectionData.useLibrary || false,
-        }]
-      }))
+      
+      // Show error to user
+      const errorMessage = error instanceof Error ? error.message : 'Network error occurred'
+      setError(`❌ Failed to save OAuth connection - ${errorMessage}`)
+      
+      // Don't update local state when there's an error - let user retry
+      throw error
     }
   }
 

@@ -749,7 +749,7 @@ export function EnhancedOAuthConnectionModal({
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            library_connection_id: convertedConnection.id,
+            connection_id: convertedConnection.id, // Use connection_id as per API
             aura_id: auraId,
           }),
         })
@@ -1005,7 +1005,7 @@ export function EnhancedOAuthConnectionModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-4xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-6">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
@@ -1057,24 +1057,24 @@ export function EnhancedOAuthConnectionModal({
                 return (
                   <div
                     key={connection.id}
-                    className="border border-green-300 bg-green-50 rounded-xl p-4"
+                    className="border border-green-300 bg-green-50 rounded-xl p-4 w-full overflow-hidden"
                   >
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4">
+                    <div className="flex flex-col gap-4">
+                      <div className="flex items-start gap-4 min-w-0">
                         <div className={cn(
-                          "p-3 rounded-lg bg-gradient-to-r text-white",
+                          "p-3 rounded-lg bg-gradient-to-r text-white flex-shrink-0",
                           provider?.color || "from-gray-500 to-gray-600"
                         )}>
                           {provider?.icon ? <provider.icon className="w-5 h-5" /> : <Calendar className="w-5 h-5" />}
                         </div>
                         
-                        <div className="flex-1">
+                        <div className="flex-1 min-w-0 overflow-hidden">
                           <div className="flex items-center gap-2 mb-1">
-                            <h4 className="font-semibold text-gray-800">
+                            <h4 className="font-semibold text-gray-800 truncate">
                               {connection.providerName}
                             </h4>
                             {senseType === 'location' && (
-                              <span className="text-lg">
+                              <span className="text-lg flex-shrink-0">
                                 {connection.providerId?.includes('mobile') ? '📱' :
                                  connection.providerId?.includes('tablet') ? '📱' :
                                  connection.providerId?.includes('desktop') ? '💻' : '📍'}
@@ -1082,22 +1082,28 @@ export function EnhancedOAuthConnectionModal({
                             )}
                           </div>
                           {connection.accountEmail && (
-                            <p className="text-sm text-gray-600 mb-1">
+                            <p className="text-sm text-gray-600 mb-1 truncate max-w-full">
                               {connection.accountEmail}
                             </p>
                           )}
-                          <p className="text-xs text-green-600">
-                            Connected {connection.connectedAt instanceof Date ? connection.connectedAt.toLocaleDateString() : new Date(connection.connectedAt).toLocaleDateString()}
-                            {connection.lastSync && ` • Last sync: ${connection.lastSync instanceof Date ? connection.lastSync.toLocaleDateString() : new Date(connection.lastSync).toLocaleDateString()}`}
+                          <p className="text-xs text-green-600 break-words">
+                            <span className="block sm:inline">
+                              Connected {connection.connectedAt instanceof Date ? connection.connectedAt.toLocaleDateString() : new Date(connection.connectedAt).toLocaleDateString()}
+                            </span>
+                            {connection.lastSync && (
+                              <span className="block sm:inline sm:ml-2">
+                                Last sync: {connection.lastSync instanceof Date ? connection.lastSync.toLocaleDateString() : new Date(connection.lastSync).toLocaleDateString()}
+                              </span>
+                            )}
                           </p>
                         </div>
                       </div>
                       
-                      <div className="flex items-center gap-2">
+                      <div className="flex flex-col sm:flex-row gap-2 w-full">
                         <Button
                           variant="outline"
                           size="sm"
-                          className="text-gray-600 hover:text-gray-800"
+                          className="text-gray-600 hover:text-gray-800 flex-1 sm:flex-none"
                           onClick={() => alert(`Settings for ${connection.providerName} - Feature coming soon!`)}
                         >
                           <Settings className="w-4 h-4 mr-1" />
@@ -1108,7 +1114,7 @@ export function EnhancedOAuthConnectionModal({
                           disabled={isDisconnecting}
                           variant="outline"
                           size="sm"
-                          className="text-red-600 hover:text-red-800 border-red-300 hover:border-red-400"
+                          className="text-red-600 hover:text-red-800 border-red-300 hover:border-red-400 flex-1 sm:flex-none"
                         >
                           {isDisconnecting ? (
                             <Loader2 className="w-4 h-4 animate-spin mr-1" />
@@ -1189,8 +1195,8 @@ export function EnhancedOAuthConnectionModal({
                     </div>
                   )}
                   
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                    <div className="flex items-center gap-4 flex-1 min-w-0">
                       <div className={cn(
                         "p-3 rounded-lg bg-gradient-to-r text-white",
                         provider.color,
@@ -1257,14 +1263,14 @@ export function EnhancedOAuthConnectionModal({
                       if (hasLibraryConnections && !shouldPreventConnection && !provider.comingSoon) {
                         // Show simple buttons when library connections are available
                         return (
-                          <div className="flex gap-2">
+                          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
                             <Button
                               onClick={() => handleConnect(provider.id, true)}
                               disabled={isConnecting}
                               variant={hasExistingConnection ? "outline" : "default"}
                               size="sm"
                               className={cn(
-                                "whitespace-nowrap",
+                                "w-full sm:w-auto",
                                 hasError && "border-red-300 text-red-700 bg-red-50",
                                 hasExistingConnection && "border-blue-300 text-blue-700 bg-blue-50"
                               )}
@@ -1298,7 +1304,7 @@ export function EnhancedOAuthConnectionModal({
                                   disabled={Boolean(isExpired)}
                                   variant="outline"
                                   size="sm"
-                                  className="whitespace-nowrap"
+                                  className="w-full sm:w-auto"
                                 >
                                   <div className="flex items-center gap-1">
                                     {isDirectConnection ? (
@@ -1306,15 +1312,15 @@ export function EnhancedOAuthConnectionModal({
                                     ) : (
                                       <Library className="w-3 h-3" />
                                     )}
-                                    <span>
+                                    <span className="truncate">
                                       Use {connection.provider_user_id.substring(0, 10)}...
                                     </span>
                                     {isDirectConnection ? (
-                                      <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded ml-1">
+                                      <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded ml-1 hidden sm:inline">
                                         Reuse
                                       </span>
                                     ) : (
-                                      <span className="text-xs bg-purple-100 text-purple-700 px-1 py-0.5 rounded ml-1">
+                                      <span className="text-xs bg-purple-100 text-purple-700 px-1 py-0.5 rounded ml-1 hidden sm:inline">
                                         Library
                                       </span>
                                     )}
@@ -1332,7 +1338,7 @@ export function EnhancedOAuthConnectionModal({
                             disabled={isConnecting || shouldPreventConnection}
                             variant={hasExistingConnection || shouldPreventConnection ? "outline" : "default"}
                             className={cn(
-                              "min-w-[120px] whitespace-nowrap",
+                              "w-full sm:w-auto sm:min-w-[120px]",
                               hasError && "border-red-300 text-red-700 bg-red-50",
                               (hasExistingConnection || shouldPreventConnection) && "border-blue-300 text-blue-700 bg-blue-50",
                               shouldPreventConnection && "opacity-60 cursor-not-allowed",
@@ -1368,11 +1374,11 @@ export function EnhancedOAuthConnectionModal({
         </div>
 
         {/* Footer Actions */}
-        <div className="flex justify-between items-center pt-6 border-t mt-8 mb-4">
-          <p className="text-sm text-gray-500">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 pt-6 border-t mt-8 mb-4">
+          <p className="text-sm text-gray-500 text-center sm:text-left">
             You can manage all connected services in your account settings
           </p>
-          <Button variant="outline" onClick={onCancel} className="whitespace-nowrap">
+          <Button variant="outline" onClick={onCancel} className="w-full sm:w-auto">
             Done
           </Button>
         </div>

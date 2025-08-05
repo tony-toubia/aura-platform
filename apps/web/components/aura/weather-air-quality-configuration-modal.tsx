@@ -348,7 +348,7 @@ export function WeatherAirQualityConfigurationModal({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="w-[95vw] max-w-2xl max-h-[85vh] sm:max-h-[90vh] overflow-y-auto">
         <DialogHeader className="pb-6">
           <div className="flex items-center gap-3">
             <div className={cn("p-3 rounded-xl text-white bg-gradient-to-r", senseInfo.color)}>
@@ -591,20 +591,14 @@ export function WeatherAirQualityConfigurationModal({
 
         {/* Footer Actions */}
         <div className="pt-6 border-t mt-8 mb-4">
-          <p className="text-sm text-gray-500 mb-4 sm:mb-0 sm:hidden">
-            {locations.length === 0
-              ? `Add at least one location for ${senseType === 'weather' ? 'weather' : 'air quality'} monitoring`
-              : `${locations.length} location${locations.length !== 1 ? 's' : ''} configured`
-            }
-          </p>
           <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-            <p className="text-sm text-gray-500 hidden sm:block">
+            <p className="text-sm text-gray-500 text-center sm:text-left">
               {locations.length === 0
                 ? `Add at least one location for ${senseType === 'weather' ? 'weather' : 'air quality'} monitoring`
                 : `${locations.length} location${locations.length !== 1 ? 's' : ''} configured`
               }
             </p>
-            <div className="flex gap-3">
+            <div className="flex gap-3 w-full sm:w-auto">
               <Button variant="outline" onClick={() => onOpenChange(false)} className="flex-1 sm:flex-none">
                 Cancel
               </Button>

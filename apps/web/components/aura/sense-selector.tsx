@@ -53,6 +53,22 @@ export interface ConnectedProvider {
   }
 }
 
+export interface OAuthConnectionData {
+  tokens?: {
+    access_token: string;
+    refresh_token?: string;
+    expires_at?: number;
+    scope?: string;
+  };
+  providerName?: string;
+  accountEmail?: string;
+  deviceInfo?: any;
+  useLibrary?: boolean;
+  isLibraryConnection?: boolean;
+  id?: string;
+  connectedAt?: Date;
+}
+
 interface SenseSelectorProps {
   /** only render these senses */
   availableSenses: readonly AvailableSense[]
@@ -75,7 +91,7 @@ interface SenseSelectorProps {
   /** Current location configurations */
   locationConfigs?: Record<string, LocationConfig>
   /** Callback for when OAuth connection is completed */
-  onOAuthConnection?: (senseId: SenseId, providerId: string, connectionData: any) => void
+  onOAuthConnection?: (senseId: SenseId, providerId: string, connectionData: OAuthConnectionData) => void
   /** Callback for when OAuth connection is disconnected */
   onOAuthDisconnect?: (senseId: SenseId, connectionId: string) => void
   /** Current OAuth connections */
@@ -147,14 +163,6 @@ export function SenseSelector({
   weatherAirQualityConfigurations = {},
   hasPersonalConnectedSenses = false,
 }: SenseSelectorProps) {
-  // Debug the props being passed to SenseSelector
-  console.log('🔍 SenseSelector props:', {
-    selectedSenses,
-    oauthConnections,
-    auraId,
-    availableSenses: availableSenses.map(s => s.id),
-    hasPersonalConnectedSenses
-  })
   const [locationModalOpen, setLocationModalOpen] = useState(false)
   const [configuringSense, setConfiguringSense] = useState<'weather' | 'air_quality' | null>(null)
   const [oauthModalOpen, setOauthModalOpen] = useState(false)
@@ -278,9 +286,6 @@ export function SenseSelector({
   }
 
   const handleNewsConfiguration = (locations: NewsLocation[]) => {
-    console.log('News configuration completed with locations:', locations)
-    console.log('Current newsConfigurations prop:', newsConfigurations)
-    
     // Store locally to ensure persistence
     setLocalNewsConfigurations(prev => ({
       ...prev,
@@ -304,8 +309,6 @@ export function SenseSelector({
   }
 
   const handleWeatherAirQualityConfiguration = (locations: WeatherAirQualityLocation[]) => {
-    console.log('Weather/Air Quality configuration completed with locations:', locations)
-    
     if (configuringSense) {
       // Store locally to ensure persistence
       setLocalWeatherAirQualityConfigurations(prev => ({
@@ -344,7 +347,6 @@ export function SenseSelector({
           
           // The sense will be automatically considered "active" due to the improved isSelected logic
           // that checks for OAuth connections, so we don't need to call onToggle here
-          console.log(`✅ OAuth connection completed for ${connectingSense}, sense will be auto-activated`)
         }, 0)
       } else {
         // Fallback for when no auraId is present (e.g., debug mode)
@@ -370,7 +372,6 @@ export function SenseSelector({
           if (onOAuthConnection) {
             onOAuthConnection(connectingSense as SenseId, providerId, connectionData)
           }
-          console.log(`✅ OAuth connection completed for ${connectingSense} (fallback mode), sense auto-activated`)
         }, 0)
       }
       
@@ -392,7 +393,6 @@ export function SenseSelector({
           
           // The sense will be automatically considered "inactive" due to the improved isSelected logic
           // that checks for OAuth connections, so we don't need to manually call onToggle
-          console.log(`✅ OAuth disconnection completed for ${connectingSense}, sense will be auto-deactivated if no connections remain`)
         }, 0)
       } else {
         // Fallback for when no auraId is present (e.g., debug mode)
@@ -450,15 +450,6 @@ export function SenseSelector({
     const sessionConns = sessionConnections[senseId] || []
     const propConns = oauthConnections[senseId] || []
     
-    // Debug logging for OAuth connections
-    if (senseId === 'fitness' || senseId === 'calendar' || senseId === 'sleep' || senseId === 'location') {
-      console.log(`🔍 getOAuthDisplay for ${senseId}:`, {
-        sessionConns,
-        propConns,
-        auraId,
-        totalOAuthConnections: oauthConnections
-      })
-    }
     
     // Deduplicate connections by provider + account email to prevent showing duplicates
     const allConnectionsMap = new Map()
@@ -480,10 +471,6 @@ export function SenseSelector({
     
     const allConnections = Array.from(allConnectionsMap.values())
     
-    // Debug the final result
-    if (senseId === 'fitness' || senseId === 'calendar' || senseId === 'sleep' || senseId === 'location') {
-      console.log(`🔍 Final connections for ${senseId}:`, allConnections)
-    }
     
     if (allConnections.length === 0) return null
     
@@ -724,12 +711,13 @@ export function SenseSelector({
                     className={cn(
                       "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
                       active
-                        ? "border-green-400 bg-gradient-to-br from-green-50 to-blue-50 shadow-md"
+                        ? "border-green-500 bg-gradient-to-br from-green-100 to-blue-100 shadow-lg ring-2 ring-green-200"
                         : cn("border-gray-200 hover:border-green-300 bg-white", tierInfo.bgColor)
                     )}
                   >
                   {active && (
-                    <div className="absolute top-3 right-3">
+                    <div className="absolute top-3 right-3 flex items-center gap-1">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                       <CheckCircle2 className="w-5 h-5 text-green-600" />
                     </div>
                   )}
@@ -949,12 +937,13 @@ export function SenseSelector({
                     className={cn(
                       "group relative p-5 rounded-2xl border-2 transition-all duration-300 text-left hover:scale-105 hover:shadow-lg",
                       active
-                        ? "border-purple-400 bg-gradient-to-br from-purple-50 to-pink-50 shadow-md"
+                        ? "border-purple-500 bg-gradient-to-br from-purple-100 to-pink-100 shadow-lg ring-2 ring-purple-200"
                         : cn("border-gray-200 hover:border-purple-300 bg-white", tierInfo.bgColor)
                     )}
                   >
                     {active && (
-                      <div className="absolute top-3 right-3">
+                      <div className="absolute top-3 right-3 flex items-center gap-1">
+                        <div className="w-2 h-2 bg-purple-500 rounded-full animate-pulse"></div>
                         <CheckCircle2 className="w-5 h-5 text-purple-600" />
                       </div>
                     )}
@@ -979,60 +968,108 @@ export function SenseSelector({
                         </div>
                         <p className="text-sm text-gray-600 mb-2">{sense.category}</p>
                         
-                        {/* OAuth Connection Display */}
+                        {/* OAuth Connection Display - First Badge (Connection Count) */}
                         {oauthDisplay && (
                           <div className={cn(
-                            "flex items-center gap-1 text-xs mb-2 px-2 py-1 rounded-md",
+                            "flex items-center gap-1 text-xs mb-2 px-2 py-1 rounded-md font-medium",
                             active
-                              ? "text-purple-700 bg-purple-50 border border-purple-200"
-                              : "text-green-600 bg-green-50 border border-green-200"
+                              ? "text-purple-700 bg-purple-100 border border-purple-300"
+                              : "text-green-700 bg-green-100 border border-green-300"
                           )}>
                             <WifiCog className="w-3 h-3" />
-                            <span className="font-medium">{oauthDisplay}</span>
+                            <span>{oauthDisplay}</span>
                           </div>
                         )}
                         
-                        {/* Location Device Details */}
+                        {/* Location Device Details - Second Badge (Device Specifics) */}
                         {sense.id === 'location' && locationDevices.length > 0 && (
                           <div className="space-y-1 mb-2">
-                            {locationDevices.map((device) => (
-                              <div
-                                key={device.id}
-                                className={cn(
-                                  "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full mr-1 mb-1",
-                                  active
-                                    ? "bg-purple-100 text-purple-700 border border-purple-200"
-                                    : "bg-blue-50 text-blue-600 border border-blue-100"
-                                )}
-                              >
-                                <Smartphone className="w-2.5 h-2.5" />
-                                <span className="font-medium">
-                                  {device.deviceInfo?.browser || 'Device'} - {device.deviceInfo?.os || 'Unknown OS'}
-                                </span>
-                              </div>
-                            ))}
+                            <div className="flex flex-wrap gap-1">
+                              {locationDevices.map((device) => (
+                                <div
+                                  key={device.id}
+                                  className={cn(
+                                    "inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium max-w-full",
+                                    active
+                                      ? "bg-blue-100 text-blue-800 border border-blue-300"
+                                      : "bg-blue-50 text-blue-700 border border-blue-200"
+                                  )}
+                                >
+                                  <Smartphone className="w-3 h-3 flex-shrink-0" />
+                                  <span className="truncate max-w-[120px] sm:max-w-[160px]">
+                                    {device.deviceInfo?.browser || 'Browser'} {device.deviceInfo?.os || 'OS'}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                         
-                        {/* Calendar Connection Details */}
+                        {/* Fitness/Sleep Connection Details - Second Badge (Provider Specifics) */}
+                        {(sense.id === 'fitness' || sense.id === 'sleep') && (() => {
+                          const sessionConns = sessionConnections[sense.id] || []
+                          const propConns = oauthConnections[sense.id] || []
+                          const connectionsMap = new Map()
+                          
+                          propConns.forEach(conn => {
+                            const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
+                            connectionsMap.set(key, conn)
+                          })
+                          
+                          sessionConns.forEach(conn => {
+                            const key = `${conn.providerId || 'unknown'}-${conn.accountEmail || conn.name || 'default'}`
+                            if (!connectionsMap.has(key)) {
+                              connectionsMap.set(key, conn)
+                            }
+                          })
+                          
+                          const allConnections = Array.from(connectionsMap.values())
+                          
+                          return allConnections.length > 0 ? (
+                            <div className="space-y-1 mb-2">
+                              <div className="flex flex-wrap gap-1">
+                                {allConnections.map((connection) => (
+                                  <div
+                                    key={connection.id}
+                                    className={cn(
+                                      "inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium",
+                                      active
+                                        ? "bg-green-100 text-green-800 border border-green-300"
+                                        : "bg-green-50 text-green-700 border border-green-200"
+                                    )}
+                                  >
+                                    <Activity className="w-3 h-3" />
+                                    <span>
+                                      {connection.name || connection.providerId || 'Connected Service'}
+                                    </span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          ) : null
+                        })()}
+                        
+                        {/* Calendar Connection Details - Second Badge (Provider Specifics) */}
                         {sense.id === 'calendar' && connectedCalendars.length > 0 && (
                           <div className="space-y-1 mb-2">
-                            {connectedCalendars.map((calendar) => (
-                              <div
-                                key={calendar.id}
-                                className={cn(
-                                  "inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full mr-1 mb-1",
-                                  active
-                                    ? "bg-purple-100 text-purple-700 border border-purple-200"
-                                    : "bg-green-50 text-green-600 border border-green-100"
-                                )}
-                              >
-                                <WifiCog className="w-2.5 h-2.5" />
-                                <span className="font-medium">
-                                  {calendar.providerName} - {calendar.accountEmail}
-                                </span>
-                              </div>
-                            ))}
+                            <div className="flex flex-wrap gap-1">
+                              {connectedCalendars.map((calendar) => (
+                                <div
+                                  key={calendar.id}
+                                  className={cn(
+                                    "inline-flex items-center gap-1 text-xs px-2 py-1 rounded-full font-medium",
+                                    active
+                                      ? "bg-orange-100 text-orange-800 border border-orange-300"
+                                      : "bg-orange-50 text-orange-700 border border-orange-200"
+                                  )}
+                                >
+                                  <WifiCog className="w-3 h-3" />
+                                  <span>
+                                    {calendar.providerName || 'Calendar'} - {calendar.accountEmail}
+                                  </span>
+                                </div>
+                              ))}
+                            </div>
                           </div>
                         )}
                         
@@ -1135,6 +1172,7 @@ export function SenseSelector({
         onConfigurationComplete={handleNewsConfiguration}
         vesselName={auraName}
         existingLocations={getNewsLocations('news')}
+        existingLocationConnections={getLocationDevices('location')}
       />
 
       <WeatherAirQualityConfigurationModal
@@ -1144,6 +1182,7 @@ export function SenseSelector({
         vesselName={auraName}
         senseType={configuringSense || 'weather'}
         existingLocations={configuringSense ? getWeatherAirQualityLocations(configuringSense) : []}
+        existingLocationConnections={getLocationDevices('location')}
       />
     </div>
   )

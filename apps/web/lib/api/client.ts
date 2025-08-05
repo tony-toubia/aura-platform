@@ -36,6 +36,17 @@ class ApiClient {
           requestUrl: url,
           requestConfig: config
         })
+        
+        // Log the detailed error information
+        if (data.details || data.hint || data.code) {
+          console.error(`API Error Details:`, {
+            error: data.error,
+            details: data.details,
+            hint: data.hint,
+            code: data.code
+          })
+        }
+        
         throw new Error(data.error || data.message || `HTTP ${response.status}: ${response.statusText}`)
       }
 
@@ -98,10 +109,23 @@ export const auraApi = {
   // Aura operations
   getAuras: () => apiClient.get('/auras'),
   getAura: (id: string) => apiClient.get(`/auras/${id}`),
-  createAura: (data: any) => {
+  createAura: async (data: any) => {
     const timestamp = new Date().toISOString()
     console.log(`[${timestamp}] auraApi.createAura called with data:`, data)
-    return apiClient.post('/auras/create-agent-aura', data)
+    console.log(`[${timestamp}] Data keys:`, Object.keys(data))
+    console.log(`[${timestamp}] Data types:`, Object.fromEntries(
+      Object.entries(data).map(([key, value]) => [key, typeof value])
+    ))
+    
+    try {
+      // Use the main /auras endpoint for manual creation, not the agent-specific one
+      const result = await apiClient.post('/auras', data)
+      console.log(`[${timestamp}] auraApi.createAura success:`, result)
+      return result
+    } catch (error) {
+      console.error(`[${timestamp}] auraApi.createAura error:`, error)
+      throw error
+    }
   },
   updateAura: (id: string, data: any) => apiClient.put(`/auras/${id}`, data),
   deleteAura: (id: string) => apiClient.delete(`/auras/${id}`),

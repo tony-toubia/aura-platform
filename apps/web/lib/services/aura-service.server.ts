@@ -12,6 +12,7 @@ export interface CreateAuraServerInput {
   plantType?: string
   personality: any // Allow full personality object with all fields
   senses: string[]
+  rules?: any[] // Behavior rules
   communicationStyle?: string
   voiceProfile?: string
   selectedStudyId?: number | null
@@ -219,6 +220,17 @@ export class AuraServiceServer {
     console.log(`[${timestamp}] Added creation lock for: ${lockKey}`)
     
     try {
+    console.log(`[${timestamp}] Starting aura creation process for "${input.name}"`)
+    console.log(`[${timestamp}] Input data:`, {
+      name: input.name,
+      vesselType: input.vesselType,
+      vesselCode: input.vesselCode,
+      sensesCount: input.senses?.length || 0,
+      rulesCount: input.rules?.length || 0,
+      hasPersonality: !!input.personality,
+      hasLocationConfigs: !!input.locationConfigs,
+      enabled: input.enabled
+    })
 
     console.log(`[${timestamp}] Inserting aura "${input.name}" into database for user: ${user.id}`)
 
@@ -262,7 +274,14 @@ export class AuraServiceServer {
     
     if (auraError || !aura) {
       console.error(`[${timestamp}] Failed to create aura "${input.name}":`, auraError)
-      throw auraError
+      console.error(`[${timestamp}] Insert data was:`, insertData)
+      console.error(`[${timestamp}] Supabase error details:`, {
+        message: auraError?.message,
+        details: auraError?.details,
+        hint: auraError?.hint,
+        code: auraError?.code
+      })
+      throw new Error(`Database error: ${auraError?.message || 'Unknown error'}`)
     }
     
     console.log(`[${timestamp}] Successfully created aura "${input.name}" with ID: ${aura.id}`)
@@ -312,6 +331,36 @@ export class AuraServiceServer {
       if (auraSensesError) throw auraSensesError
     }
 
+    // Create behavior rules if provided
+    if (input.rules && input.rules.length > 0) {
+      console.log(`[${timestamp}] Creating ${input.rules.length} behavior rules for aura: ${aura.id}`)
+      
+      const behaviorRules = input.rules
+        .filter((rule: any) => rule.name && rule.name.trim()) // Only include rules with names
+        .map((rule: any) => ({
+          aura_id: aura.id,
+          name: rule.name,
+          description: rule.description || '',
+          trigger_type: rule.triggerType || 'always',
+          trigger_config: rule.triggerConfig || {},
+          action_type: rule.actionType || 'respond',
+          action_config: rule.actionConfig || {},
+          priority: rule.priority || 1,
+          enabled: rule.enabled !== false, // Default to true
+        }))
+      
+      if (behaviorRules.length > 0) {
+        const { error: rulesError } = await supabase
+          .from('behavior_rules')
+          .insert(behaviorRules)
+        if (rulesError) {
+          console.error(`[${timestamp}] Failed to create behavior rules:`, rulesError)
+          throw rulesError
+        }
+        console.log(`[${timestamp}] Successfully created ${behaviorRules.length} behavior rules`)
+      }
+    }
+
     return {
       id: aura.id,
       name: aura.name,
@@ -321,7 +370,7 @@ export class AuraServiceServer {
       personality: aura.personality,
       senses: input.senses,
       avatar: aura.avatar!,
-      rules: [],
+      rules: (input.rules || []).filter((rule: any) => rule.name && rule.name.trim()),
       enabled: aura.enabled,
       createdAt: new Date(aura.created_at),
       updatedAt: new Date(aura.updated_at),

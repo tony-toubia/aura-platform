@@ -18,11 +18,22 @@ const FEATURE_MESSAGES: Record<string, string> = {
   maxMessages: 'Sending more messages',
   advancedFeatures: 'Advanced features',
   premiumSupport: 'Premium support',
+  hasPersonalConnectedSenses: 'Personal connected senses',
+  // Add more mappings as needed
+}
+
+// Map feature to more specific messages
+const FEATURE_DESCRIPTIONS: Record<string, string> = {
+  maxAuras: "You've reached the maximum number of active Auras for your current plan.",
+  maxMessages: "You've reached your monthly message limit.",
+  hasPersonalConnectedSenses: "Personal connected senses (fitness, calendar, location) require an upgraded plan.",
   // Add more mappings as needed
 }
 
 export function UpgradePrompt({ feature, requiredTier, currentTier }: UpgradePromptProps) {
   const friendlyFeatureName = FEATURE_MESSAGES[feature] || feature
+  const description = FEATURE_DESCRIPTIONS[feature] ||
+    `${friendlyFeatureName} requires a ${requiredTier} subscription or higher. You're currently on the ${currentTier} plan.`
   
   return (
     <Card className="border-amber-200 bg-amber-50">
@@ -34,8 +45,7 @@ export function UpgradePrompt({ feature, requiredTier, currentTier }: UpgradePro
           <div className="flex-1">
             <h3 className="font-semibold text-amber-900">Upgrade Required</h3>
             <p className="text-sm text-amber-700 mt-1">
-              {friendlyFeatureName} requires a {requiredTier} subscription or higher.
-              You're currently on the {currentTier} plan.
+              {description}
             </p>
             <Link href="/subscription">
               <Button className="mt-4" size="sm">

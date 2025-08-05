@@ -122,11 +122,24 @@ export async function PUT(req: NextRequest, context: RouteParams) {
     if (senses && senses.length >= 0) {
       // Check for premium senses and user subscription
       const premiumSenses = AVAILABLE_SENSES.filter(s => s.tier === 'Premium').map(s => s.id) as SenseId[]
-      const attemptingToAddPremiumSense = senses.some((senseId: SenseId) => premiumSenses.includes(senseId))
+      const requestedPremiumSenses = senses.filter((senseId: SenseId) => premiumSenses.includes(senseId))
+      
+      console.log(`[${timestamp}] Sense validation:`, {
+        allRequestedSenses: senses,
+        premiumSensesInSystem: premiumSenses,
+        requestedPremiumSenses: requestedPremiumSenses,
+        weatherAirQualityConfigurations: weatherAirQualityConfigurations,
+        newsConfigurations: newsConfigurations,
+      })
 
-      if (attemptingToAddPremiumSense) {
-        const hasPersonalConnectedSenses = await SubscriptionService.checkFeatureAccess(user.id, 'hasPersonalConnectedSenses')
+      // Only check subscription if user is actually requesting premium senses
+      // Weather, news, and air_quality are FREE tier senses, not premium
+      if (requestedPremiumSenses.length > 0) {
+        const hasPersonalConnectedSenses = await SubscriptionService.checkFeatureAccess(user.id, 'hasPersonalConnectedSenses', supabase)
+        console.log(`[${timestamp}] User ${user.id} has personal connected senses access:`, hasPersonalConnectedSenses)
+        
         if (!hasPersonalConnectedSenses) {
+          console.log(`[${timestamp}] User ${user.id} attempting to add premium senses without subscription:`, requestedPremiumSenses)
           return NextResponse.json(
             { error: "Upgrade your plan to enable personal connected senses." },
             { status: 403 }

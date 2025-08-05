@@ -97,6 +97,10 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
         'wildlife',
         'stock_market',
         'smart_home',
+        'location',
+        'fitness',
+        'sleep',
+        'calendar',
       ],
       hasAnalytics: true,
       hasVoiceResponses: true,
@@ -131,34 +135,73 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
 }
 
 export class SubscriptionService {
-  static async getUserSubscription(userId: string): Promise<SubscriptionTier> {
-    const supabase = createClient()
+  // Add in-memory cache for subscription data
+  private static subscriptionCache = new Map<string, { subscription: SubscriptionTier; timestamp: number }>()
+  private static readonly CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+
+  static async getUserSubscription(userId: string, supabaseClient?: any): Promise<SubscriptionTier> {
+    // Check cache first
+    const cached = this.subscriptionCache.get(userId)
+    if (cached && (Date.now() - cached.timestamp) < this.CACHE_DURATION) {
+      return cached.subscription
+    }
+
+    // Use provided client (for server-side) or fallback to client-side
+    const supabase = supabaseClient || createClient()
     const { data: row, error } = await supabase
       .from('subscriptions')
       .select('tier')
       .eq('user_id', userId)
       .single()
 
+    let subscription: SubscriptionTier
     if (error || !row) {
-      return SUBSCRIPTION_TIERS.free
+      subscription = SUBSCRIPTION_TIERS.free
+    } else {
+      const key = row.tier as SubscriptionTier['id']
+      subscription = SUBSCRIPTION_TIERS[key] ?? SUBSCRIPTION_TIERS.free
     }
-    const key = row.tier as SubscriptionTier['id']
-    return SUBSCRIPTION_TIERS[key] ?? SUBSCRIPTION_TIERS.free
+
+    // Cache the result
+    this.subscriptionCache.set(userId, {
+      subscription,
+      timestamp: Date.now()
+    })
+
+    return subscription
+  }
+
+  // Clear cache for a specific user
+  static clearUserCache(userId: string) {
+    this.subscriptionCache.delete(userId)
+  }
+
+  // Clear all cache
+  static clearAllCache() {
+    this.subscriptionCache.clear()
   }
 
   static async checkFeatureAccess(
     userId: string,
-    feature: keyof SubscriptionFeatures
+    feature: keyof SubscriptionFeatures,
+    supabaseClient?: any
   ): Promise<boolean> {
-    const sub = await this.getUserSubscription(userId)
+    // For maxAuras, we need fresh data, so clear cache
+    if (feature === 'maxAuras') {
+      this.clearUserCache(userId)
+    }
+    
+    const sub = await this.getUserSubscription(userId, supabaseClient)
     const f = sub.features
+    
     switch (feature) {
       case 'maxAuras': {
-        const { count } = await this.getUserAuraCount(userId)
-        return f.maxAuras === -1 || (count ?? 0) < f.maxAuras
+        const { count } = await this.getUserAuraCount(userId, supabaseClient)
+        const hasAccess = f.maxAuras === -1 || (count ?? 0) < f.maxAuras
+        return hasAccess
       }
       case 'maxMessages': {
-        const { count } = await this.getUserMessageCount(userId)
+        const { count } = await this.getUserMessageCount(userId, supabaseClient)
         return f.maxMessages === -1 || (count ?? 0) < f.maxMessages
       }
       case 'availableSenses':
@@ -205,8 +248,8 @@ export class SubscriptionService {
     return (count ?? 0) < sub.features.maxMessages
   }
 
-  private static async getUserAuraCount(userId: string) {
-    const supabase = createClient()
+  private static async getUserAuraCount(userId: string, supabaseClient?: any) {
+    const supabase = supabaseClient || createClient()
     return supabase
       .from('auras')
       .select('*', { count: 'exact', head: true })
@@ -214,8 +257,8 @@ export class SubscriptionService {
       .eq('enabled', true) // Only count active auras
   }
 
-  private static async getUserMessageCount(userId: string) {
-    const supabase = createClient()
+  private static async getUserMessageCount(userId: string, supabaseClient?: any) {
+    const supabase = supabaseClient || createClient()
     const startOfMonth = new Date()
     startOfMonth.setDate(1)
     startOfMonth.setHours(0, 0, 0, 0)

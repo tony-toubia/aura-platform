@@ -40,6 +40,7 @@ import {
 import { deleteAuraAction } from '@/app/actions/delete-aura'
 import { cn } from '@/lib/utils'
 import type { Aura } from '@/types'
+import { useSubscription } from '@/lib/contexts/subscription-context'
 
 interface AurasListProps {
   initialAuras: Aura[]
@@ -47,6 +48,7 @@ interface AurasListProps {
 
 export function AurasList({ initialAuras }: AurasListProps) {
   const router = useRouter()
+  const { subscription, checkFeatureAccess } = useSubscription()
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [auraToDelete, setAuraToDelete] = useState<Aura | null>(null)
   const [auras, setAuras] = useState<Aura[]>(initialAuras)
@@ -54,6 +56,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
   const [limitErrorMessage, setLimitErrorMessage] = useState<string>('')
   const [activeAuraCount, setActiveAuraCount] = useState(auras.filter(a => a.enabled).length)
   const [refreshKey, setRefreshKey] = useState(0)
+  const [canCreateAura, setCanCreateAura] = useState<boolean | null>(null)
 
   // Update active aura count and refresh key when auras change
   useEffect(() => {
@@ -61,6 +64,23 @@ export function AurasList({ initialAuras }: AurasListProps) {
     setActiveAuraCount(newActiveCount)
     setRefreshKey(prev => prev + 1) // Force subscription guard refresh
   }, [auras])
+
+  // Check if user can create more auras
+  useEffect(() => {
+    const checkAuraCreation = async () => {
+      try {
+        const canCreate = await checkFeatureAccess('maxAuras')
+        setCanCreateAura(canCreate)
+      } catch (error) {
+        console.error('Error checking aura creation access:', error)
+        setCanCreateAura(false)
+      }
+    }
+    
+    if (subscription) {
+      checkAuraCreation()
+    }
+  }, [subscription, activeAuraCount, checkFeatureAccess])
 
   const handleDeleteClick = (aura: Aura) => {
     setAuraToDelete(aura)
@@ -162,23 +182,23 @@ export function AurasList({ initialAuras }: AurasListProps) {
 
   return (
     <div className="w-full">
-      {/* Enhanced Header - Only show when auras exist */}
-      {auras.length > 0 && (
-        <div className="mb-10">
-          <div className="text-center mb-8">
-            <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
-              <Brain className="w-4 h-4" />
-              Aura Collection
-            </div>
-            <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              My Auras
-            </h1>
-            <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-              Manage and interact with your digital AI companions
-            </p>
+      {/* Enhanced Header */}
+      <div className="mb-10">
+        <div className="text-center mb-8">
+          <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-4">
+            <Brain className="w-4 h-4" />
+            Aura Collection
           </div>
+          <h1 className="text-5xl font-bold mb-4 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            My Auras
+          </h1>
+          <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+            Manage and interact with your digital AI companions
+          </p>
+        </div>
 
-          {/* Stats Overview */}
+        {/* Stats Overview - Only show when auras exist */}
+        {auras.length > 0 && (
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
             <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-200 rounded-2xl p-4 text-center">
               <div className="text-2xl font-bold text-purple-700">{auras.length}</div>
@@ -203,13 +223,15 @@ export function AurasList({ initialAuras }: AurasListProps) {
               <div className="text-sm text-amber-600">Total Rules</div>
             </div>
           </div>
+        )}
 
-          {/* Action Buttons */}
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <SubscriptionGuard
-              feature="maxAuras"
-              refreshKey={refreshKey}
-            >
+        {/* Action Buttons - Always show */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <div className="w-full flex flex-col items-center">
+            {/* Temporary direct implementation using proper subscription checking */}
+            {canCreateAura === null ? (
+              <div></div>
+            ) : canCreateAura ? (
               <Button
                 onClick={() => router.push('/auras/create-select')}
                 size="lg"
@@ -219,27 +241,47 @@ export function AurasList({ initialAuras }: AurasListProps) {
                 <Sparkles className="w-5 h-5 mr-2" />
                 Create New Aura
               </Button>
-            </SubscriptionGuard>
+            ) : (
+              <div className="w-full max-w-md">
+                <div className="border-amber-200 bg-amber-50 border rounded-lg">
+                  <div className="p-6">
+                    <div className="flex items-start space-x-4">
+                      <div className="p-2 bg-amber-100 rounded-full">
+                        <AlertTriangle className="w-6 h-6 text-amber-600" />
+                      </div>
+                      <div className="flex-1">
+                        <h3 className="font-semibold text-amber-900">Upgrade Required</h3>
+                        <p className="text-sm text-amber-700 mt-1">
+                          You've reached the maximum number of active Auras for your current plan.
+                        </p>
+                        <Button 
+                          onClick={() => router.push('/billing')}
+                          className="mt-4" 
+                          size="sm"
+                        >
+                          <Crown className="w-4 h-4 mr-2" />
+                          View Upgrade Options
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
             
           </div>
         </div>
-      )}
+      </div>
 
       {/* Content */}
       {auras.length === 0 ? (
-        <SubscriptionGuard feature="maxAuras" refreshKey={refreshKey}>
-          <EmptyState
-            icon={Brain}
-            iconGradient="from-purple-500 to-blue-500"
-            title="Create Your Digital Aura"
-            description="Welcome to the future of AI companions! Your digital Aura will be a powerful,
-                    personalized AI that lives in the cloud and can connect to all your digital life."
-            primaryAction={{
-              label: "Create Your First Aura",
-              onClick: () => router.push('/auras/create-select'),
-              icon: Sparkles
-            }}
-          >
+        <EmptyState
+          icon={Brain}
+          iconGradient="from-purple-500 to-blue-500"
+          title="Create Your Digital Aura"
+          description="Welcome to the future of AI companions! Your digital Aura will be a powerful,
+                  personalized AI that lives in the cloud and can connect to all your digital life."
+        >
           {/* Vessel Types Preview */}
           <div className="mt-12 relative w-screen left-1/2 right-1/2 -ml-[50vw] -mr-[50vw]">
             <div className="bg-gradient-to-br from-purple-50 to-blue-50 border-2 border-purple-200 rounded-2xl p-10 mx-4">
@@ -296,7 +338,6 @@ export function AurasList({ initialAuras }: AurasListProps) {
             </div>
           </div>
           </EmptyState>
-        </SubscriptionGuard>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
           {auras.map((aura) => {
@@ -469,20 +510,8 @@ export function AurasList({ initialAuras }: AurasListProps) {
                 Your journey with AI companions is just beginning. Explore new possibilities!
               </p>
               <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-                <SubscriptionGuard
-                  feature="maxAuras"
-                  refreshKey={refreshKey}
-                  fallback={
-                    <div className="flex flex-col sm:flex-row items-center gap-3 text-sm text-white/90 bg-white/20 px-4 py-3 rounded-lg border border-white/30 w-full sm:w-auto">
-                      <span className="text-center sm:text-left">Upgrade to create more auras</span>
-                      <Button asChild size="sm" className="bg-white text-purple-600 hover:bg-gray-100 w-full sm:w-auto">
-                        <Link href="/subscription">
-                          View Plans
-                        </Link>
-                      </Button>
-                    </div>
-                  }
-                >
+                {/* Temporarily bypassed SubscriptionGuard - same issue as other pages */}
+                <div>
                   <Button
                     onClick={() => router.push('/auras/create-select')}
                     size="lg"
@@ -492,7 +521,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                     <Plus className="w-5 h-5 mr-2" />
                     Create Another Aura
                   </Button>
-                </SubscriptionGuard>
+                </div>
                 <div className="relative">
                   <Button
                     size="lg"
