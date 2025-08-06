@@ -32,11 +32,8 @@ COPY apps/web/package.json ./apps/web/
 # Copy source code
 COPY . .
 
-# Ensure workspace links are set up properly
-RUN pnpm install --frozen-lockfile --offline
-
 # Build the web application
-RUN cd apps/web && npx next build
+RUN cd apps/web && pnpm build
 
 # Production image, copy all the files and run next
 FROM base AS runner

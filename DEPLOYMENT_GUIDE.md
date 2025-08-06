@@ -12,7 +12,7 @@ This guide will help you deploy your Aura Platform to Google Cloud Platform with
 ## 🏗️ Architecture Overview
 
 - **`aura-link.app`** → Marketing/Landing page (public)
-- **`dash.aura-link.app`** → Dashboard/App (authenticated)
+- **`app.aura-link.app`** → Dashboard/App (authenticated)
 - **Google Cloud Run** → Hosting platform
 - **Google Cloud Build** → CI/CD pipeline
 - **Container Registry** → Docker image storage
@@ -80,7 +80,7 @@ After running the domain configuration script, you'll get DNS records to add:
 2. Go to DNS Management for aura-link.app
 3. Add the CNAME records provided by the script:
    - **Name**: `@` → **Value**: `ghs.googlehosted.com` (or the value provided)
-   - **Name**: `dash` → **Value**: `ghs.googlehosted.com` (or the value provided)
+   - **Name**: `app` → **Value**: `ghs.googlehosted.com` (or the value provided)
 
 ### Step 7: Deploy Your Code
 
@@ -195,6 +195,6 @@ If you encounter issues:
 
 Once everything is deployed:
 - **Marketing Site**: https://aura-link.app
-- **Dashboard**: https://dash.aura-link.app
+- **Dashboard**: https://app.aura-link.app
 
 Your Aura Platform is now live and ready for users!

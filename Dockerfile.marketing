@@ -35,11 +35,8 @@ COPY apps/marketing/package.json ./apps/marketing/
 # Copy source code
 COPY . .
 
-# Ensure workspace links are set up properly
-RUN pnpm install --frozen-lockfile --offline
-
 # Build the marketing application
-RUN cd apps/marketing && npx next build
+RUN cd apps/marketing && pnpm build
 
 # Production image
 FROM base AS runner
