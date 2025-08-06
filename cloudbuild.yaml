@@ -123,7 +123,7 @@ images:
 
 # Build configuration
 options:
-  machineType: 'E2_HIGHMEM_8'
+  machineType: 'E2_HIGHCPU_32'
   diskSizeGb: 100
   logging: CLOUD_LOGGING_ONLY
 
