@@ -25,6 +25,12 @@ FROM base AS builder
 WORKDIR /app
 RUN npm install -g pnpm
 
+# Accept build arguments for environment variables
+ARG NEXT_PUBLIC_DASHBOARD_URL=https://app.aura-link.app
+
+# Set environment variables for build
+ENV NEXT_PUBLIC_DASHBOARD_URL=$NEXT_PUBLIC_DASHBOARD_URL
+
 # Copy everything including node_modules
 COPY --from=deps /app ./
 

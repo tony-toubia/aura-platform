@@ -15,10 +15,12 @@ COPY packages ./packages
 COPY apps/web/package.json ./apps/web/
 COPY apps/marketing/package.json ./apps/marketing/
 
-# Install dependencies with debugging
+# Install dependencies with fallback strategy
 RUN pnpm --version && \
     ls -la && \
-    pnpm install --no-frozen-lockfile --reporter=append-only
+    (pnpm install --frozen-lockfile --reporter=append-only || \
+     echo "Frozen lockfile failed, trying without frozen lockfile..." && \
+     pnpm install --no-frozen-lockfile --reporter=append-only)
 
 # Rebuild the source code only when needed
 FROM base AS builder

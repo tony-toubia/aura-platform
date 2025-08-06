@@ -27,6 +27,8 @@ steps:
       - 'gcr.io/$PROJECT_ID/aura-marketing:latest'
       - '-f'
       - 'Dockerfile.marketing'
+      - '--build-arg'
+      - 'NEXT_PUBLIC_DASHBOARD_URL=https://app.aura-link.app'
       - '.'
     id: 'build-marketing'
 
@@ -111,7 +113,7 @@ steps:
       - '--max-instances'
       - '5'
       - '--set-env-vars'
-      - 'NODE_ENV=production'
+      - 'NODE_ENV=production,NEXT_PUBLIC_DASHBOARD_URL=https://app.aura-link.app'
     waitFor: ['push-marketing-sha']
 
 # Store images in Google Container Registry
