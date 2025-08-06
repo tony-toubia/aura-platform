@@ -22,12 +22,8 @@ FROM base AS builder
 WORKDIR /app
 RUN npm install -g pnpm
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY --from=deps /app/packages ./packages
-
-# Copy package files first
-COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
-COPY apps/web/package.json ./apps/web/
+# Copy everything including node_modules
+COPY --from=deps /app ./
 
 # Copy source code
 COPY . .
