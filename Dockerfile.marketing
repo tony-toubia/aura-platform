@@ -37,6 +37,8 @@ COPY --from=deps /app ./
 # Copy only marketing app source code (avoid copying web app middleware)
 COPY apps/marketing ./apps/marketing
 COPY packages ./packages
+# Copy root package.json for workspace resolution
+COPY package.json pnpm-workspace.yaml ./
 
 # Build the marketing application
 RUN cd apps/marketing && pnpm build
@@ -52,8 +54,6 @@ RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
 # Copy built application
-# Create public directory and copy if it exists
-RUN mkdir -p ./public
 COPY --from=builder --chown=nextjs:nodejs /app/apps/marketing/.next/standalone ./
 COPY --from=builder --chown=nextjs:nodejs /app/apps/marketing/.next/static ./apps/marketing/.next/static
 
