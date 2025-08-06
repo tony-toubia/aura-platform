@@ -78,7 +78,7 @@ export async function middleware(request: NextRequest) {
   if (host === 'aura-link.app' && isProtectedRoute) {
     // Redirect from marketing site to dashboard subdomain for protected routes
     const dashboardUrl = new URL(request.url)
-    dashboardUrl.host = 'dash.aura-link.app'
+    dashboardUrl.host = 'app.aura-link.app'
     return NextResponse.redirect(dashboardUrl)
   }
 

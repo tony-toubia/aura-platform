@@ -32,6 +32,8 @@ const Button = ({ children, className = '', variant = 'default', size = 'default
 }
 
 export default function HomePage() {
+  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://app.aura-link.app'
+  
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
       {/* Navigation */}
@@ -53,12 +55,12 @@ export default function HomePage() {
             <Link href="#about" className="text-gray-600 hover:text-purple-600 transition-colors">
               About
             </Link>
-            <Link href="https://dash.aura-link.app/login">
+            <Link href={`${dashboardUrl}/login`}>
               <Button variant="outline" className="mr-2">
                 Sign In
               </Button>
             </Link>
-            <Link href="https://dash.aura-link.app/register">
+            <Link href={`${dashboardUrl}/register`}>
               <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
                 Get Started
               </Button>
@@ -87,7 +89,7 @@ export default function HomePage() {
           </p>
           
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
-            <Link href="https://dash.aura-link.app/register">
+            <Link href={`${dashboardUrl}/register`}>
               <Button 
                 size="lg" 
                 className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg"
@@ -175,7 +177,7 @@ export default function HomePage() {
           <p className="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
             Join thousands of users who have already discovered the power of having a digital AI companion.
           </p>
-          <Link href="https://dash.aura-link.app/register">
+          <Link href={`${dashboardUrl}/register`}>
             <Button 
               size="lg" 
               className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg font-semibold"
