@@ -18,7 +18,7 @@ COPY apps/marketing/package.json ./apps/marketing/
 # Install dependencies with debugging
 RUN pnpm --version && \
     ls -la && \
-    pnpm install --frozen-lockfile --reporter=append-only
+    pnpm install --no-frozen-lockfile --reporter=append-only
 
 # Rebuild the source code only when needed
 FROM base AS builder
