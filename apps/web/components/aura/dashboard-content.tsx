@@ -203,9 +203,9 @@ export function DashboardContent({ stats }: DashboardContentProps) {
               : "md:col-span-8 lg:col-span-8"
           )}>
             <DashboardStatCard
-              title="Auras Created"
+              title="Active Auras"
               value={stats.auras}
-              description="Auras Created"
+              description="Active Auras"
               iconName="Brain"
               primaryColor="purple"
               message={getAuraMessage()}

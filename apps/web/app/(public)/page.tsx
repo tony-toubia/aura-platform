@@ -250,7 +250,7 @@ export default function HomePage() {
             <div className="flex justify-center items-center gap-8 text-gray-600">
               <div className="text-center">
                 <div className="text-3xl font-bold text-purple-600">10,000+</div>
-                <div className="text-sm">Auras Created</div>
+                <div className="text-sm">Active Auras</div>
               </div>
               <div className="text-center">
                 <div className="text-3xl font-bold text-blue-600">500+</div>

@@ -1,0 +1,157 @@
+----------------------------- REMOTE BUILD OUTPUT ------------------------------
+starting build "a86bca35-d971-43b5-8f34-5faaae9d44d3"
+FETCHSOURCE
+hint: Using 'master' as the name for the initial branch. This default branch name
+hint: is subject to change. To configure the initial branch name to use in all
+hint: of your new repositories, which will suppress this warning, call:
+hint:
+hint: 	git config --global init.defaultBranch <name>
+hint:
+hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+hint: 'development'. The just-created branch can be renamed via this command:
+hint:
+hint: 	git branch -m <name>
+hint:
+hint: Disable this message with "git config set advice.defaultBranchName false"
+Initialized empty Git repository in /workspace/.git/
+From https://github.com/tony-toubia/aura-platform
+ * branch            aa5618c613a152e3eb1510679619c9f699cf9bba -> FETCH_HEAD
+HEAD is now at aa5618c Fix deployment: Docker builds, CSS, auth, and domains
+GitCommit:
+aa5618c613a152e3eb1510679619c9f699cf9bba
+BUILD
+Starting Step #0 - "build-dashboard"
+Step #0 - "build-dashboard": Already have image (with digest): gcr.io/cloud-builders/docker
+Step #0 - "build-dashboard": Sending build context to Docker daemon  62.52MB
+Step #0 - "build-dashboard": Step 1/32 : FROM node:20-alpine AS base
+Step #0 - "build-dashboard": 20-alpine: Pulling from library/node
+Step #0 - "build-dashboard": 9824c27679d3: Already exists
+Step #0 - "build-dashboard": 8c59d92d6fc9: Pulling fs layer
+Step #0 - "build-dashboard": 54225bd60196: Pulling fs layer
+Step #0 - "build-dashboard": a9e48ad1219d: Pulling fs layer
+Step #0 - "build-dashboard": 54225bd60196: Download complete
+Step #0 - "build-dashboard": a9e48ad1219d: Verifying Checksum
+Step #0 - "build-dashboard": a9e48ad1219d: Download complete
+Step #0 - "build-dashboard": 8c59d92d6fc9: Verifying Checksum
+Step #0 - "build-dashboard": 8c59d92d6fc9: Download complete
+Step #0 - "build-dashboard": 8c59d92d6fc9: Pull complete
+Step #0 - "build-dashboard": 54225bd60196: Pull complete
+Step #0 - "build-dashboard": a9e48ad1219d: Pull complete
+Step #0 - "build-dashboard": Digest: sha256:df02558528d3d3d0d621f112e232611aecfee7cbc654f6b375765f72bb262799
+Step #0 - "build-dashboard": Status: Downloaded newer image for node:20-alpine
+Step #0 - "build-dashboard":  ---> 7cdef5a33192
+Step #0 - "build-dashboard": Step 2/32 : FROM base AS deps
+Step #0 - "build-dashboard":  ---> 7cdef5a33192
+Step #0 - "build-dashboard": Step 3/32 : RUN apk add --no-cache libc6-compat
+Step #0 - "build-dashboard":  ---> Running in c571d560dfa4
+Step #0 - "build-dashboard": fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/main/x86_64/APKINDEX.tar.gz
+Step #0 - "build-dashboard": fetch https://dl-cdn.alpinelinux.org/alpine/v3.22/community/x86_64/APKINDEX.tar.gz
+Step #0 - "build-dashboard": (1/3) Installing musl-obstack (1.2.3-r2)
+Step #0 - "build-dashboard": (2/3) Installing libucontext (1.3.2-r0)
+Step #0 - "build-dashboard": (3/3) Installing gcompat (1.1.0-r4)
+Step #0 - "build-dashboard": OK: 10 MiB in 21 packages
+Step #0 - "build-dashboard": Removing intermediate container c571d560dfa4
+Step #0 - "build-dashboard":  ---> 62d6015728d3
+Step #0 - "build-dashboard": Step 4/32 : WORKDIR /app
+Step #0 - "build-dashboard":  ---> Running in 50df7a19b04e
+Step #0 - "build-dashboard": Removing intermediate container 50df7a19b04e
+Step #0 - "build-dashboard":  ---> 59b613d35451
+Step #0 - "build-dashboard": Step 5/32 : RUN npm install -g pnpm
+Step #0 - "build-dashboard":  ---> Running in b47c6fa0246d
+Step #0 - "build-dashboard":
+Step #0 - "build-dashboard": added 1 package in 1s
+Step #0 - "build-dashboard":
+Step #0 - "build-dashboard": 1 package is looking for funding
+Step #0 - "build-dashboard":   run `npm fund` for details
+Step #0 - "build-dashboard": [91mnpm notice
+Step #0 - "build-dashboard": npm notice New major version of npm available! 10.8.2 -> 11.5.2
+Step #0 - "build-dashboard": npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.2
+Step #0 - "build-dashboard": npm notice To update run: npm install -g npm@11.5.2
+Step #0 - "build-dashboard": npm notice
+Step #0 - "build-dashboard": [0mRemoving intermediate container b47c6fa0246d
+Step #0 - "build-dashboard":  ---> 9c1e84d41394
+Step #0 - "build-dashboard": Step 6/32 : COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+Step #0 - "build-dashboard":  ---> 58dc6df949b5
+Step #0 - "build-dashboard": Step 7/32 : COPY packages ./packages
+Step #0 - "build-dashboard":  ---> 503d0c8881dd
+Step #0 - "build-dashboard": Step 8/32 : COPY apps/web/package.json ./apps/web/
+Step #0 - "build-dashboard":  ---> 4bdca4374cfe
+Step #0 - "build-dashboard": Step 9/32 : RUN pnpm install --frozen-lockfile
+Step #0 - "build-dashboard":  ---> Running in 1ec735cb40ec
+Step #0 - "build-dashboard": Scope: all 7 workspace projects
+Step #0 - "build-dashboard": Lockfile is up to date, resolution step is skipped
+Step #0 - "build-dashboard": Progress: resolved 1, reused 0, downloaded 0, added 0
+Step #0 - "build-dashboard": Packages: +480
+Step #0 - "build-dashboard": ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+Step #0 - "build-dashboard": Progress: resolved 480, reused 0, downloaded 96, added 93
+Step #0 - "build-dashboard": Progress: resolved 480, reused 0, downloaded 170, added 163
+Step #0 - "build-dashboard": Progress: resolved 480, reused 0, downloaded 342, added 340
+Step #0 - "build-dashboard": Progress: resolved 480, reused 0, downloaded 479, added 478
+Step #0 - "build-dashboard": Progress: resolved 480, reused 0, downloaded 480, added 480, done
+Step #0 - "build-dashboard": .../node_modules/@tailwindcss/oxide postinstall$ node ./scripts/install.js
+Step #0 - "build-dashboard": .../node_modules/@prisma/engines postinstall$ node scripts/postinstall.js
+Step #0 - "build-dashboard": .../sharp@0.34.1/node_modules/sharp install$ node install/check
+Step #0 - "build-dashboard": .../node_modules/@tailwindcss/oxide postinstall: Done
+Step #0 - "build-dashboard": .../sharp@0.34.1/node_modules/sharp install: Done
+Step #0 - "build-dashboard": .../node_modules/@prisma/engines postinstall: Done
+Step #0 - "build-dashboard": .../node_modules/prisma preinstall$ node scripts/preinstall-entry.js
+Step #0 - "build-dashboard": .../node_modules/prisma preinstall: Done
+Step #0 - "build-dashboard": .../node_modules/@prisma/client postinstall$ node scripts/postinstall.js
+Step #0 - "build-dashboard": .../node_modules/@prisma/client postinstall: prisma:warn We could not find your Prisma schema in the default locations (see: https://pris.ly/d/prisma-schema-location).
+Step #0 - "build-dashboard": .../node_modules/@prisma/client postinstall: If you have a Prisma schema file in a custom path, you will need to run
+Step #0 - "build-dashboard": .../node_modules/@prisma/client postinstall: `prisma generate --schema=./path/to/your/schema.prisma` to generate Prisma Client.
+Step #0 - "build-dashboard": .../node_modules/@prisma/client postinstall: If you do not have a Prisma schema file yet, you can ignore this message.
+Step #0 - "build-dashboard": .../node_modules/@prisma/client postinstall: Done
+Step #0 - "build-dashboard":
+Step #0 - "build-dashboard": devDependencies:
+Step #0 - "build-dashboard": + prettier 3.6.2
+Step #0 - "build-dashboard": + turbo 2.5.4
+Step #0 - "build-dashboard": + typescript 5.8.3
+Step #0 - "build-dashboard":
+Step #0 - "build-dashboard": Done in 9.5s
+Step #0 - "build-dashboard": Removing intermediate container 1ec735cb40ec
+Step #0 - "build-dashboard":  ---> 1a2752bd8993
+Step #0 - "build-dashboard": Step 10/32 : FROM base AS builder
+Step #0 - "build-dashboard":  ---> 7cdef5a33192
+Step #0 - "build-dashboard": Step 11/32 : WORKDIR /app
+Step #0 - "build-dashboard":  ---> Running in 4d29ba8baaff
+Step #0 - "build-dashboard": Removing intermediate container 4d29ba8baaff
+Step #0 - "build-dashboard":  ---> f34a8fccab13
+Step #0 - "build-dashboard": Step 12/32 : RUN npm install -g pnpm
+Step #0 - "build-dashboard":  ---> Running in 74abbf22e8c1
+Step #0 - "build-dashboard":
+Step #0 - "build-dashboard": added 1 package in 1s
+Step #0 - "build-dashboard":
+Step #0 - "build-dashboard": 1 package is looking for funding
+Step #0 - "build-dashboard":   run `npm fund` for details
+Step #0 - "build-dashboard": [91mnpm notice
+Step #0 - "build-dashboard": npm notice New major version of npm available! 10.8.2 -> 11.5.2
+Step #0 - "build-dashboard": npm notice Changelog: https://github.com/npm/cli/releases/tag/v11.5.2
+Step #0 - "build-dashboard": npm notice To update run: npm install -g npm@11.5.2
+Step #0 - "build-dashboard": npm notice
+Step #0 - "build-dashboard": [0mRemoving intermediate container 74abbf22e8c1
+Step #0 - "build-dashboard":  ---> 73a79a6cbe4b
+Step #0 - "build-dashboard": Step 13/32 : COPY --from=deps /app/node_modules ./node_modules
+Step #0 - "build-dashboard":  ---> 6191b7256bc3
+Step #0 - "build-dashboard": Step 14/32 : COPY --from=deps /app/packages ./packages
+Step #0 - "build-dashboard":  ---> 34a0b4fabdd2
+Step #0 - "build-dashboard": Step 15/32 : COPY package.json pnpm-lock.yaml pnpm-workspace.yaml ./
+Step #0 - "build-dashboard":  ---> c404dc86afd8
+Step #0 - "build-dashboard": Step 16/32 : COPY apps/web/package.json ./apps/web/
+Step #0 - "build-dashboard":  ---> 0e8c768e1030
+Step #0 - "build-dashboard": Step 17/32 : COPY . .
+Step #0 - "build-dashboard":  ---> 6986d37475ab
+Step #0 - "build-dashboard": Step 18/32 : RUN cd apps/web && pnpm build
+Step #0 - "build-dashboard":  ---> Running in 8e6d3626c572
+Step #0 - "build-dashboard":
+Step #0 - "build-dashboard": > web@0.1.0 build /app/apps/web
+Step #0 - "build-dashboard": > next build
+Step #0 - "build-dashboard":
+Step #0 - "build-dashboard": [91msh: next: not found
+Step #0 - "build-dashboard": [0m?ELIFECYCLE? Command failed.
+Step #0 - "build-dashboard": ?WARN?  Local package.json exists, but node_modules missing, did you mean to install?
+Step #0 - "build-dashboard": The command '/bin/sh -c cd apps/web && pnpm build' returned a non-zero code: 1
+Finished Step #0 - "build-dashboard"
+ERROR
+ERROR: build step 0 "gcr.io/cloud-builders/docker" failed: step exited with non-zero status: 1
+--------------------------------------------------------------------------------

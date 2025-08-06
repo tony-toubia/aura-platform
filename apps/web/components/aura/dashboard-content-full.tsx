@@ -70,9 +70,9 @@ export function DashboardContent({ stats }: DashboardContentProps) {
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
         {/* Auras Card */}
         <DashboardStatCard
-          title="Auras Created"
+          title="Active Auras"
           value={stats.auras}
-          description="Auras Created"
+          description="Active Auras"
           iconName="Brain"
           primaryColor="purple"
           message={getAuraMessage()}

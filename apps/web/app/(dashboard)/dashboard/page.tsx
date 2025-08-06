@@ -28,17 +28,19 @@ export default async function DashboardPage() {
     redirect('/login')
   }
 
-  // Get user's auras count
+  // Get user's active auras count (only enabled auras)
   const { count: aurasCount } = await supabase
     .from('auras')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
+    .eq('enabled', true)
 
-  // Get user's aura IDs for filtering conversations
+  // Get user's active aura IDs for filtering conversations
   const { data: userAuras } = await supabase
     .from('auras')
     .select('id')
     .eq('user_id', user.id)
+    .eq('enabled', true)
   
   const userAuraIds = userAuras?.map(aura => aura.id) || []
 
@@ -50,11 +52,11 @@ export default async function DashboardPage() {
 
   // Debug logging
   console.log('Dashboard stats:', { 
-    aurasCount, 
+    activeAurasCount: aurasCount, 
     conversationsCount, 
     conversationsError,
     userId: user.id,
-    userAuraIds: userAuraIds.length > 0 ? userAuraIds : 'No auras found'
+    activeAuraIds: userAuraIds.length > 0 ? userAuraIds : 'No active auras found'
   })
 
   // Get user's subscription

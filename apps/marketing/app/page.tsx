@@ -1,209 +1,267 @@
-import Link from 'next/link'
-import { Brain, Sparkles, Shield, Zap, ArrowRight, Star } from 'lucide-react'
+import Link from "next/link";
+import { Sparkles, Shield, Zap, ArrowRight, Star, Cpu } from "lucide-react";
+import { AuraButton } from "@/components/aura/AuraButton";
 
-// Simple Button component for marketing site
-const Button = ({ children, className = '', variant = 'default', size = 'default', ...props }: {
-  children: React.ReactNode
-  className?: string
-  variant?: 'default' | 'outline'
-  size?: 'default' | 'lg'
-  onClick?: () => void
-}) => {
-  const baseClasses = 'inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:opacity-50 disabled:pointer-events-none ring-offset-background'
-  
-  const variants = {
-    default: 'bg-primary text-primary-foreground hover:bg-primary/90',
-    outline: 'border border-input hover:bg-accent hover:text-accent-foreground'
-  }
-  
-  const sizes = {
-    default: 'h-10 py-2 px-4',
-    lg: 'h-11 px-8 py-2'
-  }
-  
-  return (
-    <button 
-      className={`${baseClasses} ${variants[variant]} ${sizes[size]} ${className}`}
-      {...props}
-    >
-      {children}
-    </button>
-  )
-}
-
+/**
+ * Marketing homepage (public). Routing remains unchanged.
+ * Implements Magical Aura system primitives and utilities defined in apps/web/app/globals.css
+ * - aura-bg, aura-noise, aura-particles, aura-gradient-text, aura-glass, aura-surface, aura-card, aura-underline, aura-focus
+ * - Respects prefers-reduced-motion via global rules
+ */
 export default function HomePage() {
-  const dashboardUrl = process.env.NEXT_PUBLIC_DASHBOARD_URL || 'https://app.aura-link.app'
-  
+  const dashboardUrl =
+    process.env.NEXT_PUBLIC_DASHBOARD_URL || "https://app.aura-link.app";
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-blue-50">
-      {/* Navigation */}
-      <nav className="container mx-auto px-6 py-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center space-x-2">
-            <Brain className="w-8 h-8 text-purple-600" />
-            <span className="text-2xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Aura Link
-            </span>
-          </div>
-          <div className="hidden md:flex items-center space-x-8">
-            <Link href="#features" className="text-gray-600 hover:text-purple-600 transition-colors">
-              Features
+    <div className="min-h-screen">
+      {/* Header - translucent glass topbar */}
+      <header
+        className="sticky top-0 z-50"
+        aria-label="Top navigation"
+        role="banner"
+      >
+        <div className="aura-glass border-b border-[color:var(--border-subtle)]">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 h-14 flex items-center justify-between">
+            <Link href="/" className="flex items-center gap-2" aria-label="Home">
+              <div className="w-8 h-8 rounded-lg aura-orb" aria-hidden />
+              <span className="text-base sm:text-lg font-semibold aura-gradient-text">
+                Aura Link
+              </span>
             </Link>
-            <Link href="#pricing" className="text-gray-600 hover:text-purple-600 transition-colors">
-              Pricing
-            </Link>
-            <Link href="#about" className="text-gray-600 hover:text-purple-600 transition-colors">
-              About
-            </Link>
-            <Link href={`${dashboardUrl}/login`}>
-              <Button variant="outline" className="mr-2">
-                Sign In
-              </Button>
-            </Link>
-            <Link href={`${dashboardUrl}/register`}>
-              <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-                Get Started
-              </Button>
-            </Link>
+            <nav className="hidden md:flex items-center gap-6" aria-label="Primary">
+              <Link href="#features" className="text-sm text-[color:var(--aura-fg-muted)] hover:text-[color:var(--aura-fg)] transition-colors aura-underline">
+                Features
+              </Link>
+              <Link href="#how" className="text-sm text-[color:var(--aura-fg-muted)] hover:text-[color:var(--aura-fg)] transition-colors aura-underline">
+                How it works
+              </Link>
+              <Link href="#trust" className="text-sm text-[color:var(--aura-fg-muted)] hover:text-[color:var(--aura-fg)] transition-colors aura-underline">
+                Trust
+              </Link>
+              <div className="flex items-center gap-3">
+                <Link href={`${dashboardUrl}/login`} aria-label="Sign in">
+                  <AuraButton variant="glass" className="h-9 px-3">
+                    Sign In
+                  </AuraButton>
+                </Link>
+                <Link href={`${dashboardUrl}/register`} aria-label="Get started">
+                  <AuraButton variant="primary" className="h-9 px-4">
+                    Get Started
+                  </AuraButton>
+                </Link>
+              </div>
+            </nav>
           </div>
         </div>
-      </nav>
+      </header>
 
-      {/* Hero Section */}
-      <section className="container mx-auto px-6 py-20 text-center">
-        <div className="max-w-4xl mx-auto">
-          <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium mb-8">
-            <Sparkles className="w-4 h-4" />
-            Your Digital AI Companion Awaits
+      {/* Hero - full viewport with ambient visuals */}
+      <section
+        className="relative min-h-[92vh] flex items-center justify-center overflow-hidden aura-bg"
+        aria-labelledby="hero-title"
+      >
+        {/* Noise and particles */}
+        <div className="absolute inset-0 aura-noise pointer-events-none" aria-hidden />
+        <div className="absolute inset-0 aura-particles pointer-events-none" aria-hidden>
+          {/* lightweight static placeholder particles */}
+          <div className="particle" style={{ top: "20%", left: "15%" }} />
+          <div className="particle" style={{ top: "65%", left: "25%", animationDelay: "1.2s" }} />
+          <div className="particle" style={{ top: "40%", left: "70%", animationDelay: "0.6s" }} />
+          <div className="particle" style={{ top: "75%", left: "80%", animationDelay: "1.9s" }} />
+        </div>
+
+        {/* Aura orb decoration */}
+        <div
+          className="absolute -top-16 -right-16 w-72 h-72 opacity-25 aura-orb"
+          aria-hidden
+          style={{
+            backgroundSize: "200% 200%",
+            animation: "gradient-drift 18s var(--easing-standard) infinite",
+            filter: "blur(6px)",
+          }}
+        />
+
+        {/* Content */}
+        <div className="relative z-[var(--z-surface)] mx-auto max-w-5xl px-6 text-center">
+          <div className="inline-flex items-center gap-2 aura-glass px-3 py-1.5 rounded-[var(--radius-xl)] text-xs text-[color:var(--aura-fg-subtle)] mb-6">
+            <Sparkles className="w-4 h-4 text-[color:var(--aura-primary)]" />
+            Welcome to the Magical Aura system
           </div>
-          
-          <h1 className="text-6xl md:text-7xl font-bold mb-8 bg-gradient-to-r from-purple-600 via-blue-600 to-purple-600 bg-clip-text text-transparent leading-tight">
-            Meet Your
-            <br />
-            Digital Aura
+
+          <h1
+            id="hero-title"
+            className="text-4xl sm:text-6xl md:text-7xl font-extrabold aura-gradient-text leading-[1.1] tracking-tight"
+            style={{ animation: "aura-pulse 6s var(--easing-standard) infinite" }}
+          >
+            Meet your Digital Aura
           </h1>
-          
-          <p className="text-xl md:text-2xl text-gray-600 mb-12 max-w-3xl mx-auto leading-relaxed">
-            Create a personalized AI companion that lives in the cloud, learns from your digital life, 
-            and becomes your intelligent partner in navigating the modern world.
+
+          <p className="mt-6 text-base sm:text-lg md:text-xl text-[color:var(--aura-fg-muted)] max-w-3xl mx-auto">
+            Create a personalized AI companion that learns from your world and helps you
+            act with clarity—powered by ambient context and respectful automation.
           </p>
-          
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-16">
+
+          <div className="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4">
             <Link href={`${dashboardUrl}/register`}>
-              <Button 
-                size="lg" 
-                className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg"
-              >
-                <Sparkles className="w-5 h-5 mr-2" />
+              <AuraButton variant="primary" className="h-11 px-6">
+                <Sparkles className="w-4 h-4 mr-2" />
                 Create Your Aura
-                <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </AuraButton>
             </Link>
-            <Link href="#demo">
-              <Button 
-                variant="outline" 
-                size="lg" 
-                className="px-8 py-6 text-lg border-2 hover:bg-purple-50"
-              >
-                Watch Demo
-              </Button>
+            <Link href="#how">
+              <AuraButton variant="glass" className="h-11 px-6">
+                How it works
+              </AuraButton>
             </Link>
           </div>
 
-          {/* Social Proof */}
-          <div className="flex items-center justify-center space-x-1 text-amber-400 mb-4">
-            {[...Array(5)].map((_, i) => (
-              <Star key={i} className="w-5 h-5 fill-current" />
-            ))}
+          {/* Social proof */}
+          <div className="mt-10 flex flex-col items-center">
+            <div className="flex items-center justify-center gap-1 text-amber-400" aria-label="5 out of 5 stars">
+              {[...Array(5)].map((_, i) => (
+                <Star key={i} className="w-5 h-5 fill-current" />
+              ))}
+            </div>
+            <p className="mt-2 text-sm text-[color:var(--aura-fg-subtle)]">
+              Trusted by creators and teams building meaningful assistants
+            </p>
           </div>
-          <p className="text-gray-600">
-            Trusted by thousands of users worldwide
-          </p>
         </div>
       </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-white">
-        <div className="container mx-auto px-6">
-          <div className="text-center mb-16">
-            <h2 className="text-4xl md:text-5xl font-bold mb-6 bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-              Powerful Features
-            </h2>
-            <p className="text-xl text-gray-600 max-w-3xl mx-auto">
-              Your Aura comes equipped with advanced capabilities to enhance your digital experience
+      {/* Features */}
+      <section id="features" className="py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="text-center mb-10 sm:mb-14">
+            <h2 className="text-2xl sm:text-4xl font-bold aura-gradient-text">Powerful features</h2>
+            <p className="mt-3 text-[color:var(--aura-fg-muted)] max-w-2xl mx-auto">
+              Built with tokens, utilities, and primitives for performance and accessibility.
             </p>
           </div>
 
-          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
-            <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200">
-              <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-2xl mb-6">
-                <Brain />
-              </div>
-              <h3 className="text-2xl font-bold mb-4 text-purple-800">Intelligent Learning</h3>
-              <p className="text-gray-600">
-                Your Aura learns from your interactions, preferences, and digital patterns to become more helpful over time.
-              </p>
-            </div>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                icon: <Cpu className="w-5 h-5" />,
+                title: "Ambient Intelligence",
+                copy:
+                  "Your Aura synthesizes signals with privacy-respectful context to assist proactively.",
+              },
+              {
+                icon: <Shield className="w-5 h-5" />,
+                title: "Privacy First",
+                copy:
+                  "Local-first decisions and explicit permissions keep you in control of your data.",
+              },
+              {
+                icon: <Zap className="w-5 h-5" />,
+                title: "Fast & Lightweight",
+                copy:
+                  "CSS-driven visuals, reduced motion support, and minimal runtime JavaScript.",
+              },
+            ].map((f, idx) => (
+              <article
+                key={idx}
+                className="aura-card p-6 transition-transform duration-200 hover:-translate-y-1"
+                role="article"
+              >
+                <div className="w-10 h-10 aura-glass rounded-lg flex items-center justify-center mb-4">
+                  {f.icon}
+                </div>
+                <h3 className="text-lg font-semibold mb-2">{f.title}</h3>
+                <p className="text-sm text-[color:var(--aura-fg-muted)]">{f.copy}</p>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
 
-            <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-blue-50 to-purple-50 border border-blue-200">
-              <div className="w-16 h-16 mx-auto bg-gradient-to-r from-blue-500 to-purple-500 rounded-full flex items-center justify-center text-white text-2xl mb-6">
-                <Shield />
-              </div>
-              <h3 className="text-2xl font-bold mb-4 text-blue-800">Privacy First</h3>
-              <p className="text-gray-600">
-                Your data is encrypted and secure. You maintain full control over what your Aura can access and learn.
-              </p>
-            </div>
-
-            <div className="text-center p-8 rounded-2xl bg-gradient-to-br from-purple-50 to-blue-50 border border-purple-200">
-              <div className="w-16 h-16 mx-auto bg-gradient-to-r from-purple-500 to-blue-500 rounded-full flex items-center justify-center text-white text-2xl mb-6">
-                <Zap />
-              </div>
-              <h3 className="text-2xl font-bold mb-4 text-purple-800">Always Available</h3>
-              <p className="text-gray-600">
-                Cloud-based and accessible from anywhere, your Aura is ready to assist you 24/7 across all your devices.
-              </p>
+      {/* Trust / Logos */}
+      <section id="trust" className="py-12">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="aura-surface px-4 sm:px-6 py-6 sm:py-8 rounded-[var(--radius-lg)] border border-[color:var(--border-subtle)]">
+            <p className="text-center text-xs sm:text-sm text-[color:var(--aura-fg-subtle)] mb-4">
+              Backed by a growing community
+            </p>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 opacity-80">
+              <div className="aura-shimmer h-10 rounded-md" aria-hidden />
+              <div className="aura-shimmer h-10 rounded-md" aria-hidden />
+              <div className="aura-shimmer h-10 rounded-md" aria-hidden />
+              <div className="aura-shimmer h-10 rounded-md" aria-hidden />
             </div>
           </div>
         </div>
       </section>
 
-      {/* CTA Section */}
-      <section className="py-20 bg-gradient-to-r from-purple-600 to-blue-600">
-        <div className="container mx-auto px-6 text-center">
-          <h2 className="text-4xl md:text-5xl font-bold text-white mb-6">
-            Ready to Meet Your Aura?
-          </h2>
-          <p className="text-xl text-purple-100 mb-8 max-w-2xl mx-auto">
-            Join thousands of users who have already discovered the power of having a digital AI companion.
-          </p>
-          <Link href={`${dashboardUrl}/register`}>
-            <Button 
-              size="lg" 
-              className="bg-white text-purple-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all duration-300 px-8 py-6 text-lg font-semibold"
-            >
-              <Sparkles className="w-5 h-5 mr-2" />
-              Start Your Journey
-              <ArrowRight className="w-5 h-5 ml-2" />
-            </Button>
-          </Link>
+      {/* How it works */}
+      <section id="how" className="py-16 sm:py-20">
+        <div className="mx-auto max-w-6xl px-6">
+          <div className="text-center mb-10 sm:mb-14">
+            <h2 className="text-2xl sm:text-4xl font-bold">How it works</h2>
+            <p className="mt-3 text-[color:var(--aura-fg-muted)] max-w-2xl mx-auto">
+              Three simple steps to bring your Aura to life.
+            </p>
+          </div>
+
+          <ol className="grid md:grid-cols-3 gap-6">
+            {[
+              {
+                step: "1",
+                title: "Define intent",
+                copy: "Describe your goals and boundaries. Your Aura sets a clear purpose.",
+              },
+              {
+                step: "2",
+                title: "Connect signals",
+                copy: "Optionally link data sources. Stay private with explicit controls.",
+              },
+              {
+                step: "3",
+                title: "Act with clarity",
+                copy: "Your Aura suggests or automates with your approval and oversight.",
+              },
+            ].map((s, idx) => (
+              <li key={idx} className="aura-card p-6">
+                <div className="aura-glass inline-flex items-center justify-center w-8 h-8 rounded-full mb-3 text-sm font-semibold">
+                  {s.step}
+                </div>
+                <h3 className="font-semibold mb-1">{s.title}</h3>
+                <p className="text-sm text-[color:var(--aura-fg-muted)]">{s.copy}</p>
+              </li>
+            ))}
+          </ol>
+
+          <div className="mt-10 text-center">
+            <Link href={`${dashboardUrl}/register`} className="inline-block">
+              <AuraButton variant="primary" className="h-11 px-6">
+                Start free
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </AuraButton>
+            </Link>
+          </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12">
-        <div className="container mx-auto px-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center space-x-2">
-              <Brain className="w-6 h-6 text-purple-400" />
-              <span className="text-xl font-bold">Aura Link</span>
+      <footer className="mt-8 border-t border-[color:var(--border-subtle)] aura-surface">
+        <div className="mx-auto max-w-7xl px-6 py-10">
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <div className="w-6 h-6 rounded-md aura-orb" aria-hidden />
+              <span className="text-sm font-medium">Aura Link</span>
             </div>
-            <div className="text-gray-400">
-              © 2024 Aura Link. All rights reserved.
-            </div>
+            <nav className="flex items-center gap-4 text-xs text-[color:var(--aura-fg-subtle)]" aria-label="Footer">
+              <Link href="#features" className="hover:text-[color:var(--aura-fg)] aura-underline">Features</Link>
+              <Link href="#how" className="hover:text-[color:var(--aura-fg)] aura-underline">How it works</Link>
+              <Link href="#trust" className="hover:text-[color:var(--aura-fg)] aura-underline">Trust</Link>
+            </nav>
+            <p className="text-xs text-[color:var(--aura-fg-subtle)]">
+              © {new Date().getFullYear()} Aura Link
+            </p>
           </div>
         </div>
       </footer>
     </div>
-  )
+  );
 }
