@@ -28,8 +28,9 @@ RUN npm install -g pnpm
 # Copy everything including node_modules
 COPY --from=deps /app ./
 
-# Copy source code
-COPY . .
+# Copy only marketing app source code (avoid copying web app middleware)
+COPY apps/marketing ./apps/marketing
+COPY packages ./packages
 
 # Build the marketing application
 RUN cd apps/marketing && pnpm build
