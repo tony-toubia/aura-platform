@@ -56,7 +56,8 @@ type LocationResult = {
 }
 
 async function fetchLocationSuggestions(query: string): Promise<LocationResult[]> {
-  const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
+  const { ConfigService } = await import('@/lib/services/config-service')
+  const apiKey = await ConfigService.getOpenweatherApiKey()
   if (!apiKey) {
     console.error("OpenWeather API key is not configured.")
     return []

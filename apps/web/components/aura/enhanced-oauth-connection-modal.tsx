@@ -402,7 +402,8 @@ export function EnhancedOAuthConnectionModal({
     try {
       if (providerId === 'google' && senseType === 'calendar') {
         // Real Google Calendar OAuth
-        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        const { ConfigService } = await import('@/lib/services/config-service')
+        const clientId = await ConfigService.getGoogleClientId()
         
         if (!clientId) {
           throw new Error('Google Client ID not configured. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID to your environment variables.')
@@ -439,7 +440,8 @@ export function EnhancedOAuthConnectionModal({
         
       } else if (providerId === 'outlook' && senseType === 'calendar') {
         // Real Microsoft Outlook OAuth
-        const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID
+        const { ConfigService } = await import('@/lib/services/config-service')
+        const clientId = await ConfigService.getMicrosoftClientId()
         
         if (!clientId) {
           throw new Error('Microsoft Client ID not configured. Please add NEXT_PUBLIC_MICROSOFT_CLIENT_ID to your environment variables.')
@@ -483,7 +485,8 @@ export function EnhancedOAuthConnectionModal({
         
       } else if (providerId === 'apple_health' && senseType === 'fitness') {
         // Apple Health OAuth integration
-        const clientId = process.env.NEXT_PUBLIC_APPLE_HEALTH_CLIENT_ID
+        const { ConfigService } = await import('@/lib/services/config-service')
+        const clientId = await ConfigService.getAppleHealthClientId()
         
         if (!clientId) {
           throw new Error('Apple Health Client ID not configured. Please add NEXT_PUBLIC_APPLE_HEALTH_CLIENT_ID to your environment variables.')
@@ -521,11 +524,10 @@ export function EnhancedOAuthConnectionModal({
         
       } else if (providerId === 'google_fit' && senseType === 'fitness') {
         // Google Fit OAuth integration (reuses existing Google credentials)
-        const clientId = process.env.NEXT_PUBLIC_GOOGLE_FIT_CLIENT_ID || process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        const { ConfigService } = await import('@/lib/services/config-service')
+        const clientId = await ConfigService.getGoogleClientId()
         
         console.log('🔑 Environment check:', {
-          hasGoogleFitClientId: !!process.env.NEXT_PUBLIC_GOOGLE_FIT_CLIENT_ID,
-          hasGoogleClientId: !!process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
           clientId: clientId ? clientId.substring(0, 10) + '...' : 'NOT_SET'
         })
         
@@ -587,7 +589,8 @@ export function EnhancedOAuthConnectionModal({
         
       } else if (providerId === 'fitbit' && senseType === 'fitness') {
         // Fitbit OAuth integration
-        const clientId = process.env.NEXT_PUBLIC_FITBIT_CLIENT_ID
+        const { ConfigService } = await import('@/lib/services/config-service')
+        const clientId = await ConfigService.getFitbitClientId()
         
         if (!clientId) {
           throw new Error('Fitbit Client ID not configured. Please add NEXT_PUBLIC_FITBIT_CLIENT_ID to your environment variables.')
@@ -631,7 +634,8 @@ export function EnhancedOAuthConnectionModal({
         
       } else if (providerId === 'strava' && senseType === 'fitness') {
         // Strava OAuth integration
-        const clientId = process.env.NEXT_PUBLIC_STRAVA_CLIENT_ID
+        const { ConfigService } = await import('@/lib/services/config-service')
+        const clientId = await ConfigService.getStravaClientId()
         
         if (!clientId) {
           throw new Error('Strava Client ID not configured. Please add NEXT_PUBLIC_STRAVA_CLIENT_ID to your environment variables.')

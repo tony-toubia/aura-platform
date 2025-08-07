@@ -224,7 +224,8 @@ export function OAuthConnectionModal({
     try {
       if (providerId === 'google' && senseType === 'calendar') {
         // Real Google Calendar OAuth
-        const clientId = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID
+        const { ConfigService } = await import('@/lib/services/config-service')
+        const clientId = await ConfigService.getGoogleClientId()
         
         if (!clientId) {
           throw new Error('Google Client ID not configured. Please add NEXT_PUBLIC_GOOGLE_CLIENT_ID to your environment variables.')
@@ -258,7 +259,8 @@ export function OAuthConnectionModal({
         
       } else if (providerId === 'outlook' && senseType === 'calendar') {
         // Real Microsoft Outlook OAuth
-        const clientId = process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID
+        const { ConfigService } = await import('@/lib/services/config-service')
+        const clientId = await ConfigService.getMicrosoftClientId()
         
         if (!clientId) {
           throw new Error('Microsoft Client ID not configured. Please add NEXT_PUBLIC_MICROSOFT_CLIENT_ID to your environment variables.')
