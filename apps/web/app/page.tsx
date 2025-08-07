@@ -1,11 +1,16 @@
 import PublicHomePage from './(public)/page'
-import PublicLayout from './(public)/layout'
+import Header from '@/components/layout/header'
+import { Footer } from '@/components/layout/footer'
 
 export default function RootPage() {
-  // Show public page for unauthenticated users with proper layout
+  // Show public page for unauthenticated users
   return (
-    <PublicLayout>
-      <PublicHomePage />
-    </PublicLayout>
+    <div className="min-h-screen flex flex-col">
+      <Header />
+      <main className="flex-1">
+        <PublicHomePage />
+      </main>
+      <Footer />
+    </div>
   )
 }
