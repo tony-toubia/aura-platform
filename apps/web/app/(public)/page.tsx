@@ -45,11 +45,49 @@ function VideoModal({ onClose }: { onClose: () => void }) {
 }
 
 
+function PublicHeader() {
+  return (
+    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+      <div className="container flex h-14 items-center">
+        <div className="mr-4 flex">
+          <Link href="/" className="mr-6 flex items-center space-x-2">
+            <Sparkles className="h-6 w-6 text-purple-600" />
+            <span className="font-bold text-xl">Aura</span>
+          </Link>
+        </div>
+        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
+          <nav className="flex items-center space-x-6">
+            <Link href="/vessels" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Vessels
+            </Link>
+            <Link href="/meet-the-animals" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
+              Animals
+            </Link>
+          </nav>
+          <div className="flex items-center space-x-2">
+            <Link href="/login">
+              <Button variant="ghost" size="sm">
+                Sign In
+              </Button>
+            </Link>
+            <Link href="/register">
+              <Button size="sm">
+                Get Started
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    </header>
+  )
+}
+
 export default function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false)
 
   return (
     <div className="min-h-screen">
+      <PublicHeader />
       {isModalOpen && <VideoModal onClose={() => setIsModalOpen(false)} />}
 
       {/* Hero Section */}
@@ -298,6 +336,32 @@ export default function HomePage() {
           </div>
         </div>
       </section>
+
+      {/* Footer */}
+      <footer className="border-t bg-background">
+        <div className="container py-8 md:py-12">
+          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              <span className="font-semibold">Aura</span>
+            </div>
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+              <Link href="/privacy" className="hover:text-foreground transition-colors">
+                Privacy
+              </Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors">
+                Terms
+              </Link>
+              <Link href="/contact" className="hover:text-foreground transition-colors">
+                Contact
+              </Link>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              © 2024 Aura. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }
