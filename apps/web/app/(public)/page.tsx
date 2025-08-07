@@ -47,35 +47,52 @@ function VideoModal({ onClose }: { onClose: () => void }) {
 
 function PublicHeader() {
   return (
-    <header className="sticky top-0 z-40 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-      <div className="container flex h-14 items-center">
-        <div className="mr-4 flex">
-          <Link href="/" className="mr-6 flex items-center space-x-2">
-            <Sparkles className="h-6 w-6 text-purple-600" />
-            <span className="font-bold text-xl">Aura</span>
-          </Link>
-        </div>
-        <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-          <nav className="flex items-center space-x-6">
-            <Link href="/vessels" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Vessels
-            </Link>
-            <Link href="/meet-the-animals" className="text-sm font-medium text-muted-foreground hover:text-foreground transition-colors">
-              Animals
-            </Link>
-          </nav>
-          <div className="flex items-center space-x-2">
-            <Link href="/login">
-              <Button variant="ghost" size="sm">
-                Sign In
-              </Button>
-            </Link>
-            <Link href="/register">
-              <Button size="sm">
-                Get Started
-              </Button>
-            </Link>
+    <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        {/* Logo/Brand */}
+        <Link href="/" className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center shadow-md">
+            <Sparkles className="w-5 h-5 text-white" />
           </div>
+          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Aura Engine
+          </h1>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center space-x-1">
+          <Link
+            href="/vessels"
+            className="px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed rounded-lg relative"
+          >
+            Vessels
+            <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded pointer-events-none">
+              Coming Soon
+            </span>
+          </Link>
+          <Link
+            href="/meet-the-animals"
+            className="px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed rounded-lg relative"
+          >
+            Animals
+            <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded pointer-events-none">
+              Coming Soon
+            </span>
+          </Link>
+        </nav>
+
+        {/* Auth Buttons */}
+        <div className="flex items-center space-x-3">
+          <Link href="https://app.aura-link.app/login">
+            <Button variant="ghost" size="sm" className="text-gray-700 hover:text-purple-600 hover:bg-purple-50">
+              Sign In
+            </Button>
+          </Link>
+          <Link href="https://app.aura-link.app/register">
+            <Button size="sm" className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md">
+              Get Started
+            </Button>
+          </Link>
         </div>
       </div>
     </header>
@@ -115,7 +132,7 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/register">
+              <Link href="https://app.aura-link.app/register">
                 <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all">
                   <Sparkles className="w-5 h-5 mr-2" />
                   Start Creating Magic
@@ -316,7 +333,7 @@ export default function HomePage() {
             </p>
             
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-              <Link href="/register">
+              <Link href="https://app.aura-link.app/register">
                 <Button size="lg" className="text-lg px-8 py-6 bg-white text-purple-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all">
                   <Sparkles className="w-5 h-5 mr-2" />
                   Create Free Digital Aura
