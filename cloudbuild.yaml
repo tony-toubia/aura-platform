@@ -9,7 +9,7 @@ steps:
       - '-t'
       - 'gcr.io/$PROJECT_ID/aura-dashboard:latest'
       - '-f'
-      - 'Dockerfile.web'
+      - 'Dockerfile'
       - '--build-arg'
       - 'NEXT_PUBLIC_SUPABASE_URL=https://ahzmfkjtiiyuipweaktx.supabase.co'
       - '--build-arg'
