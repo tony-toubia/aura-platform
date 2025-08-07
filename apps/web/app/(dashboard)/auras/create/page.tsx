@@ -3,11 +3,10 @@ import { SubscriptionGuard } from '@/components/subscription/subscription-guard'
 
 export default function CreateAuraPage() {
   return (
-    // Temporarily bypassed SubscriptionGuard - same issue as other pages
-    <div>
+    <SubscriptionGuard feature="maxAuras">
       <div className="container py-8">
         <AuraCreatorDigital />
       </div>
-    </div>
+    </SubscriptionGuard>
   )
 }

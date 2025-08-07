@@ -25,8 +25,8 @@ export default function CreateSelectPage() {
   const router = useRouter()
 
   return (
-    // Temporarily bypassed SubscriptionGuard - same issue as auras list
-    <div>
+    <SubscriptionGuard feature="maxAuras">
+      <div>
       <div className="container mx-auto px-2 py-4">
         <div className="max-w-4xl mx-auto">
           {/* Back Button */}
@@ -131,6 +131,7 @@ export default function CreateSelectPage() {
           </div>
         </div>
       </div>
-    </div>
+      </div>
+    </SubscriptionGuard>
   )
 }

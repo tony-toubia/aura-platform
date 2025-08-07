@@ -414,8 +414,8 @@ export default function CreateAuraWithAgentPage() {
   const progressInfo = getConfigurationProgress();
 
   return (
-    // Temporarily bypassed SubscriptionGuard - same issue as other pages
-    <div>
+    <SubscriptionGuard feature="maxAuras">
+      <div>
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto">
         {mode === "agent" && (
@@ -703,6 +703,7 @@ export default function CreateAuraWithAgentPage() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </SubscriptionGuard>
   );
 }

@@ -236,9 +236,18 @@ export function AurasList({ initialAuras }: AurasListProps) {
         {/* Action Buttons - Always show */}
         <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
           <div className="w-full flex flex-col items-center">
-            {/* Temporary direct implementation using proper subscription checking */}
+            {/* Show loading state while checking subscription */}
             {canCreateAura === null ? (
-              <div></div>
+              <div className="w-full max-w-md">
+                <div className="border-gray-200 bg-gray-50 border rounded-lg">
+                  <div className="p-6 text-center">
+                    <div className="animate-pulse">
+                      <div className="h-4 bg-gray-300 rounded w-3/4 mx-auto mb-2"></div>
+                      <div className="h-3 bg-gray-300 rounded w-1/2 mx-auto"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             ) : canCreateAura ? (
               <Button
                 onClick={() => router.push('/auras/create-select')}
@@ -263,7 +272,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
                           You&apos;ve reached the maximum number of active Auras for your current plan.
                         </p>
                         <Button 
-                          onClick={() => router.push('/billing')}
+                          onClick={() => router.push('/subscription')}
                           className="mt-4" 
                           size="sm"
                         >
