@@ -3,7 +3,7 @@ import Header from '@/components/layout/header'
 import { Footer } from '@/components/layout/footer'
 
 export default function RootPage() {
-  // Temporarily show public page without auth check to debug
+  // Show public page for unauthenticated users
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
