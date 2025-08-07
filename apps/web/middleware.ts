@@ -85,6 +85,14 @@ export async function middleware(request: NextRequest) {
 
   // Handle cross-domain redirects for production
   const host = request.headers.get('host')
+  
+  // Redirect auth pages from marketing site to app subdomain
+  if (host === 'aura-link.app' && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register'))) {
+    const appUrl = new URL(request.url)
+    appUrl.host = 'app.aura-link.app'
+    return NextResponse.redirect(appUrl)
+  }
+  
   if (host === 'aura-link.app' && isProtectedRoute) {
     // Redirect from marketing site to dashboard subdomain for protected routes
     const dashboardUrl = new URL(request.url)
