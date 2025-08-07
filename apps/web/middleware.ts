@@ -92,6 +92,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(dashboardUrl)
   }
 
+  // Redirect unauthenticated users from app subdomain root to login
+  if (host === 'app.aura-link.app' && request.nextUrl.pathname === '/' && !user) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+
     return response
   } catch (error) {
     console.error('Middleware error:', error)

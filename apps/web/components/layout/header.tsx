@@ -181,10 +181,10 @@ export default async function Header() {
           ) : (
             <>
               <Button asChild variant="ghost">
-                <Link href="/login">Sign In</Link>
+                <Link href="https://app.aura-link.app/login">Sign In</Link>
               </Button>
               <Button asChild className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700">
-                <Link href="/register">Get Started</Link>
+                <Link href="https://app.aura-link.app/register">Get Started</Link>
               </Button>
             </>
           )}
