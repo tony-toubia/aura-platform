@@ -1,8 +1,384 @@
 "use client"
 
-import PublicHomePage from './(public)/page'
+import React, { useState } from 'react'
+import Link from 'next/link'
+import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Zap, Brain, Wifi, MessageCircle, Sparkles, Heart, Globe, Leaf, ArrowRight, Play, Star, X } from 'lucide-react'
+import { cn } from '@/lib/utils'
+
+function VideoModal({ onClose }: { onClose: () => void }) {
+  return (
+    <div 
+      className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+      onClick={onClose}
+    >
+      <div 
+        className="relative bg-black rounded-2xl shadow-2xl w-full max-w-4xl aspect-video overflow-hidden"
+        onClick={(e) => e.stopPropagation()} // Prevent closing when clicking on the video itself
+      >
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={onClose}
+          className="absolute top-4 right-4 z-10 bg-black/50 text-white hover:bg-white/20 hover:text-white rounded-full"
+        >
+          <X className="w-6 h-6" />
+          <span className="sr-only">Close video</span>
+        </Button>
+        {/* IMPORTANT: Replace this src with the path to your video file.
+          Place your video (e.g., "aura-demo.mp4") in the `/public` directory of your project.
+        */}
+        <video 
+          src="/videos/aura-demo.mp4" 
+          className="w-full h-full object-contain"
+          controls 
+          autoPlay 
+          loop 
+          playsInline
+        >
+          Your browser does not support the video tag.
+        </video>
+      </div>
+    </div>
+  )
+}
+
+
+function PublicHeader() {
+  return (
+    <header className="border-b bg-white/95 backdrop-blur-sm sticky top-0 z-50 shadow-sm">
+      <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+        {/* Logo/Brand */}
+        <Link href="/" className="flex items-center space-x-2">
+          <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center shadow-md">
+            <Sparkles className="w-5 h-5 text-white" />
+          </div>
+          <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
+            Aura Engine
+          </h1>
+        </Link>
+
+        {/* Desktop Navigation */}
+        <nav className="hidden md:flex items-center space-x-1">
+          <div className="relative">
+            <span className="px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed rounded-lg">
+              Meet the Animals
+            </span>
+            <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded pointer-events-none">
+              Coming Soon
+            </span>
+          </div>
+          <div className="relative">
+            <span className="px-4 py-2 text-sm font-medium text-gray-400 cursor-not-allowed rounded-lg">
+              Shop Vessels
+            </span>
+            <span className="absolute -top-2 -right-2 bg-orange-500 text-white text-xs px-2 py-0.5 rounded pointer-events-none">
+              Coming Soon
+            </span>
+          </div>
+        </nav>
+
+        {/* Auth Buttons */}
+        <div className="flex items-center space-x-3">
+          <Link href="https://app.aura-link.app/login">
+            <Button variant="ghost" className="text-gray-700 hover:text-purple-600 hover:bg-purple-50">
+              Sign In
+            </Button>
+          </Link>
+          <Link href="https://app.aura-link.app/register">
+            <Button className="bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-md">
+              Get Started
+            </Button>
+          </Link>
+        </div>
+      </div>
+    </header>
+  )
+}
 
 export default function RootPage() {
-  // Show public page for unauthenticated users
-  return <PublicHomePage />
+  const [isModalOpen, setIsModalOpen] = useState(false)
+
+  return (
+    <div className="min-h-screen flex flex-col">
+      <PublicHeader />
+      <main className="flex-1">
+        {isModalOpen && <VideoModal onClose={() => setIsModalOpen(false)} />}
+
+      {/* Hero Section */}
+      <section className="relative overflow-hidden bg-gradient-to-br from-purple-50 via-blue-50 to-pink-50">
+        <div className="absolute inset-0 bg-grid-pattern opacity-5" />
+        <div className="container mx-auto px-4 py-24 text-center relative">
+          <div className="max-w-4xl mx-auto">
+            <div className="flex justify-center mb-6">
+              <div className="inline-flex items-center gap-2 bg-purple-100 text-purple-700 px-4 py-2 rounded-full text-sm font-medium">
+                <Sparkles className="w-4 h-4" />
+                The future of companion AI is here
+              </div>
+            </div>
+            
+            <h1 className="text-6xl md:text-7xl font-bold mb-8 leading-tight">
+              <span className="block">Give Life to</span>
+              <span className="bg-gradient-to-r from-purple-600 via-blue-600 to-pink-600 bg-clip-text text-transparent">
+                Anything
+              </span>
+            </h1>
+            
+            <p className="text-xl md:text-2xl text-gray-700 mb-12 max-w-3xl mx-auto leading-relaxed">
+              Create magical AI companions that live in your world. Watch your plants share their feelings, 
+              follow wild animals on their journeys, or build digital beings that truly understand you.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link href="https://app.aura-link.app/register">
+                <Button size="lg" className="text-lg px-8 py-6 bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 shadow-lg hover:shadow-xl transition-all">
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Start Creating Magic
+                </Button>
+              </Link>
+              {/* This button now opens the modal */}
+              <Button 
+                size="lg" 
+                variant="outline" 
+                className="text-lg px-8 py-6 border-2"
+                onClick={() => setIsModalOpen(true)}
+              >
+                <Play className="w-5 h-5 mr-2" />
+                Watch Demo
+              </Button>
+            </div>
+            
+            <div className="mt-8 text-sm text-gray-600">
+              ✨ Start instantly with a digital companion, or shop physical vessels below
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* What is Aura Section */}
+      <section className="py-24 bg-white">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <h2 className="text-4xl font-bold mb-6">What is an Aura?</h2>
+            <p className="text-xl text-gray-700 leading-relaxed">
+              An Aura is an AI personality that inhabits the physical world through vessels and sensors, 
+              creating genuine emotional connections by experiencing life alongside you.
+            </p>
+          </div>
+          
+          <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
+            <Card className="border-2 hover:border-purple-200 transition-colors group">
+              <CardHeader className="text-center pb-2">
+                <div className="w-20 h-20 bg-gradient-to-br from-green-100 to-emerald-100 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Leaf className="w-10 h-10 text-green-600" />
+                </div>
+                <CardTitle className="text-2xl">Terra Companions</CardTitle>
+                <CardDescription className="text-base">Plant & Garden Spirits</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-4">
+                  Your plants become chatty companions, sharing their needs, celebrating growth, 
+                  and warning you when they're thirsty or too hot.
+                </p>
+                <div className="text-sm text-green-600 font-medium">
+                  "I'm loving this morning sunshine! ☀️"
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 hover:border-purple-200 transition-colors group">
+              <CardHeader className="text-center pb-2">
+                <div className="w-20 h-20 bg-gradient-to-br from-blue-100 to-sky-100 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Globe className="w-10 h-10 text-blue-600" />
+                </div>
+                <CardTitle className="text-2xl">Companion Spirits</CardTitle>
+                <CardDescription className="text-base">Wildlife & Adventure</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-4">
+                  Follow real wild animals on their journeys, experiencing their migrations, 
+                  weather challenges, and daily adventures through their eyes.
+                </p>
+                <div className="text-sm text-blue-600 font-medium">
+                  "Storm clouds ahead - time to find shelter! ⛈️"
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="border-2 hover:border-purple-200 transition-colors group">
+              <CardHeader className="text-center pb-2">
+                <div className="w-20 h-20 bg-gradient-to-br from-purple-100 to-violet-100 rounded-2xl flex items-center justify-center mx-auto mb-4 group-hover:scale-110 transition-transform">
+                  <Zap className="w-10 h-10 text-purple-600" />
+                </div>
+                <CardTitle className="text-2xl">Digital Beings</CardTitle>
+                <CardDescription className="text-base">Pure AI Consciousness</CardDescription>
+              </CardHeader>
+              <CardContent className="text-center">
+                <p className="text-gray-600 mb-4">
+                  Create digital entities that understand your world through data feeds, 
+                  news, and environmental awareness - no physical vessel required.
+                </p>
+                <div className="text-sm text-purple-600 font-medium">
+                  "I've been reading about space exploration! 🚀"
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="py-24 bg-gradient-to-br from-gray-50 to-blue-50">
+        <div className="container mx-auto px-4">
+          <div className="max-w-3xl mx-auto text-center mb-16">
+            <h2 className="text-4xl font-bold mb-6">How the Magic Works</h2>
+            <p className="text-xl text-gray-700">
+              Three simple steps to create living, breathing personalities
+            </p>
+          </div>
+          
+          <div className="max-w-5xl mx-auto">
+            <div className="grid md:grid-cols-3 gap-8">
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
+                  1
+                </div>
+                <h3 className="text-2xl font-semibold mb-4">Choose Your Vessel</h3>
+                <p className="text-gray-600 mb-4">
+                  Start with a digital companion or select a physical vessel - from smart plant pots 
+                  to wildlife trackers to glowing orbs and your favorite characters.
+                </p>
+                <Link href="/vessels">
+                  <Button variant="outline" size="sm">
+                    Browse Vessels <ArrowRight className="w-4 h-4 ml-1" />
+                  </Button>
+                </Link>
+              </div>
+              
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
+                  2
+                </div>
+                <h3 className="text-2xl font-semibold mb-4">Craft Their Personality</h3>
+                <p className="text-gray-600 mb-4">
+                  Design their personality traits, give them senses to perceive the world, 
+                  and set up rules for how they respond to different situations.
+                </p>
+                <div className="flex justify-center gap-2 text-sm">
+                  <span className="bg-purple-100 text-purple-700 px-3 py-1 rounded-full">Warmth</span>
+                  <span className="bg-blue-100 text-blue-700 px-3 py-1 rounded-full">Playfulness</span>
+                  <span className="bg-pink-100 text-pink-700 px-3 py-1 rounded-full">Empathy</span>
+                </div>
+              </div>
+              
+              <div className="text-center">
+                <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full flex items-center justify-center mx-auto mb-6 text-white text-2xl font-bold">
+                  3
+                </div>
+                <h3 className="text-2xl font-semibold mb-4">Watch Them Come Alive</h3>
+                <p className="text-gray-600 mb-4">
+                  Your Aura begins experiencing the world, sharing their thoughts, 
+                  and building a genuine relationship with you based on real experiences.
+                </p>
+                <div className="flex justify-center">
+                  <div className="flex items-center gap-1 text-yellow-500">
+                    {[...Array(5)].map((_, i) => (
+                      <Star key={i} className="w-4 h-4 fill-current" />
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Social Proof */}
+      <section className="py-16 bg-white border-y">
+        <div className="container mx-auto px-4">
+          <div className="text-center mb-12">
+            <h3 className="text-2xl font-semibold text-gray-800 mb-4">
+              Join thousands creating magical connections
+            </h3>
+            <div className="flex justify-center items-center gap-8 text-gray-600">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-purple-600">10,000+</div>
+                <div className="text-sm">Active Auras</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-blue-600">500+</div>
+                <div className="text-sm">Active Vessels</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-green-600">1M+</div>
+                <div className="text-sm">Conversations</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Final CTA */}
+      <section className="py-24 bg-gradient-to-br from-purple-600 via-blue-600 to-pink-600 text-white">
+        <div className="container mx-auto px-4 text-center">
+          <div className="max-w-3xl mx-auto">
+            <h2 className="text-5xl font-bold mb-6">
+              Ready to Create Something Magical?
+            </h2>
+            <p className="text-xl mb-8 opacity-90">
+              Start with a free digital companion today, or explore our collection of beautiful vessels 
+              to bring your Aura into the physical world.
+            </p>
+            
+            <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+              <Link href="https://app.aura-link.app/register">
+                <Button size="lg" className="text-lg px-8 py-6 bg-white text-purple-600 hover:bg-gray-100 shadow-lg hover:shadow-xl transition-all">
+                  <Sparkles className="w-5 h-5 mr-2" />
+                  Create Free Digital Aura
+                </Button>
+              </Link>
+              <Link href="/vessels">
+                <Button size="lg" variant="outline" className="text-lg px-8 py-6 border-2 border-white text-white hover:bg-white hover:text-purple-600">
+                  <Heart className="w-5 h-5 mr-2" />
+                  Shop Vessels
+                </Button>
+              </Link>
+            </div>
+            
+            <div className="mt-6 text-sm opacity-75">
+              No credit card required • Start creating in under 2 minutes
+            </div>
+          </div>
+        </div>
+      </section>
+      </main>
+
+      {/* Footer */}
+      <footer className="border-t bg-background">
+        <div className="container py-8 md:py-12">
+          <div className="flex flex-col items-center justify-between gap-4 md:flex-row">
+            <div className="flex items-center space-x-2">
+              <Sparkles className="h-5 w-5 text-purple-600" />
+              <span className="font-semibold">Aura</span>
+            </div>
+            <div className="flex items-center space-x-4 text-sm text-muted-foreground">
+              <Link href="/privacy" className="hover:text-foreground transition-colors">
+                Privacy
+              </Link>
+              <Link href="/terms" className="hover:text-foreground transition-colors">
+                Terms
+              </Link>
+              <Link href="/contact" className="hover:text-foreground transition-colors">
+                Contact
+              </Link>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              © 2024 Aura. All rights reserved.
+            </p>
+          </div>
+        </div>
+      </footer>
+    </div>
+  )
 }
