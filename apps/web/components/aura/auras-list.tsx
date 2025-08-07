@@ -69,7 +69,13 @@ export function AurasList({ initialAuras }: AurasListProps) {
   useEffect(() => {
     const checkAuraCreation = async () => {
       try {
+        console.log('AurasList: Checking aura creation access', {
+          subscription: subscription?.id,
+          activeAuraCount,
+          maxAuras: subscription?.features?.maxAuras
+        })
         const canCreate = await checkFeatureAccess('maxAuras')
+        console.log('AurasList: Can create aura result:', canCreate)
         setCanCreateAura(canCreate)
       } catch (error) {
         console.error('Error checking aura creation access:', error)
@@ -79,6 +85,8 @@ export function AurasList({ initialAuras }: AurasListProps) {
     
     if (subscription) {
       checkAuraCreation()
+    } else {
+      console.log('AurasList: No subscription available yet')
     }
   }, [subscription, activeAuraCount, checkFeatureAccess])
 
