@@ -1,5 +1,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
+import { env } from '@/lib/config/env'
 
 export async function middleware(request: NextRequest) {
   let response = NextResponse.next({
@@ -17,10 +18,33 @@ export async function middleware(request: NextRequest) {
     return response
   }
 
+  // Get the host to determine domain-specific behavior
+  const host = request.headers.get('host')
+  
+  // Handle cross-domain redirects first (before creating Supabase client)
+  // Redirect auth pages from marketing site to app subdomain
+  if (host === 'aura-link.app' && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register'))) {
+    const appUrl = new URL(request.url)
+    appUrl.host = 'app.aura-link.app'
+    return NextResponse.redirect(appUrl)
+  }
+
+  // Define public routes that don't need authentication
+  const publicRoutes = ['/', '/vessels', '/meet-the-animals']
+  const isPublicRoute = publicRoutes.some(route => 
+    request.nextUrl.pathname === route || request.nextUrl.pathname.startsWith(route + '/')
+  )
+
+  // For public routes on the marketing domain, skip Supabase authentication entirely
+  if (host === 'aura-link.app' && isPublicRoute) {
+    return response
+  }
+
+  // Only create Supabase client for routes that need authentication
   try {
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      env.SUPABASE.URL,
+      env.SUPABASE.ANON_KEY,
       {
         cookies: {
           get(name: string) {
@@ -83,16 +107,7 @@ export async function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL('/dashboard', request.url))
   }
 
-  // Handle cross-domain redirects for production
-  const host = request.headers.get('host')
-  
-  // Redirect auth pages from marketing site to app subdomain
-  if (host === 'aura-link.app' && (request.nextUrl.pathname.startsWith('/login') || request.nextUrl.pathname.startsWith('/register'))) {
-    const appUrl = new URL(request.url)
-    appUrl.host = 'app.aura-link.app'
-    return NextResponse.redirect(appUrl)
-  }
-  
+  // Handle remaining domain-specific redirects
   if (host === 'aura-link.app' && isProtectedRoute) {
     // Redirect from marketing site to dashboard subdomain for protected routes
     const dashboardUrl = new URL(request.url)

@@ -2,6 +2,8 @@
 
 export interface DashboardStats {
   auras: number
+  totalAuras?: number
+  disabledAuras?: number
   conversations: number
   subscription: SubscriptionTier
 }

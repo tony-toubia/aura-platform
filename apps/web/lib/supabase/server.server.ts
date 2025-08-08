@@ -3,19 +3,26 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import type { Database } from '@/types/database'
+import { env, validateEnvironment } from '@/lib/config/env'
 
 /**
  * Server-only Supabase client.
  * ONLY import this from async Server Components or route handlers under /app/.
  */
-// FIX: Re-added 'async' to the function signature.
 export async function createServerSupabase() {
-  // FIX: Re-added 'await' to correctly resolve the cookies promise.
+  // Validate environment variables
+  try {
+    validateEnvironment(true)
+  } catch (error) {
+    console.error('Server Supabase client creation failed:', error)
+    throw error
+  }
+
   const cookieStore = await cookies()
 
   return createServerClient<Database>(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    env.SUPABASE.URL,
+    env.SUPABASE.ANON_KEY,
     {
       cookies: {
         get(name: string) {

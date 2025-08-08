@@ -1,0 +1,26 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: aura-dashboard
+spec:
+  template:
+    spec:
+      containers:
+      - image: gcr.io/aura-platform-467500/aura-dashboard:latest
+        env:
+        - name: NEXTAUTH_URL
+          value: "https://app.aura-link.app"
+        - name: NEXT_PUBLIC_APP_URL
+          value: "https://app.aura-link.app"
+        - name: NODE_ENV
+          value: "production"
+        - name: NEXT_PUBLIC_SUPABASE_URL
+          value: "https://ahzmfkjtiiyuipweaktx.supabase.co"
+        # The following secrets should be configured in Google Cloud Secret Manager
+        # and referenced using the Cloud Run secret mounting feature
+        # Example:
+        # - name: OPENAI_API_KEY
+        #   valueFrom:
+        #     secretKeyRef:
+        #       name: OPENAI_API_KEY
+        #       key: latest

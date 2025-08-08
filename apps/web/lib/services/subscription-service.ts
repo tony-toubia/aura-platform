@@ -148,11 +148,15 @@ export class SubscriptionService {
 
     // Use provided client (for server-side) or fallback to client-side
     const supabase = supabaseClient || createClient()
+    
+    console.log('SubscriptionService: Querying subscriptions for user:', userId)
     const { data: row, error } = await supabase
       .from('subscriptions')
       .select('tier')
       .eq('user_id', userId)
       .single()
+    
+    console.log('SubscriptionService: Query result:', { row, error })
 
     let subscription: SubscriptionTier
     if (error || !row) {

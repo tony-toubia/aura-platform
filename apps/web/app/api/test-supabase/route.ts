@@ -1,15 +1,32 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { env, validateEnvironment, logEnvironmentStatus } from '@/lib/config/env'
 
 export async function GET(): Promise<NextResponse> {
   try {
     console.log('🧪 Testing Supabase connection...')
     
+    // Log environment status
+    logEnvironmentStatus()
+    
+    // Validate environment variables
+    try {
+      validateEnvironment(true)
+      console.log('✅ Environment validation passed')
+    } catch (validationError) {
+      console.error('❌ Environment validation failed:', validationError)
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Environment validation failed',
+        details: validationError instanceof Error ? validationError.message : 'Unknown validation error'
+      }, { status: 500 })
+    }
+    
     // Test the same Supabase setup as the webhook
     const { createClient: createServerClient } = await import('@supabase/supabase-js')
     
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      env.SUPABASE.URL,
+      env.SUPABASE.SERVICE_ROLE_KEY,
       {
         auth: {
           autoRefreshToken: false,
@@ -42,9 +59,12 @@ export async function GET(): Promise<NextResponse> {
       message: 'Supabase connection working',
       testResult: testData,
       env: {
-        hasUrl: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
-        hasServiceKey: !!process.env.SUPABASE_SERVICE_ROLE_KEY,
-        urlPreview: process.env.NEXT_PUBLIC_SUPABASE_URL?.substring(0, 30) + '...'
+        nodeEnv: env.NODE_ENV,
+        hasUrl: !!env.SUPABASE.URL,
+        hasAnonKey: !!env.SUPABASE.ANON_KEY,
+        hasServiceKey: !!env.SUPABASE.SERVICE_ROLE_KEY,
+        urlPreview: env.SUPABASE.URL.substring(0, 30) + '...',
+        appUrl: env.APP_URL
       }
     })
   } catch (error) {

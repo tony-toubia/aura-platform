@@ -35,7 +35,7 @@ export const SUBSCRIPTION_CONFIG: Record<string, SubscriptionConfig> = {
 
 export const EMPTY_STATE_MESSAGES = {
   auras: {
-    zero: "You haven't created any Auras yet",
+    zero: "You don't have any active Auras",
     one: "Your Aura is waiting to chat!",
     multiple: (count: number) => `${count} personalities ready to interact`
   },

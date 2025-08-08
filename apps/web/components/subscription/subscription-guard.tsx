@@ -68,8 +68,12 @@ export function SubscriptionGuard({
     }
 
     if (!subscription) {
-      setHasAccess(false)
-      setHasInitialized(true)
+      console.log('SubscriptionGuard: No subscription available, loading:', loading)
+      // If we're not loading and still no subscription, something is wrong
+      if (!loading) {
+        setHasAccess(false)
+        setHasInitialized(true)
+      }
       return
     }
 
@@ -109,18 +113,25 @@ export function SubscriptionGuard({
     return <>{children}</>
   }
 
-  // For maxAuras feature, show a loading placeholder while checking
-  // This prevents showing "Create New Aura" button when limit is reached
-  if (feature === 'maxAuras' && !hasInitialized) {
-    // Show a placeholder with same dimensions to prevent layout shift
+  // Always render a non-blocking skeleton during initial phase to avoid "floating box" regressions
+  if (isInitialLoading || !hasInitialized) {
+    // Prefer consumer-provided fallback if available
+    if (fallback) {
+      return <>{fallback}</>
+    }
+    // Generic inline skeleton that preserves layout without looking broken
     return (
-      <div className="h-12 w-full sm:w-auto" />
+      <div className="w-full">
+        <div className="border-gray-200 bg-gray-50 border rounded-lg">
+          <div className="p-4">
+            <div className="animate-pulse space-y-2">
+              <div className="h-4 bg-gray-300 rounded w-2/3"></div>
+              <div className="h-3 bg-gray-300 rounded w-1/3"></div>
+            </div>
+          </div>
+        </div>
+      </div>
     )
-  }
-
-  // Show content optimistically while loading to prevent flash (for other features)
-  if (isInitialLoading && feature !== 'maxAuras') {
-    return <>{children}</>
   }
 
   // Access denied - trigger callback
@@ -143,21 +154,6 @@ export function SubscriptionGuard({
     )
   }
 
-  // Debug logging for maxAuras feature
-  if (feature === 'maxAuras') {
-    console.log('SubscriptionGuard Debug:', {
-      hasAccess,
-      hasInitialized,
-      loading,
-      isChecking,
-      subscription: subscription?.id,
-      feature,
-      refreshKey,
-      lastCheckKey,
-      checkKey: `${subscription?.id || 'none'}-${feature || 'none'}-${requiredTier || 'none'}-${refreshKey || 'none'}`
-    })
-  }
-
-  // Default to showing children while determining access (except for maxAuras)
-  return feature === 'maxAuras' ? <div className="h-12 w-full sm:w-auto bg-red-100 border border-red-300 flex items-center justify-center text-xs text-red-600">Loading subscription...</div> : <>{children}</>
+  // Last resort: if state is indeterminate, render children to avoid blocking UI
+  return <>{children}</>
 }

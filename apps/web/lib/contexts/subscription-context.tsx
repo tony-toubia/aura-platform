@@ -2,7 +2,7 @@
 
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { SubscriptionService, type SubscriptionTier } from '@/lib/services/subscription-service'
+import { SubscriptionService, type SubscriptionTier, SUBSCRIPTION_TIERS } from '@/lib/services/subscription-service'
 
 interface SubscriptionContextType {
   subscription: SubscriptionTier | null
@@ -84,13 +84,16 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     try {
       setLoading(true)
       setError(null)
+      console.log('Loading subscription for user:', user.id)
       const sub = await SubscriptionService.getUserSubscription(user.id)
+      console.log('Loaded subscription:', sub)
       setSubscription(sub)
       setLastFetch(now)
     } catch (err) {
       console.error('Failed to load subscription:', err)
       setError(err instanceof Error ? err.message : 'Failed to load subscription')
-      // Don't clear existing subscription on error, just log it
+      // Set free tier as fallback on error
+      setSubscription(SUBSCRIPTION_TIERS.free)
     } finally {
       setLoading(false)
     }
@@ -104,6 +107,19 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
   const checkFeatureAccess = useCallback(async (feature: keyof SubscriptionTier['features']): Promise<boolean> => {
     if (!user?.id) return false
     
+    console.log('Checking feature access:', feature, 'subscription:', subscription, 'loading:', loading)
+    
+    // If subscription is still loading, wait for it
+    if (loading && !subscription) {
+      console.log('Subscription still loading, waiting...')
+      // Wait a bit and try again
+      await new Promise(resolve => setTimeout(resolve, 100))
+      if (!subscription) {
+        console.log('Subscription still not loaded, using service directly')
+        return SubscriptionService.checkFeatureAccess(user.id, feature)
+      }
+    }
+    
     // Use cached subscription for simple feature checks
     if (subscription && feature !== 'maxAuras' && feature !== 'maxMessages') {
       const f = subscription.features
@@ -115,7 +131,7 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     
     // For complex checks or when no cached subscription, use service
     return SubscriptionService.checkFeatureAccess(user.id, feature)
-  }, [user?.id, subscription])
+  }, [user?.id, subscription, loading])
 
   const canCreateAura = useCallback(async (): Promise<boolean> => {
     if (!user?.id) return false

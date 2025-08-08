@@ -67,14 +67,14 @@ export function DashboardContent({ stats }: DashboardContentProps) {
           Welcome Back!
         </h1>
         <p className="text-xl text-gray-600 max-w-2xl mx-auto">
-          {stats.auras === 0 
+          {stats.totalAuras === 0 
             ? "Start your magical journey by creating your first AI companion"
             : "Here's what's happening with your digital Aura collection today"}
         </p>
       </div>
 
       {/* Main Content Grid */}
-      {stats.auras === 0 ? (
+      {(stats.totalAuras || 0) === 0 ? (
         // Empty State Layout - Balanced 3-column grid
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Create Aura Card - Spans 2 columns */}
@@ -137,7 +137,8 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                           <p className="text-sm text-gray-600 mb-3">Take full control and design every aspect of your Aura's personality</p>
                           <div className="inline-flex items-center gap-2 text-xs text-green-600 font-medium">
                             <Wand2 className="w-3 h-3" />
-                          <span>For advanced users</span>
+                            <span>For advanced users</span>
+                          </div>
                         </div>
                       </div>
                       <div className="mt-auto">
@@ -147,7 +148,6 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                         </span>
                       </div>
                     </div>
-                  </div>
                 </Link>
                 </SubscriptionGuard>
               </div>
@@ -301,7 +301,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
       {/* Additional Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Activity Card */}
-        {stats.auras > 0 && (
+        {(stats.auras > 0 || (stats.totalAuras || 0) > 0) && (
           <Card className="border-2 border-blue-200 bg-gradient-to-br from-blue-50 to-sky-50">
             <CardHeader>
               <CardTitle className="flex items-center gap-2">
