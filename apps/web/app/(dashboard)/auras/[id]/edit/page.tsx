@@ -302,7 +302,7 @@ export default async function EditAuraPage({ params }: PageProps) {
           browser: 'Browser',
           os: 'Device',
           platform: 'Web',
-          language: navigator?.language || 'en',
+          language: 'en',
           screenInfo: 'Unknown',
           userAgent: 'Unknown'
         }
