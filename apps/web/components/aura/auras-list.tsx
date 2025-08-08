@@ -35,12 +35,14 @@ import {
   ArrowRight,
   Power,
   Crown,
-  AlertTriangle
+  AlertTriangle,
+  RefreshCw
 } from 'lucide-react'
 import { deleteAuraAction } from '@/app/actions/delete-aura'
 import { cn } from '@/lib/utils'
 import type { Aura } from '@/types'
 import { useSubscription } from '@/lib/contexts/subscription-context'
+import { useAuras } from '@/lib/hooks/use-auras'
 
 interface AurasListProps {
   initialAuras: Aura[]
@@ -49,9 +51,9 @@ interface AurasListProps {
 export function AurasList({ initialAuras }: AurasListProps) {
   const router = useRouter()
   const { subscription, checkFeatureAccess } = useSubscription()
+  const { auras, loading, error, refresh, updateAura, removeAura } = useAuras({ initialAuras })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [auraToDelete, setAuraToDelete] = useState<Aura | null>(null)
-  const [auras, setAuras] = useState<Aura[]>(initialAuras)
   const [limitDialogOpen, setLimitDialogOpen] = useState(false)
   const [limitErrorMessage, setLimitErrorMessage] = useState<string>('')
   const [activeAuraCount, setActiveAuraCount] = useState(auras.filter(a => a.enabled).length)
@@ -105,9 +107,7 @@ export function AurasList({ initialAuras }: AurasListProps) {
 
         if (response.ok) {
           // Update local state to remove the deleted aura
-          setAuras(prevAuras =>
-            prevAuras.filter(a => a.id !== auraToDelete.id)
-          )
+          removeAura(auraToDelete.id)
           setAuraToDelete(null)
           setDeleteDialogOpen(false)
           
@@ -155,19 +155,11 @@ export function AurasList({ initialAuras }: AurasListProps) {
         // Update local state with confirmed data from server
         if (responseData.aura) {
           console.log('Updating aura state:', responseData.aura);
-          setAuras(prevAuras =>
-            prevAuras.map(a =>
-              a.id === aura.id ? { ...a, enabled: responseData.aura.enabled } : a
-            )
-          );
+          updateAura(aura.id, { enabled: responseData.aura.enabled });
         } else {
           // Fallback: update with the intended state if no aura data returned
           console.log('No aura data in response, using fallback update');
-          setAuras(prevAuras =>
-            prevAuras.map(a =>
-              a.id === aura.id ? { ...a, enabled } : a
-            )
-          );
+          updateAura(aura.id, { enabled });
         }
       } else {
         const errorData = await response.json();
@@ -203,6 +195,20 @@ export function AurasList({ initialAuras }: AurasListProps) {
           <p className="text-xl text-gray-600 max-w-2xl mx-auto">
             Manage and interact with your digital AI companions
           </p>
+          
+          {/* Refresh button for manual cache refresh */}
+          {auras.length > 0 && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={refresh}
+              disabled={loading}
+              className="mt-4"
+            >
+              <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+              {loading ? "Refreshing..." : "Refresh"}
+            </Button>
+          )}
         </div>
 
         {/* Stats Overview - Only show when auras exist */}
@@ -290,8 +296,15 @@ export function AurasList({ initialAuras }: AurasListProps) {
         </div>
       </div>
 
+      {/* Error display */}
+      {error && (
+        <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700">{error}</p>
+        </div>
+      )}
+
       {/* Content */}
-      {auras.length === 0 ? (
+      {auras.length === 0 && !loading ? (
         <EmptyState
           icon={Brain}
           iconGradient="from-purple-500 to-blue-500"

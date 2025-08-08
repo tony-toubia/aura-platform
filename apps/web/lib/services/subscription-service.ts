@@ -351,7 +351,8 @@ export class SubscriptionService {
     } else if (email) {
       // For new customers, create customer record and save payment method
       sessionConfig.customer_email = email
-      sessionConfig.customer_creation = 'always'
+      // Note: customer_creation is not allowed in subscription mode
+      // Stripe will automatically create a customer when using customer_email in subscription mode
     }
 
     return stripe.checkout.sessions.create(sessionConfig)

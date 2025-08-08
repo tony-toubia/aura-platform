@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { useSubscription } from "@/lib/hooks/use-subscription"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -65,6 +66,7 @@ type DigitalStep = "details" | "senses" | "rules" | "review"
 
 export function AuraCreatorDigital() {
   const router = useRouter()
+  const { subscription } = useSubscription()
   const [step, setStep] = useState<DigitalStep>("details")
   const [error, setError] = useState<string | null>(null)
   const [isEditingName, setIsEditingName] = useState(true)
@@ -891,6 +893,7 @@ export function AuraCreatorDigital() {
                 newsConfigurations={newsConfigurations}
                 onWeatherAirQualityConfiguration={handleWeatherAirQualityConfiguration}
                 weatherAirQualityConfigurations={weatherAirQualityConfigurations}
+                hasPersonalConnectedSenses={subscription?.features.hasPersonalConnectedSenses ?? false}
               />
             </div>
           )}

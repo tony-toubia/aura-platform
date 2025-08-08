@@ -12,7 +12,7 @@ export function MainNav() {
             <Sparkles className="w-5 h-5 text-white" />
           </div>
           <span className="text-xl font-bold bg-gradient-to-r from-purple-600 to-blue-600 bg-clip-text text-transparent">
-            Aura Engine
+            Aura Link
           </span>
         </Link>
         <div className="flex items-center space-x-2">

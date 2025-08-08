@@ -1,4 +1,4 @@
-# Cloud Build configuration for Aura Platform
+# Cloud Build configuration for manual deployment
 # This file builds and deploys the web application to Cloud Run
 
 steps:
@@ -7,21 +7,21 @@ steps:
     args:
       - 'build'
       - '-t'
-      - 'gcr.io/$PROJECT_ID/aura-web:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/aura-web:$BUILD_ID'
       - '-t'
       - 'gcr.io/$PROJECT_ID/aura-web:latest'
       - '--build-arg'
       - 'NEXT_PUBLIC_SUPABASE_URL=https://ahzmfkjtiiyuipweaktx.supabase.co'
       - '--build-arg'
-      - 'NEXT_PUBLIC_SUPABASE_ANON_KEY=${_SUPABASE_ANON_KEY}'
+      - 'NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoem1ma2p0aWl5dWlwd2Vha3R4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2Mzc3OTksImV4cCI6MjA2ODIxMzc5OX0.adTiPqedJv1TvuDvj53HGA_jlZr23MJ_L3jiKDb0GTk'
       - '--build-arg'
       - 'NEXT_PUBLIC_APP_URL=https://aura-dashboard-mn5srfeinq-uc.a.run.app'
       - '--build-arg'
-      - 'NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}'
+      - 'NEXT_PUBLIC_GOOGLE_CLIENT_ID=205298800820-4l2r0ro2m6lvc73g6id03r4fnbp25m52.apps.googleusercontent.com'
       - '--build-arg'
-      - 'NEXT_PUBLIC_MICROSOFT_CLIENT_ID=${_MICROSOFT_CLIENT_ID}'
+      - 'NEXT_PUBLIC_MICROSOFT_CLIENT_ID=07a43345-3aa6-4444-8859-c44105e4769d'
       - '--build-arg'
-      - 'NEXT_PUBLIC_STRAVA_CLIENT_ID=${_STRAVA_CLIENT_ID}'
+      - 'NEXT_PUBLIC_STRAVA_CLIENT_ID=170903'
       - '--build-arg'
       - 'OPENAI_API_KEY=build-time-placeholder'
       - '--build-arg'
@@ -30,7 +30,7 @@ steps:
 
   # Step 2: Push the image to Container Registry
   - name: 'gcr.io/cloud-builders/docker'
-    args: ['push', 'gcr.io/$PROJECT_ID/aura-web:$COMMIT_SHA']
+    args: ['push', 'gcr.io/$PROJECT_ID/aura-web:$BUILD_ID']
   
   - name: 'gcr.io/cloud-builders/docker'
     args: ['push', 'gcr.io/$PROJECT_ID/aura-web:latest']
@@ -43,7 +43,7 @@ steps:
       - 'deploy'
       - 'aura-dashboard'
       - '--image'
-      - 'gcr.io/$PROJECT_ID/aura-web:$COMMIT_SHA'
+      - 'gcr.io/$PROJECT_ID/aura-web:$BUILD_ID'
       - '--region'
       - 'us-central1'
       - '--platform'
@@ -88,13 +88,13 @@ steps:
       - '--set-env-vars'
       - 'NEXT_PUBLIC_SUPABASE_URL=https://ahzmfkjtiiyuipweaktx.supabase.co'
       - '--set-env-vars'
-      - 'NEXT_PUBLIC_SUPABASE_ANON_KEY=${_SUPABASE_ANON_KEY}'
+      - 'NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoem1ma2p0aWl5dWlwd2Vha3R4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2Mzc3OTksImV4cCI6MjA2ODIxMzc5OX0.adTiPqedJv1TvuDvj53HGA_jlZr23MJ_L3jiKDb0GTk'
       - '--set-env-vars'
-      - 'NEXT_PUBLIC_GOOGLE_CLIENT_ID=${_GOOGLE_CLIENT_ID}'
+      - 'NEXT_PUBLIC_GOOGLE_CLIENT_ID=205298800820-4l2r0ro2m6lvc73g6id03r4fnbp25m52.apps.googleusercontent.com'
       - '--set-env-vars'
-      - 'NEXT_PUBLIC_MICROSOFT_CLIENT_ID=${_MICROSOFT_CLIENT_ID}'
+      - 'NEXT_PUBLIC_MICROSOFT_CLIENT_ID=07a43345-3aa6-4444-8859-c44105e4769d'
       - '--set-env-vars'
-      - 'NEXT_PUBLIC_STRAVA_CLIENT_ID=${_STRAVA_CLIENT_ID}'
+      - 'NEXT_PUBLIC_STRAVA_CLIENT_ID=170903'
       - '--set-env-vars'
       - 'NEXT_PUBLIC_APP_URL=https://aura-dashboard-mn5srfeinq-uc.a.run.app'
       - '--set-env-vars'
@@ -102,7 +102,7 @@ steps:
 
 # Images to be pushed to Container Registry
 images:
-  - 'gcr.io/$PROJECT_ID/aura-web:$COMMIT_SHA'
+  - 'gcr.io/$PROJECT_ID/aura-web:$BUILD_ID'
   - 'gcr.io/$PROJECT_ID/aura-web:latest'
 
 # Build timeout

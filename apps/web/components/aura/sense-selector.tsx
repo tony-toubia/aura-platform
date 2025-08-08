@@ -30,7 +30,6 @@ import {
   Smartphone,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { SubscriptionGuard } from "@/components/subscription/subscription-guard"
 import type { Aura } from "@/types"
 
 // derive the element type from your constant
@@ -685,27 +684,29 @@ export function SenseSelector({
               const isNewsConfigured = sense.id === 'news' && newsDisplay
               const isWeatherAirQualityConfigured = (sense.id === 'weather' || sense.id === 'air_quality') && weatherAirQualityDisplay
               
-              return (
-                <SubscriptionGuard
-                  key={sense.id}
-                  feature="availableSenses"
-                  fallback={
-                    <div className="group relative p-5 rounded-2xl border-2 border-gray-200 bg-gray-50 text-left opacity-60">
-                      <div className="absolute top-3 right-3">
-                        <Lock className="w-5 h-5 text-gray-400" />
+              // Check if this sense is available based on subscription
+              const isSenseAvailable = availableSenses.some(availableSense => availableSense.id === sense.id)
+              
+              if (!isSenseAvailable) {
+                return (
+                  <div key={sense.id} className="group relative p-5 rounded-2xl border-2 border-gray-200 bg-gray-50 text-left opacity-60">
+                    <div className="absolute top-3 right-3">
+                      <Lock className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 rounded-xl bg-gray-300 text-gray-500">
+                        <Icon className="w-6 h-6" />
                       </div>
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-xl bg-gray-300 text-gray-500">
-                          <Icon className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-500 mb-1">{sense.name}</h4>
-                          <p className="text-sm text-gray-400 mb-2">{sense.category}</p>
-                        </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-500 mb-1">{sense.name}</h4>
+                        <p className="text-sm text-gray-400 mb-2">{sense.category}</p>
                       </div>
                     </div>
-                  }
-                >
+                  </div>
+                )
+              }
+              
+              return (
                   <button
                     onClick={() => handleSenseToggle(sense.id as SenseId)}
                     className={cn(
@@ -883,7 +884,6 @@ export function SenseSelector({
                     </div>
                   </div>
                 </button>
-                </SubscriptionGuard>
               )
             })}
           </div>
@@ -907,31 +907,31 @@ export function SenseSelector({
               const locationDevices = sense.id === 'location' ? getLocationDevices(sense.id) : []
               const connectedCalendars = sense.id === 'calendar' ? getConnectedCalendars(sense.id) : []
               
-              return (
-                <SubscriptionGuard
-                  key={sense.id}
-                  feature="hasPersonalConnectedSenses"
-                  fallback={
-                    <div className="group relative p-5 rounded-2xl border-2 border-gray-200 bg-gray-50 text-left opacity-60">
-                      <div className="absolute top-3 right-3">
-                        <Lock className="w-5 h-5 text-gray-400" />
+              // Check if user has access to personal connected senses
+              if (!hasPersonalConnectedSenses) {
+                return (
+                  <div key={sense.id} className="group relative p-5 rounded-2xl border-2 border-gray-200 bg-gray-50 text-left opacity-60">
+                    <div className="absolute top-3 right-3">
+                      <Lock className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <div className="flex items-start gap-4">
+                      <div className="p-3 rounded-xl bg-gray-300 text-gray-500">
+                        <Icon className="w-6 h-6" />
                       </div>
-                      <div className="flex items-start gap-4">
-                        <div className="p-3 rounded-xl bg-gray-300 text-gray-500">
-                          <Icon className="w-6 h-6" />
-                        </div>
-                        <div className="flex-1">
-                          <h4 className="font-semibold text-gray-500 mb-1">{sense.name}</h4>
-                          <p className="text-sm text-gray-400 mb-2">{sense.category}</p>
-                          <div className="flex items-center gap-2">
-                            <Shield className="w-4 h-4 text-gray-400" />
-                            <span className="text-xs text-gray-400">Premium Feature</span>
-                          </div>
+                      <div className="flex-1">
+                        <h4 className="font-semibold text-gray-500 mb-1">{sense.name}</h4>
+                        <p className="text-sm text-gray-400 mb-2">{sense.category}</p>
+                        <div className="flex items-center gap-2">
+                          <Shield className="w-4 h-4 text-gray-400" />
+                          <span className="text-xs text-gray-400">Premium Feature</span>
                         </div>
                       </div>
                     </div>
-                  }
-                >
+                  </div>
+                )
+              }
+              
+              return (
                   <button
                     onClick={() => handleSenseToggle(sense.id as SenseId)}
                     className={cn(
@@ -1099,7 +1099,6 @@ export function SenseSelector({
                       </div>
                     </div>
                   </button>
-                </SubscriptionGuard>
               )
             })}
           </div>

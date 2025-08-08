@@ -49,7 +49,7 @@ export function MobileNav({ navItems, userEmail, signOutAction }: MobileNavProps
       >
         <div className="flex flex-col h-full">
           <div className="flex items-center justify-between p-4 border-b">
-            <h2 className="text-lg font-semibold">Aura Engine</h2>
+            <h2 className="text-lg font-semibold">Aura Link</h2>
             <Button
               variant="ghost"
               size="sm"

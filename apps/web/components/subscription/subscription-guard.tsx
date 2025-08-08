@@ -81,7 +81,9 @@ export function SubscriptionGuard({
       setIsChecking(true)
       
       if (feature) {
+        console.log(`SubscriptionGuard: Checking feature ${feature} for subscription ${subscription.id}`)
         const access = await checkFeatureAccess(feature)
+        console.log(`SubscriptionGuard: Feature ${feature} access result:`, access)
         setHasAccess(access)
       } else if (requiredTier) {
         const tierOrder = ['free', 'personal', 'family', 'business']

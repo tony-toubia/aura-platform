@@ -49,7 +49,7 @@ export default function LoginPage() {
             </div>
           </div>
           <CardTitle className="text-2xl">Welcome back</CardTitle>
-          <CardDescription>Sign in to your Aura Engine account</CardDescription>
+          <CardDescription>Sign in to your Aura Link account</CardDescription>
         </CardHeader>
         <form onSubmit={handleLogin}>
           <CardContent className="space-y-4">

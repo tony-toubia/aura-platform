@@ -3,10 +3,12 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+import { useRouter } from "next/navigation"
+import { useSubscription } from "@/lib/hooks/use-subscription"
+import { refreshAuras } from "@/lib/hooks/use-auras"
 
 // Global flag to prevent duplicate aura creation across component re-renders
 const creationInProgress = new Set<string>()
-import { useRouter } from "next/navigation"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -60,6 +62,7 @@ const VESSEL_CATEGORIES = {
 
 export function AuraCreator() {
   const router = useRouter()
+  const { subscription } = useSubscription()
   const [step, setStep] = useState<AuraFormStep>("vessel")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -301,6 +304,10 @@ export function AuraCreator() {
       if (!resp.ok) throw new Error(body.error || "Failed to create Aura")
       setAuraData((prev: AuraFormData) => ({ ...prev, id: body.id }))
       console.log('Aura created successfully with ID:', body.id)
+      
+      // Refresh auras cache to ensure the new aura appears in lists
+      refreshAuras()
+      
       setStep("rules")
     } catch (err: any) {
       setError(err.message)
@@ -678,6 +685,7 @@ export function AuraCreator() {
                       newsConfigurations={newsConfigurations}
                       onWeatherAirQualityConfiguration={handleWeatherAirQualityConfiguration}
                       weatherAirQualityConfigurations={weatherAirQualityConfigurations}
+                      hasPersonalConnectedSenses={subscription?.features.hasPersonalConnectedSenses ?? false}
                     />
                   </div>
                 )}
@@ -824,7 +832,10 @@ export function AuraCreator() {
                     </Button>
                   ) : (
                     <Button
-                      onClick={() => router.push(`/auras/${auraData.id}`)}
+                      onClick={() => {
+                        // Navigate with refresh parameter to ensure fresh data
+                        router.push(`/auras/${auraData.id}?created=true`)
+                      }}
                       size="lg"
                       className="px-8 w-full sm:w-auto bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white font-semibold order-1 sm:order-2 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105"
                     >

@@ -4,6 +4,7 @@
 
 import React, { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
+import { useSubscription } from "@/lib/hooks/use-subscription"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -57,6 +58,7 @@ const VESSEL_CATEGORIES = {
 
 export function AuraCreator() {
   const router = useRouter()
+  const { subscription } = useSubscription()
   const [step, setStep] = useState<AuraFormStep>("vessel")
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -73,6 +75,15 @@ export function AuraCreator() {
 
   // Location configurations for location-aware senses
   const [locationConfigs, setLocationConfigs] = useState<Record<string, LocationConfig>>({})
+  
+  // OAuth connections for connected senses
+  const [oauthConnections, setOauthConnections] = useState<Record<string, any[]>>({})
+  
+  // News configurations for news sense
+  const [newsConfigurations, setNewsConfigurations] = useState<Record<string, any[]>>({})
+  
+  // Weather/Air Quality configurations
+  const [weatherAirQualityConfigurations, setWeatherAirQualityConfigurations] = useState<Record<string, any[]>>({})
 
   const [auraData, setAuraData] = useState<AuraFormData>({
     id: '',
@@ -195,6 +206,44 @@ export function AuraCreator() {
     setLocationConfigs(prev => ({
       ...prev,
       [senseId]: config
+    }))
+  }
+
+  const handleOAuthConnection = (senseId: SenseId, providerId: string, connectionData: any) => {
+    // For creation flow, just store locally
+    const newConnection = {
+      id: `${providerId}-${Date.now()}`,
+      name: providerId,
+      type: senseId,
+      connectedAt: new Date(),
+      providerId: providerId,
+      accountEmail: connectionData.accountEmail || `Connected ${providerId} account`,
+    }
+    
+    setOauthConnections(prev => ({
+      ...prev,
+      [senseId]: [...(prev[senseId] || []), newConnection]
+    }))
+  }
+
+  const handleOAuthDisconnect = (senseId: SenseId, connectionId: string) => {
+    setOauthConnections(prev => ({
+      ...prev,
+      [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
+    }))
+  }
+
+  const handleNewsConfiguration = (senseId: SenseId, locations: any[]) => {
+    setNewsConfigurations(prev => ({
+      ...prev,
+      [senseId]: locations
+    }))
+  }
+
+  const handleWeatherAirQualityConfiguration = (senseId: SenseId, locations: any[]) => {
+    setWeatherAirQualityConfigurations(prev => ({
+      ...prev,
+      [senseId]: locations
     }))
   }
 
@@ -587,6 +636,14 @@ export function AuraCreator() {
                       auraId={undefined} // No aura_id during creation
                       onLocationConfig={handleLocationConfig}
                       locationConfigs={locationConfigs}
+                      onOAuthConnection={handleOAuthConnection}
+                      onOAuthDisconnect={handleOAuthDisconnect}
+                      oauthConnections={oauthConnections}
+                      onNewsConfiguration={handleNewsConfiguration}
+                      newsConfigurations={newsConfigurations}
+                      onWeatherAirQualityConfiguration={handleWeatherAirQualityConfiguration}
+                      weatherAirQualityConfigurations={weatherAirQualityConfigurations}
+                      hasPersonalConnectedSenses={subscription?.features.hasPersonalConnectedSenses ?? false}
                     />
                   </div>
                 )}
@@ -652,6 +709,7 @@ export function AuraCreator() {
                       vesselType={auraData.vesselType as VesselTypeId}
                       vesselCode={auraData.vesselCode}
                       availableSenses={auraData.senses}
+                      oauthConnections={oauthConnections}
                       existingRules={auraData.rules}
                       onAddRule={(r) =>
                         setAuraData((p) => ({ ...p, rules: [...p.rules, r] }))

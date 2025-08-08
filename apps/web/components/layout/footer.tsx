@@ -10,10 +10,10 @@ export function Footer() {
             <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center">
               <Sparkles className="w-5 h-5 text-white" />
             </div>
-            <span className="text-xl font-bold">Aura Engine</span>
+            <span className="text-xl font-bold">Aura Link</span>
           </div>
           <div className="text-gray-400 text-sm">
-            © 2025 Aura Engine. Made with ❤️ for creators everywhere.
+            © 2025 Aura Link. Made with ❤️ for creators everywhere.
           </div>
         </div>
       </div>

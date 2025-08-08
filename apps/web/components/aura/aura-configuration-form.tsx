@@ -3,6 +3,7 @@
 "use client"
 
 import React, { useState, useEffect, useRef } from "react"
+import { useSubscription } from "@/lib/hooks/use-subscription"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -179,6 +180,7 @@ export function AuraConfigurationForm({
   description,
   className
 }: AuraConfigurationFormProps) {
+  const { subscription } = useSubscription()
   const [step, setStep] = useState<Step>(initialStep)
   const [isAutoSaving, setIsAutoSaving] = useState(false)
   const containerRef = useRef<HTMLDivElement>(null)
@@ -337,6 +339,7 @@ export function AuraConfigurationForm({
               newsConfigurations={{}} // Empty news configurations
               onWeatherAirQualityConfiguration={() => {}} // Placeholder for weather/air quality configuration
               weatherAirQualityConfigurations={{}} // Empty weather/air quality configurations
+              hasPersonalConnectedSenses={subscription?.features.hasPersonalConnectedSenses ?? false}
             />
           </div>
         )}

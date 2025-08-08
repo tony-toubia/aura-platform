@@ -27,9 +27,27 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [lastFetch, setLastFetch] = useState<number>(0)
+  const [shouldRefresh, setShouldRefresh] = useState(false)
 
-  // Cache duration: 5 minutes
+  // Cache duration: 5 minutes (but can be cleared on demand)
   const CACHE_DURATION = 5 * 60 * 1000
+  
+  // Check URL params for cache clearing
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      if (params.get('success') === 'true' || params.get('refresh') === 'true') {
+        // Clear cache on successful checkout or explicit refresh
+        console.log('Clearing subscription cache due to URL params')
+        setLastFetch(0)
+        setShouldRefresh(true)
+        // Clear the service-level cache too
+        if (user?.id) {
+          SubscriptionService.clearUserCache(user.id)
+        }
+      }
+    }
+  }, [user?.id])
 
   useEffect(() => {
     const supabase = createClient()
@@ -57,14 +75,17 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
 
   useEffect(() => {
     if (user) {
-      loadSubscription()
+      loadSubscription(shouldRefresh)
+      if (shouldRefresh) {
+        setShouldRefresh(false)
+      }
     } else {
       setSubscription(null)
       setLoading(false)
       setError(null)
       setLastFetch(0)
     }
-  }, [user?.id]) // Only depend on user ID to prevent unnecessary re-renders
+  }, [user?.id, shouldRefresh]) // Only depend on user ID and refresh flag
 
   const loadSubscription = useCallback(async (forceRefresh = false) => {
     if (!user) return

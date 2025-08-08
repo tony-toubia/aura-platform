@@ -9,6 +9,10 @@ import { AuraLimitNotification } from '@/components/aura/aura-limit-notification
 import { ContextualHelpProvider } from '@/components/help/contextual-help-provider'
 import { AuraLimitService } from '@/lib/services/aura-limit-service'
 
+// Disable caching for this page to ensure fresh data
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 interface AurasPageProps {
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>
 }

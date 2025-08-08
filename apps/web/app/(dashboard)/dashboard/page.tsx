@@ -8,7 +8,8 @@ import { AuraServiceServer as AuraService } from '@/lib/services/aura-service.se
 import { ContextualHelpProvider } from '@/components/help/contextual-help-provider'
 
 
-// Force this page to revalidate on every request to show fresh subscription data
+// Force dynamic rendering and disable caching
+export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 // Import the types from the shared types file

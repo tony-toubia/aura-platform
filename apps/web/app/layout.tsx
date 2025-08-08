@@ -14,7 +14,7 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "Aura Engine",
+  title: "Aura Link",
   description: "Design AI-powered personalities that inhabit physical objects",
 };
 
