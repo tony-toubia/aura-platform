@@ -810,10 +810,26 @@ export function EnhancedOAuthConnectionModal({
   // Get library connections for a specific provider
   const getProviderLibraryConnections = (providerId: string): LibraryConnection[] => {
     const connections = libraryConnections[senseType] || []
-    const filtered = connections.filter(conn => conn.provider === providerId)
+    
+    // Log all provider values to debug mismatch
+    console.log('🔍 All connection providers:', connections.map(c => ({
+      id: c.id,
+      provider: c.provider,
+      provider_user_id: c.provider_user_id
+    })))
+    
+    // Handle provider name variations (e.g., 'google_fit' vs 'google-fit')
+    const normalizedProviderId = providerId.replace(/-/g, '_')
+    const filtered = connections.filter(conn => {
+      const normalizedConnProvider = conn.provider.replace(/-/g, '_')
+      const matches = normalizedConnProvider === normalizedProviderId
+      console.log(`Comparing: ${conn.provider} (normalized: ${normalizedConnProvider}) with ${providerId} (normalized: ${normalizedProviderId}) = ${matches}`)
+      return matches
+    })
     
     console.log('🔍 getProviderLibraryConnections:', {
       providerId,
+      normalizedProviderId,
       senseType,
       allConnections: connections,
       filteredConnections: filtered,
@@ -1299,16 +1315,27 @@ export function EnhancedOAuthConnectionModal({
                               return (
                                 <Button
                                   key={connection.id}
-                                  onClick={() => {
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    e.stopPropagation()
+                                    console.log('🖱️ Button clicked for connection:', {
+                                      id: connection.id,
+                                      provider: connection.provider,
+                                      isExpired,
+                                      connection
+                                    })
                                     if (!isExpired) {
                                       console.log('🖱️ Selecting connection:', connection.id, connection.provider)
                                       handleLibraryConnectionSelect(connection)
+                                    } else {
+                                      console.log('⚠️ Connection is expired, cannot select')
                                     }
                                   }}
                                   disabled={Boolean(isExpired)}
                                   variant="outline"
                                   size="sm"
                                   className="w-full sm:w-auto"
+                                  type="button"
                                 >
                                   <div className="flex items-center gap-1">
                                     {isDirectConnection ? (
