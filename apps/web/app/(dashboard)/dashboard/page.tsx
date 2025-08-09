@@ -3,7 +3,7 @@
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import { redirect } from 'next/navigation'
 import React from 'react' // Import React for type definitions
-import { DashboardContent } from '@/components/aura/dashboard-content'
+import { DashboardContent } from '@/components/dashboard/dashboard-content'
 import { AuraServiceServer as AuraService } from '@/lib/services/aura-service.server'
 import { ContextualHelpProvider } from '@/components/help/contextual-help-provider'
 
