@@ -1370,58 +1370,11 @@ export function EnhancedOAuthConnectionModal({
                                 providerFromLoop: provider.id
                               })
                               
-                              // Test with a native button element
-                              if (provider.id === 'strava') {
-                                return (
-                                  <button
-                                    key={uniqueKey}
-                                    id={buttonId}
-                                    onClick={(e) => {
-                                      e.preventDefault()
-                                      e.stopPropagation()
-                                      // Show immediate visual feedback
-                                      alert(`TEST: Native button clicked for Strava: ${connection.provider} - ${connection.provider_user_id}`)
-                                      
-                                      console.log('🖱️ NATIVE button clicked!', {
-                                        buttonId,
-                                        connectionId: connection.id,
-                                        provider: connection.provider,
-                                        isExpired,
-                                        timestamp: new Date().toISOString()
-                                      })
-                                      
-                                      if (!isExpired) {
-                                        console.log('🚀 Calling handleLibraryConnectionSelect from native button')
-                                        handleLibraryConnectionSelect(connection)
-                                      }
-                                    }}
-                                    disabled={Boolean(isExpired)}
-                                    className={cn(
-                                      "px-3 py-1.5 text-sm border rounded-md w-full sm:w-auto",
-                                      isExpired
-                                        ? "border-red-300 bg-red-50 text-red-700 cursor-not-allowed opacity-50"
-                                        : "border-gray-300 hover:bg-blue-100 active:bg-blue-200 cursor-pointer"
-                                    )}
-                                    type="button"
-                                  >
-                                    <div className="flex items-center gap-1">
-                                      {isExpired ? '⚠️' : isDirectConnection ? '🔗' : '📚'}
-                                      <span className="truncate">
-                                        {isExpired ? 'EXPIRED: ' : 'TEST: Use '}{connection.provider_user_id.substring(0, 10)}...
-                                      </span>
-                                    </div>
-                                  </button>
-                                )
-                              }
-                              
                               return (
                                 <Button
                                   key={uniqueKey}
                                   id={buttonId}
                                   onClick={() => {
-                                    // Show immediate visual feedback
-                                    alert(`Clicked library connection: ${connection.provider} - ${connection.provider_user_id}`)
-                                    
                                     console.log('🖱️ Library button clicked!', {
                                       buttonId,
                                       connectionId: connection.id,
