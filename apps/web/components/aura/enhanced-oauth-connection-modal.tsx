@@ -701,11 +701,27 @@ export function EnhancedOAuthConnectionModal({
       setConnectionStatus(prev => ({ ...prev, [providerId]: 'error' }))
       
       // Show user-friendly error message
+      let errorMessage = 'Connection failed'
       if (error instanceof Error) {
-        alert(`Connection failed: ${error.message}`)
-      } else {
-        alert(`Connection failed: ${error}`)
+        errorMessage = error.message
+        
+        // Handle specific error cases
+        if (errorMessage.includes('already exists')) {
+          // Check if there's an expired library connection
+          const libraryConnections = getProviderLibraryConnections(providerId)
+          const hasExpiredConnection = libraryConnections.some(conn =>
+            conn.expires_at && new Date(conn.expires_at) < new Date()
+          )
+          
+          if (hasExpiredConnection) {
+            errorMessage = 'An expired connection exists for this provider. Please contact support to refresh your connection.'
+          } else {
+            errorMessage = 'A connection already exists for this provider. Please check your existing connections or try disconnecting first.'
+          }
+        }
       }
+      
+      alert(errorMessage)
     }
   }
 
@@ -1335,7 +1351,9 @@ export function EnhancedOAuthConnectionModal({
                             </Button>
                             
                             {providerLibraryConnections.map((connection, index) => {
-                              const isExpired = connection.expires_at && new Date(connection.expires_at) < new Date()
+                              // Don't treat connections as expired just because access token expired
+                              // Library connections should remain usable as long as they exist
+                              const isExpired = false // Connections in library are always usable
                               const isDirectConnection = connection.is_direct_connection
                               const buttonId = `library-connection-${provider.id}-${connection.id}-${index}`
                               const uniqueKey = `${provider.id}-${connection.id}-${index}`
