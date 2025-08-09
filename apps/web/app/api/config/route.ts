@@ -2,6 +2,10 @@
 import { NextResponse } from 'next/server'
 
 export async function GET() {
+  // Debug logging for OpenWeather API key
+  console.log('OpenWeather API Key from env:', process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY ? 'Present' : 'Missing')
+  console.log('OpenWeather API Key length:', process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY?.length || 0)
+  
   // Return public configuration that the frontend needs
   const config = {
     googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
