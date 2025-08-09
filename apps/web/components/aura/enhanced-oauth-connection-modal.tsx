@@ -1378,13 +1378,18 @@ export function EnhancedOAuthConnectionModal({
                                       }
                                     }}
                                     disabled={Boolean(isExpired)}
-                                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-blue-100 active:bg-blue-200 cursor-pointer w-full sm:w-auto"
+                                    className={cn(
+                                      "px-3 py-1.5 text-sm border rounded-md w-full sm:w-auto",
+                                      isExpired
+                                        ? "border-red-300 bg-red-50 text-red-700 cursor-not-allowed opacity-50"
+                                        : "border-gray-300 hover:bg-blue-100 active:bg-blue-200 cursor-pointer"
+                                    )}
                                     type="button"
                                   >
                                     <div className="flex items-center gap-1">
-                                      {isDirectConnection ? '🔗' : '📚'}
+                                      {isExpired ? '⚠️' : isDirectConnection ? '🔗' : '📚'}
                                       <span className="truncate">
-                                        TEST: Use {connection.provider_user_id.substring(0, 10)}...
+                                        {isExpired ? 'EXPIRED: ' : 'TEST: Use '}{connection.provider_user_id.substring(0, 10)}...
                                       </span>
                                     </div>
                                   </button>
@@ -1423,9 +1428,14 @@ export function EnhancedOAuthConnectionModal({
                                     })
                                   }}
                                   disabled={Boolean(isExpired)}
-                                  variant="outline"
+                                  variant={isExpired ? "outline" : "outline"}
                                   size="sm"
-                                  className="w-full sm:w-auto cursor-pointer hover:bg-blue-100 active:bg-blue-200"
+                                  className={cn(
+                                    "w-full sm:w-auto",
+                                    isExpired
+                                      ? "opacity-50 cursor-not-allowed border-red-300 hover:bg-red-50"
+                                      : "cursor-pointer hover:bg-blue-100 active:bg-blue-200"
+                                  )}
                                   type="button"
                                   style={{ pointerEvents: isExpired ? 'none' : 'auto' }}
                                 >
@@ -1436,9 +1446,13 @@ export function EnhancedOAuthConnectionModal({
                                       <Library className="w-3 h-3" />
                                     )}
                                     <span className="truncate">
-                                      Use {connection.provider_user_id.substring(0, 10)}...
+                                      {isExpired ? '⚠️ Expired: ' : 'Use '}{connection.provider_user_id.substring(0, 10)}...
                                     </span>
-                                    {isDirectConnection ? (
+                                    {isExpired ? (
+                                      <span className="text-xs bg-red-100 text-red-700 px-1 py-0.5 rounded ml-1">
+                                        Re-auth needed
+                                      </span>
+                                    ) : isDirectConnection ? (
                                       <span className="text-xs bg-blue-100 text-blue-700 px-1 py-0.5 rounded ml-1 hidden sm:inline">
                                         Reuse
                                       </span>
