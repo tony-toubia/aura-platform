@@ -819,12 +819,22 @@ export function EnhancedOAuthConnectionModal({
     })))
     
     // Handle provider name variations (e.g., 'google_fit' vs 'google-fit')
-    const normalizedProviderId = providerId.replace(/-/g, '_')
+    const normalizedProviderId = providerId.replace(/-/g, '_').toLowerCase()
+    
+    // Filter connections that match the provider AND are not already connected to this aura
     const filtered = connections.filter(conn => {
-      const normalizedConnProvider = conn.provider.replace(/-/g, '_')
-      const matches = normalizedConnProvider === normalizedProviderId
-      console.log(`Comparing: ${conn.provider} (normalized: ${normalizedConnProvider}) with ${providerId} (normalized: ${normalizedProviderId}) = ${matches}`)
-      return matches
+      const normalizedConnProvider = conn.provider.replace(/-/g, '_').toLowerCase()
+      const matchesProvider = normalizedConnProvider === normalizedProviderId
+      
+      // Check if this connection is already associated with the current aura
+      const isAlreadyConnected = existingConnections.some(existing =>
+        existing.id === conn.id ||
+        (existing.providerId === conn.provider && existing.accountEmail === conn.provider_user_id)
+      )
+      
+      console.log(`Comparing: ${conn.provider} (normalized: ${normalizedConnProvider}) with ${providerId} (normalized: ${normalizedProviderId}) = ${matchesProvider}, already connected: ${isAlreadyConnected}`)
+      
+      return matchesProvider && !isAlreadyConnected
     })
     
     console.log('🔍 getProviderLibraryConnections:', {
@@ -833,7 +843,9 @@ export function EnhancedOAuthConnectionModal({
       senseType,
       allConnections: connections,
       filteredConnections: filtered,
-      libraryConnectionsState: libraryConnections
+      existingConnectionIds: existingConnections.map(c => c.id),
+      libraryConnectionsState: libraryConnections,
+      timestamp: new Date().toISOString()
     })
     
     return filtered
@@ -1283,9 +1295,23 @@ export function EnhancedOAuthConnectionModal({
                       if (hasLibraryConnections && !shouldPreventConnection && !provider.comingSoon) {
                         // Show simple buttons when library connections are available
                         return (
-                          <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+                          <div
+                            className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto"
+                            onClick={(e) => {
+                              console.log('🔍 Parent div clicked:', {
+                                target: e.target,
+                                currentTarget: e.currentTarget,
+                                className: (e.target as HTMLElement).className,
+                                tagName: (e.target as HTMLElement).tagName,
+                                provider: provider.id
+                              })
+                            }}
+                          >
                             <Button
-                              onClick={() => handleConnect(provider.id, true)}
+                              onClick={() => {
+                                console.log('🆕 Connect New button clicked for:', provider.id)
+                                handleConnect(provider.id, true)
+                              }}
                               disabled={isConnecting}
                               variant={hasExistingConnection ? "outline" : "default"}
                               size="sm"
@@ -1308,34 +1334,100 @@ export function EnhancedOAuthConnectionModal({
                               </div>
                             </Button>
                             
-                            {providerLibraryConnections.map((connection) => {
+                            {providerLibraryConnections.map((connection, index) => {
                               const isExpired = connection.expires_at && new Date(connection.expires_at) < new Date()
                               const isDirectConnection = connection.is_direct_connection
+                              const buttonId = `library-connection-${provider.id}-${connection.id}-${index}`
+                              const uniqueKey = `${provider.id}-${connection.id}-${index}`
+                              
+                              console.log(`🔘 Rendering library button for ${provider.id}:`, {
+                                buttonId,
+                                uniqueKey,
+                                connectionId: connection.id,
+                                provider: connection.provider,
+                                isExpired,
+                                disabled: Boolean(isExpired),
+                                index,
+                                providerFromConnection: connection.provider,
+                                providerFromLoop: provider.id
+                              })
+                              
+                              // Test with a native button element
+                              if (provider.id === 'strava') {
+                                return (
+                                  <button
+                                    key={uniqueKey}
+                                    id={buttonId}
+                                    onClick={(e) => {
+                                      e.preventDefault()
+                                      e.stopPropagation()
+                                      // Show immediate visual feedback
+                                      alert(`TEST: Native button clicked for Strava: ${connection.provider} - ${connection.provider_user_id}`)
+                                      
+                                      console.log('🖱️ NATIVE button clicked!', {
+                                        buttonId,
+                                        connectionId: connection.id,
+                                        provider: connection.provider,
+                                        isExpired,
+                                        timestamp: new Date().toISOString()
+                                      })
+                                      
+                                      if (!isExpired) {
+                                        console.log('🚀 Calling handleLibraryConnectionSelect from native button')
+                                        handleLibraryConnectionSelect(connection)
+                                      }
+                                    }}
+                                    disabled={Boolean(isExpired)}
+                                    className="px-3 py-1.5 text-sm border border-gray-300 rounded-md hover:bg-blue-100 active:bg-blue-200 cursor-pointer w-full sm:w-auto"
+                                    type="button"
+                                  >
+                                    <div className="flex items-center gap-1">
+                                      {isDirectConnection ? '🔗' : '📚'}
+                                      <span className="truncate">
+                                        TEST: Use {connection.provider_user_id.substring(0, 10)}...
+                                      </span>
+                                    </div>
+                                  </button>
+                                )
+                              }
                               
                               return (
                                 <Button
-                                  key={connection.id}
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    e.stopPropagation()
-                                    console.log('🖱️ Button clicked for connection:', {
-                                      id: connection.id,
+                                  key={uniqueKey}
+                                  id={buttonId}
+                                  onClick={() => {
+                                    // Show immediate visual feedback
+                                    alert(`Clicked library connection: ${connection.provider} - ${connection.provider_user_id}`)
+                                    
+                                    console.log('🖱️ Library button clicked!', {
+                                      buttonId,
+                                      connectionId: connection.id,
                                       provider: connection.provider,
                                       isExpired,
-                                      connection
+                                      timestamp: new Date().toISOString()
                                     })
+                                    
                                     if (!isExpired) {
-                                      console.log('🖱️ Selecting connection:', connection.id, connection.provider)
+                                      console.log('🚀 Calling handleLibraryConnectionSelect')
                                       handleLibraryConnectionSelect(connection)
                                     } else {
-                                      console.log('⚠️ Connection is expired, cannot select')
+                                      console.log('⚠️ Connection is expired')
+                                      alert('This connection has expired and needs to be re-authenticated.')
                                     }
+                                  }}
+                                  onMouseDown={(e) => {
+                                    console.log('🖱️ Mouse down event:', {
+                                      buttonId,
+                                      provider: connection.provider,
+                                      timestamp: new Date().toISOString()
+                                    })
                                   }}
                                   disabled={Boolean(isExpired)}
                                   variant="outline"
                                   size="sm"
-                                  className="w-full sm:w-auto"
+                                  className="w-full sm:w-auto cursor-pointer hover:bg-blue-100 active:bg-blue-200"
                                   type="button"
+                                  style={{ pointerEvents: isExpired ? 'none' : 'auto' }}
                                 >
                                   <div className="flex items-center gap-1">
                                     {isDirectConnection ? (
