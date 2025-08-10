@@ -670,11 +670,11 @@ function ConnectionsStep({
             vesselType="digital"
             auraName="Your Assistant"
             onLocationConfig={(senseId, config) => {
-              setLocationConfigs((prev: Record<string, LocationConfig>) => ({ ...prev, [senseId]: config }))
+              setLocationConfigs(prev => ({ ...prev, [senseId]: config } as Record<string, LocationConfig>))
             }}
             locationConfigs={locationConfigs}
             onOAuthConnection={(senseId, providerId, connectionData) => {
-              setOauthConnections((prev: Record<string, FlexibleConnectedProvider[]>) => ({
+              setOauthConnections(prev => ({
                 ...prev,
                 [senseId]: [...(prev[senseId] || []), {
                   id: connectionData.id,
@@ -686,21 +686,21 @@ function ConnectionsStep({
                   deviceInfo: connectionData.deviceInfo,
                   isLibraryConnection: connectionData.isLibraryConnection,
                 }]
-              }))
+              } as Record<string, FlexibleConnectedProvider[]>))
             }}
             onOAuthDisconnect={(senseId, connectionId) => {
-              setOauthConnections((prev: Record<string, FlexibleConnectedProvider[]>) => ({
+              setOauthConnections(prev => ({
                 ...prev,
                 [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
-              }))
+              } as Record<string, FlexibleConnectedProvider[]>))
             }}
             oauthConnections={oauthConnections as Record<string, import("../aura/sense-selector").ConnectedProvider[]>}
             onNewsConfiguration={(senseId, locations) => {
-              setNewsConfigurations((prev: Record<string, NewsLocation[]>) => ({ ...prev, [senseId]: locations }))
+              setNewsConfigurations(prev => ({ ...prev, [senseId]: locations } as Record<string, NewsLocation[]>))
             }}
             newsConfigurations={newsConfigurations}
             onWeatherAirQualityConfiguration={(senseId, locations) => {
-              setWeatherAirQualityConfigurations((prev: Record<string, WeatherAirQualityLocation[]>) => ({ ...prev, [senseId]: locations }))
+              setWeatherAirQualityConfigurations(prev => ({ ...prev, [senseId]: locations } as Record<string, WeatherAirQualityLocation[]>))
             }}
             weatherAirQualityConfigurations={weatherAirQualityConfigurations}
             hasPersonalConnectedSenses={true}
