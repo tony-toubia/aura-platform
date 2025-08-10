@@ -177,8 +177,11 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
     setStep(newStep)
   }
 
-  const handlePersonalityChange = (personality: Personality) => {
-    setAssistantData(prev => ({ ...prev, personality }))
+  const handlePersonalityChange = (update: Partial<Personality>) => {
+    setAssistantData(prev => ({ 
+      ...prev, 
+      personality: { ...prev.personality, ...update }
+    }))
   }
 
   const toggleSense = (senseId: SenseId) => {
