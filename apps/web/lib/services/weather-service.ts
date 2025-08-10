@@ -119,29 +119,6 @@ export class WeatherService {
     }
   }
 
-  // Duplicate stray method block (remove to avoid parser error)
-}
-
-// Minimal forecast entry typing from OpenWeather 5-day/3-hour API
-export type ForecastEntry = {
-  dt: number
-  main: {
-    temp: number
-    feels_like: number
-    pressure: number
-    humidity: number
-  }
-  weather: Array<{
-    id: number
-    main: string
-    description: string
-    icon: string
-  }>
-  wind: { speed: number; deg: number }
-  clouds: { all: number }
-  dt_txt?: string
-}
-
   // New method to geocode location names
   static async geocodeLocation(query: string): Promise<{
     name: string
@@ -170,4 +147,24 @@ export type ForecastEntry = {
       return null
     }
   }
+}
+
+// Minimal forecast entry typing from OpenWeather 5-day/3-hour API
+export type ForecastEntry = {
+  dt: number
+  main: {
+    temp: number
+    feels_like: number
+    pressure: number
+    humidity: number
+  }
+  weather: Array<{
+    id: number
+    main: string
+    description: string
+    icon: string
+  }>
+  wind: { speed: number; deg: number }
+  clouds: { all: number }
+  dt_txt?: string
 }
