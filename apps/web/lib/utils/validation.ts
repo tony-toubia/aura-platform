@@ -58,7 +58,7 @@ export const ruleNameSchema = z
 // VALIDATION UTILITIES
 // ============================================================================
 
-export interface ValidationResult<T = any> {
+export interface ValidationResult<T = unknown> {
   success: boolean
   data?: T
   errors?: Array<{
@@ -83,7 +83,7 @@ export function validateField<T>(
   
   return {
     success: false,
-    errors: result.error.issues.map((err: any) => ({
+    errors: result.error.issues.map((err) => ({
       field: fieldName,
       message: err.message,
     })),
@@ -105,7 +105,7 @@ export function validateObject<T>(
   
   return {
     success: false,
-    errors: result.error.issues.map((err: any) => ({
+    errors: result.error.issues.map((err) => ({
       field: err.path.join('.'),
       message: err.message,
     })),
@@ -121,7 +121,8 @@ export function createFormValidator<T>(schema: z.ZodSchema<T>) {
     validate: (data: unknown) => validateObject(schema, data),
     validateField: (fieldName: keyof T, value: unknown) => {
       // Extract the schema for the specific field
-      const fieldSchema = (schema as any).shape?.[fieldName as string]
+      const shape = (schema as unknown as { shape?: Record<string, z.ZodTypeAny> }).shape
+      const fieldSchema = shape?.[fieldName as string]
       if (fieldSchema) {
         return validateField(fieldSchema, value, String(fieldName))
       }

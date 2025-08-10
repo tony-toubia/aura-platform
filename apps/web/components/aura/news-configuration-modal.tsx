@@ -94,7 +94,8 @@ async function fetchLocationSuggestions(query: string): Promise<LocationResult[]
     // 1) Zip code patterns: "12345" or "12345,US"
     const zipMatch = trimmed.match(/^(\d{5})(?:[\s,]+([A-Za-z]{2,3}))?$/)
     if (zipMatch) {
-      const [, zip, cc] = zipMatch
+      const zip = zipMatch[1]!
+      const cc = zipMatch[2]
       const country = cc ? cc.toUpperCase() : 'US'
       const byZip = await callZip(zip, country)
       if (byZip.length) return byZip

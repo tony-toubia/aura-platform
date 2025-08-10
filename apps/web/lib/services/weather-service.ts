@@ -89,7 +89,7 @@ export class WeatherService {
     lat?: number, 
     lon?: number,
     locationConfig?: LocationConfig
-  ): Promise<any[]> {
+  ): Promise<ForecastEntry[]> {
     if (!this.apiKey) return []
     try {
       let latitude  = lat  ?? 39.0997
@@ -112,12 +112,62 @@ export class WeatherService {
       if (!res.ok) throw new Error('Forecast API request failed')
 
       const json = await res.json()
-      return json.list
+      return json.list as ForecastEntry[]
     } catch (e) {
       console.error('Failed to fetch forecast:', e)
       return []
     }
   }
+
+  // New method to geocode location names
+  static async geocodeLocation(query: string): Promise<{
+    name: string
+    lat: number
+    lon: number
+    country: string
+  } | null> {
+    if (!this.apiKey) return null
+
+    try {
+      const res = await fetch(
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${this.apiKey}`
+      )
+      if (!res.ok) return null
+      const data = await res.json()
+      if (!data || data.length === 0) return null
+      const location = data[0]
+      return {
+        name: location.name,
+        lat: location.lat,
+        lon: location.lon,
+        country: location.country,
+      }
+    } catch (error) {
+      console.error('Geocoding failed:', error)
+      return null
+    }
+  }
+}
+
+// Minimal forecast entry typing from OpenWeather 5-day/3-hour API
+export type ForecastEntry = {
+  dt: number
+  main: {
+    temp: number
+    feels_like: number
+    pressure: number
+    humidity: number
+  }
+  weather: Array<{
+    id: number
+    main: string
+    description: string
+    icon: string
+  }>
+  wind: { speed: number; deg: number }
+  clouds: { all: number }
+  dt_txt?: string
+}
 
   // New method to geocode location names
   static async geocodeLocation(query: string): Promise<{

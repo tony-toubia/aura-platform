@@ -20,7 +20,7 @@ export async function getCachedPoints(
     .lte("timestamp", end)
     .order("timestamp", { ascending: true })
 
-  return (data || []).map((r: any) => ({
+  return (data || []).map((r: { timestamp: string; lat: number; lon: number }) => ({
     timestamp: r.timestamp,
     location_lat: r.lat,
     location_long: r.lon,
