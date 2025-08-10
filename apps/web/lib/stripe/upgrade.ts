@@ -19,6 +19,9 @@ export async function upgradeSubscription(tierId: string) {
 
     // Redirect to Stripe Checkout
     const stripe = await getStripe()
+    if (!stripe) {
+      throw new Error('Stripe.js failed to load')
+    }
     const { error } = await stripe.redirectToCheckout({ sessionId })
 
     if (error) {
