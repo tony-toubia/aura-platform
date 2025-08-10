@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef, type Dispatch, type SetStateAction } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -670,13 +670,14 @@ function ConnectionsStep({
             vesselType="digital"
             auraName="Your Assistant"
             onLocationConfig={(senseId, config) => {
-              setLocationConfigs(prev => ({ ...prev, [senseId]: config } as Record<string, LocationConfig>))
+              const newConfigs = { ...locationConfigs, [senseId]: config }
+              setLocationConfigs(newConfigs)
             }}
             locationConfigs={locationConfigs}
             onOAuthConnection={(senseId, providerId, connectionData) => {
-              setOauthConnections(prev => ({
-                ...prev,
-                [senseId]: [...(prev[senseId] || []), {
+              const newConnections = {
+                ...oauthConnections,
+                [senseId]: [...(oauthConnections[senseId] || []), {
                   id: connectionData.id,
                   name: connectionData.name,
                   type: connectionData.type,
@@ -686,21 +687,25 @@ function ConnectionsStep({
                   deviceInfo: connectionData.deviceInfo,
                   isLibraryConnection: connectionData.isLibraryConnection,
                 }]
-              } as Record<string, FlexibleConnectedProvider[]>))
+              }
+              setOauthConnections(newConnections)
             }}
             onOAuthDisconnect={(senseId, connectionId) => {
-              setOauthConnections(prev => ({
-                ...prev,
-                [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
-              } as Record<string, FlexibleConnectedProvider[]>))
+              const newConnections = {
+                ...oauthConnections,
+                [senseId]: (oauthConnections[senseId] || []).filter(conn => conn.id !== connectionId)
+              }
+              setOauthConnections(newConnections)
             }}
             oauthConnections={oauthConnections as Record<string, import("../aura/sense-selector").ConnectedProvider[]>}
             onNewsConfiguration={(senseId, locations) => {
-              setNewsConfigurations(prev => ({ ...prev, [senseId]: locations } as Record<string, NewsLocation[]>))
+              const newConfigurations = { ...newsConfigurations, [senseId]: locations }
+              setNewsConfigurations(newConfigurations)
             }}
             newsConfigurations={newsConfigurations}
             onWeatherAirQualityConfiguration={(senseId, locations) => {
-              setWeatherAirQualityConfigurations(prev => ({ ...prev, [senseId]: locations } as Record<string, WeatherAirQualityLocation[]>))
+              const newConfigurations = { ...weatherAirQualityConfigurations, [senseId]: locations }
+              setWeatherAirQualityConfigurations(newConfigurations)
             }}
             weatherAirQualityConfigurations={weatherAirQualityConfigurations}
             hasPersonalConnectedSenses={true}
