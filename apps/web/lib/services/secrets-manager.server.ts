@@ -1,9 +1,14 @@
-// apps/web/lib/services/secrets-manager.ts
+// apps/web/lib/services/secrets-manager.server.ts
+// This file should only be imported in server-side code (API routes, server components)
+import 'server-only' // This will throw an error if imported client-side
+
 import { SecretManagerServiceClient } from '@google-cloud/secret-manager';
 
 /**
  * SecretManager class for handling Google Cloud Secret Manager operations
  * This provides a secure way to access secrets in production environments
+ * 
+ * IMPORTANT: This is a server-only module and should never be imported in client components
  */
 export class SecretManager {
   private static client: SecretManagerServiceClient | null = null;

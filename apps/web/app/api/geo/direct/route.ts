@@ -1,6 +1,6 @@
 // apps/web/app/api/geo/direct/route.ts
 import { NextResponse } from 'next/server'
-import { getOpenWeatherApiKey } from '@/lib/services/secrets-manager'
+import { getOpenWeatherApiKey } from '@/lib/services/secrets-manager.server'
 
 export const dynamic = 'force-dynamic'
 

@@ -1,5 +1,5 @@
 // apps/web/lib/services/weather-service.ts
-import { getOpenWeatherApiKey } from './secrets-manager'
+// This is a client-safe version that doesn't import any server-only modules
 
 export interface WeatherData {
   temperature: number
@@ -24,42 +24,16 @@ export interface LocationConfig {
 }
 
 export class WeatherService {
-  private static apiKeyCache: string | null = null
-  private static apiKeyCacheExpiry = 0
-
   /**
-   * Get API key with caching to avoid repeated async calls
+   * Get current weather data
+   * Note: This method should only be called from server-side code
+   * The API key is handled server-side for security
    */
-  private static async getApiKey(): Promise<string | null> {
-    // Check cache first
-    if (this.apiKeyCache && this.apiKeyCacheExpiry > Date.now()) {
-      return this.apiKeyCache
-    }
-
-    // Get from Secret Manager or environment
-    const apiKey = await getOpenWeatherApiKey()
-    
-    if (apiKey) {
-      // Cache for 5 minutes
-      this.apiKeyCache = apiKey
-      this.apiKeyCacheExpiry = Date.now() + 5 * 60 * 1000
-    }
-    
-    return apiKey
-  }
-
   static async getCurrentWeather(
     lat?: number,
     lon?: number,
     locationConfig?: LocationConfig
   ): Promise<WeatherData | null> {
-    const apiKey = await this.getApiKey()
-    
-    if (!apiKey) {
-      console.error('OpenWeather API key not available')
-      return null
-    }
-
     try {
       let latitude = lat ?? 39.0997   // Default to Kansas City
       let longitude = lon ?? -94.5786
@@ -76,25 +50,20 @@ export class WeatherService {
         }
       }
 
-      const res = await fetch(
-        `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude
-        }&appid=${apiKey
-        }&units=metric`
-      )
-      if (!res.ok) throw new Error('Weather API request failed')
+      // Call server-side API endpoint that handles the actual weather fetching
+      const response = await fetch('/api/weather/current', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lat: latitude, lon: longitude }),
+      })
 
-      const data = await res.json()
-      return {
-        temperature: Math.round(data.main.temp),
-        humidity:    data.main.humidity,
-        description: data.weather[0].description,
-        feelsLike:   Math.round(data.main.feels_like),
-        pressure:    data.main.pressure,
-        windSpeed:   data.wind.speed,
-        clouds:      data.clouds.all,
-        city:        data.name,
-        country:     data.sys.country,
+      if (!response.ok) {
+        throw new Error('Weather API request failed')
       }
+
+      return await response.json()
     } catch (e) {
       console.error('Failed to fetch weather:', e)
       return null
@@ -106,13 +75,6 @@ export class WeatherService {
     lon?: number,
     locationConfig?: LocationConfig
   ): Promise<ForecastEntry[]> {
-    const apiKey = await this.getApiKey()
-    
-    if (!apiKey) {
-      console.error('OpenWeather API key not available')
-      return []
-    }
-    
     try {
       let latitude  = lat  ?? 39.0997
       let longitude = lon ?? -94.5786
@@ -125,16 +87,20 @@ export class WeatherService {
         }
       }
 
-      const res = await fetch(
-        `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude
-        }&lon=${longitude
-        }&appid=${apiKey
-        }&units=metric&cnt=8`
-      )
-      if (!res.ok) throw new Error('Forecast API request failed')
+      // Call server-side API endpoint that handles the actual forecast fetching
+      const response = await fetch('/api/weather/forecast', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ lat: latitude, lon: longitude }),
+      })
 
-      const json = await res.json()
-      return json.list as ForecastEntry[]
+      if (!response.ok) {
+        throw new Error('Forecast API request failed')
+      }
+
+      return await response.json()
     } catch (e) {
       console.error('Failed to fetch forecast:', e)
       return []
@@ -148,27 +114,13 @@ export class WeatherService {
     lon: number
     country: string
   } | null> {
-    const apiKey = await this.getApiKey()
-    
-    if (!apiKey) {
-      console.error('OpenWeather API key not available')
-      return null
-    }
-
     try {
-      const res = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${apiKey}`
-      )
+      // Use the existing geo/direct endpoint which already handles auth server-side
+      const res = await fetch(`/api/geo/direct?q=${encodeURIComponent(query)}&limit=1`)
       if (!res.ok) return null
       const data = await res.json()
       if (!data || data.length === 0) return null
-      const location = data[0]
-      return {
-        name: location.name,
-        lat: location.lat,
-        lon: location.lon,
-        country: location.country,
-      }
+      return data[0]
     } catch (error) {
       console.error('Geocoding failed:', error)
       return null
