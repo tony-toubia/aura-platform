@@ -95,8 +95,19 @@ class ConfigService {
   }
 
   static async getOpenweatherApiKey(): Promise<string | undefined> {
-    const config = await this.getConfig()
-    return config.openweatherApiKey
+    // First try cached config
+    let config = await this.getConfig()
+    if (config.openweatherApiKey) return config.openweatherApiKey
+
+    // If missing, try a one-time refresh to avoid stale cache issues
+    try {
+      this.config = null
+      this.loading = null
+      config = await this.getConfig()
+      return config.openweatherApiKey
+    } catch {
+      return undefined
+    }
   }
 }
 

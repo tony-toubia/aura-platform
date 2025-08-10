@@ -1,8 +1,14 @@
 // apps/web/app/api/config/route.ts
 import { NextResponse } from 'next/server'
 
+// Ensure this route is always dynamic (no static caching)
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
-  // Return public configuration that the frontend needs
+  // Log minimal status (no secrets)
+  const hasNextPublicWeather = !!process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
+  const hasServerWeather = !!process.env.OPENWEATHER_API_KEY
+
   const config = {
     googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
     microsoftClientId: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID,
@@ -13,7 +19,13 @@ export async function GET() {
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     appUrl: process.env.NEXT_PUBLIC_APP_URL,
-    openweatherApiKey: process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY,
+    // Prefer NEXT_PUBLIC_ for client, but fall back to server var if set
+    openweatherApiKey:
+      process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY ?? process.env.OPENWEATHER_API_KEY,
+  }
+
+  if (!hasNextPublicWeather && !hasServerWeather) {
+    console.error('Config route: No OpenWeather API key found in env')
   }
 
   return NextResponse.json(config)
