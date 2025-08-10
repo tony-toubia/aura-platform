@@ -934,7 +934,7 @@ function ReviewStep({
                 {assistantData.rules.slice(0, 3).map((rule, index) => (
                   <div key={index} className="text-sm p-2 bg-gray-50 rounded">
                     <p className="font-medium">{rule.name}</p>
-                    <p className="text-gray-600 text-xs">{rule.description}</p>
+                    <p className="text-gray-600 text-xs">{rule.action?.message || rule.action?.template || String(rule.trigger?.type || '')}</p>
                   </div>
                 ))}
                 {assistantData.rules.length > 3 && (
