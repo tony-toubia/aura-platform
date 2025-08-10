@@ -5,15 +5,6 @@ import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  // Log minimal status (no secrets)
-  
-  const hasServerWeather = !!process.env.OPENWEATHER_API_KEY
-
-  
-  if (!openweatherApiKey) {
-    console.error('Config route: No OpenWeather API key found in env');
-  }
-
   const config = {
     googleClientId: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
     microsoftClientId: process.env.NEXT_PUBLIC_MICROSOFT_CLIENT_ID,
@@ -24,7 +15,6 @@ export async function GET() {
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     appUrl: process.env.NEXT_PUBLIC_APP_URL,
-    
   };
 
   return NextResponse.json(config)
