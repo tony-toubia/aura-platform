@@ -1,4 +1,5 @@
 // apps/web/lib/services/weather-service.ts
+import { getOpenWeatherApiKey } from './secrets-manager'
 
 export interface WeatherData {
   temperature: number
@@ -23,24 +24,39 @@ export interface LocationConfig {
 }
 
 export class WeatherService {
+  private static apiKeyCache: string | null = null
+  private static apiKeyCacheExpiry = 0
+
   /**
-   * We look for either:
-   *  - NEXT_PUBLIC_OPENWEATHER_API_KEY (client+server)
-   *  - OPENWEATHER_API_KEY            (server‐only)
+   * Get API key with caching to avoid repeated async calls
    */
-  private static apiKey =
-    process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY ??
-    process.env.OPENWEATHER_API_KEY
+  private static async getApiKey(): Promise<string | null> {
+    // Check cache first
+    if (this.apiKeyCache && this.apiKeyCacheExpiry > Date.now()) {
+      return this.apiKeyCache
+    }
+
+    // Get from Secret Manager or environment
+    const apiKey = await getOpenWeatherApiKey()
+    
+    if (apiKey) {
+      // Cache for 5 minutes
+      this.apiKeyCache = apiKey
+      this.apiKeyCacheExpiry = Date.now() + 5 * 60 * 1000
+    }
+    
+    return apiKey
+  }
 
   static async getCurrentWeather(
     lat?: number,
     lon?: number,
     locationConfig?: LocationConfig
   ): Promise<WeatherData | null> {
-    if (!this.apiKey) {
-      console.error(
-        'Missing NEXT_PUBLIC_OPENWEATHER_API_KEY (or OPENWEATHER_API_KEY) in environment'
-      )
+    const apiKey = await this.getApiKey()
+    
+    if (!apiKey) {
+      console.error('OpenWeather API key not available')
       return null
     }
 
@@ -62,7 +78,7 @@ export class WeatherService {
 
       const res = await fetch(
         `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude
-        }&appid=${this.apiKey
+        }&appid=${apiKey
         }&units=metric`
       )
       if (!res.ok) throw new Error('Weather API request failed')
@@ -90,7 +106,13 @@ export class WeatherService {
     lon?: number,
     locationConfig?: LocationConfig
   ): Promise<ForecastEntry[]> {
-    if (!this.apiKey) return []
+    const apiKey = await this.getApiKey()
+    
+    if (!apiKey) {
+      console.error('OpenWeather API key not available')
+      return []
+    }
+    
     try {
       let latitude  = lat  ?? 39.0997
       let longitude = lon ?? -94.5786
@@ -106,7 +128,7 @@ export class WeatherService {
       const res = await fetch(
         `https://api.openweathermap.org/data/2.5/forecast?lat=${latitude
         }&lon=${longitude
-        }&appid=${this.apiKey
+        }&appid=${apiKey
         }&units=metric&cnt=8`
       )
       if (!res.ok) throw new Error('Forecast API request failed')
@@ -126,11 +148,16 @@ export class WeatherService {
     lon: number
     country: string
   } | null> {
-    if (!this.apiKey) return null
+    const apiKey = await this.getApiKey()
+    
+    if (!apiKey) {
+      console.error('OpenWeather API key not available')
+      return null
+    }
 
     try {
       const res = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${this.apiKey}`
+        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${apiKey}`
       )
       if (!res.ok) return null
       const data = await res.json()

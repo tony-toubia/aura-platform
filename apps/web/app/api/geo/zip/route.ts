@@ -1,5 +1,6 @@
 // apps/web/app/api/geo/zip/route.ts
 import { NextResponse } from 'next/server'
+import { getOpenWeatherApiKey } from '@/lib/services/secrets-manager'
 
 export const dynamic = 'force-dynamic'
 
@@ -9,9 +10,11 @@ export async function GET(request: Request) {
     const zip = searchParams.get('zip') || ''
     const country = (searchParams.get('country') || 'US').toUpperCase()
 
-    const apiKey = process.env.OPENWEATHER_API_KEY
+    // Securely get API key from Secret Manager (or env in dev)
+    const apiKey = await getOpenWeatherApiKey()
     if (!apiKey) {
-      return NextResponse.json({ error: 'Missing OpenWeather API key' }, { status: 500 })
+      console.error('OpenWeather API key not found in secrets')
+      return NextResponse.json({ error: 'Weather service configuration error' }, { status: 500 })
     }
 
     if (!zip.trim()) {

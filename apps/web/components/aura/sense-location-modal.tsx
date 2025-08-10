@@ -47,13 +47,8 @@ export interface LocationConfig {
 type LocationResult = LocationConfig['location']
 
 async function fetchLocationSuggestions(query: string): Promise<LocationResult[]> {
-  // Prefer fetching public config via ConfigService to avoid relying on process.env client-side
-  const { ConfigService } = await import('@/lib/services/config-service')
-  const apiKey = await ConfigService.getOpenweatherApiKey()
-  if (!apiKey) {
-    console.error("OpenWeather API key is not configured.")
-    return []
-  }
+  // The API endpoints now handle authentication securely server-side
+  // No need to check for API keys on the client
   const trimmed = query.trim()
   if (!trimmed) return []
 

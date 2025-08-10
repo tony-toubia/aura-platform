@@ -15,6 +15,8 @@ export async function GET() {
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     appUrl: process.env.NEXT_PUBLIC_APP_URL,
+    // SECURITY: Never expose API keys to the client
+    // OpenWeather API key is now handled server-side only via Secret Manager
   };
 
   return NextResponse.json(config)
