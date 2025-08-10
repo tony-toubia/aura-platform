@@ -253,22 +253,30 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
               <Bot className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
+              <h1 className="text-lg sm:text-xl font-bold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
                 Assistant Studio
               </h1>
-              <p className="text-sm text-gray-500">Build your intelligent companion</p>
+              <p className="text-xs sm:text-sm text-gray-500 hidden sm:block">Build your intelligent companion</p>
             </div>
           </div>
           
-          <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2">
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setIsPreviewMode(!isPreviewMode)}
-              className="text-gray-600 hover:text-blue-600"
+              className="text-gray-600 hover:text-blue-600 hidden sm:flex"
             >
               {isPreviewMode ? <EyeOff className="w-4 h-4 mr-2" /> : <Eye className="w-4 h-4 mr-2" />}
-              {isPreviewMode ? 'Exit Preview' : 'Preview'}
+              <span className="hidden md:inline">{isPreviewMode ? 'Exit Preview' : 'Preview'}</span>
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setIsPreviewMode(!isPreviewMode)}
+              className="text-gray-600 hover:text-blue-600 sm:hidden"
+            >
+              {isPreviewMode ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
             </Button>
             <Button
               variant="outline"
@@ -276,8 +284,8 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
               onClick={() => router.push('/dashboard')}
               className="text-gray-600 hover:text-blue-600"
             >
-              <ArrowLeft className="w-4 h-4 mr-2" />
-              Back to Dashboard
+              <ArrowLeft className="w-4 h-4" />
+              <span className="hidden sm:inline ml-2">Back to Dashboard</span>
             </Button>
           </div>
         </div>
@@ -286,7 +294,8 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
       {/* Progress Indicator */}
       <div className="bg-white border-b">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between max-w-4xl mx-auto">
+          {/* Desktop version */}
+          <div className="hidden md:flex items-center justify-between max-w-4xl mx-auto">
             {[
               { id: 'welcome', label: 'Welcome', icon: Sparkles },
               { id: 'personality', label: 'Personality', icon: Brain },
@@ -309,7 +318,7 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
                     !isActive && !isCompleted && "text-gray-400"
                   )}>
                     <Icon className="w-4 h-4" />
-                    <span className="text-sm font-medium hidden sm:block">{stepInfo.label}</span>
+                    <span className="text-sm font-medium">{stepInfo.label}</span>
                   </div>
                   {index < 5 && (
                     <ArrowRight className="w-4 h-4 text-gray-300 mx-2" />
@@ -318,11 +327,47 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
               )
             })}
           </div>
+          
+          {/* Mobile version - horizontal scroll */}
+          <div className="md:hidden">
+            <div className="flex items-center space-x-3 overflow-x-auto pb-2 scrollbar-hide">
+              {[
+                { id: 'welcome', label: 'Welcome', icon: Sparkles },
+                { id: 'personality', label: 'Personality', icon: Brain },
+                { id: 'connections', label: 'Data Sources', icon: Database },
+                { id: 'rules', label: 'Behaviors', icon: Workflow },
+                { id: 'review', label: 'Review', icon: Eye },
+                { id: 'deploy', label: 'Deploy', icon: Zap },
+              ].map((stepInfo, index) => {
+                const isActive = step === stepInfo.id
+                const isCompleted = ['welcome', 'personality', 'connections', 'rules', 'review'].indexOf(step) > 
+                                   ['welcome', 'personality', 'connections', 'rules', 'review'].indexOf(stepInfo.id)
+                const Icon = stepInfo.icon
+                
+                return (
+                  <div key={stepInfo.id} className="flex items-center flex-shrink-0">
+                    <div className={cn(
+                      "flex items-center space-x-2 px-3 py-2 rounded-lg transition-all whitespace-nowrap",
+                      isActive && "bg-blue-100 text-blue-700",
+                      isCompleted && "text-green-600",
+                      !isActive && !isCompleted && "text-gray-400"
+                    )}>
+                      <Icon className="w-4 h-4" />
+                      <span className="text-sm font-medium">{stepInfo.label}</span>
+                    </div>
+                    {index < 5 && (
+                      <ArrowRight className="w-4 h-4 text-gray-300 mx-2 flex-shrink-0" />
+                    )}
+                  </div>
+                )
+              })}
+            </div>
+          </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
+      <main className="container mx-auto px-4 sm:px-6 py-6 sm:py-8">
         <div className="max-w-4xl mx-auto">
           {error && (
             <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-lg text-red-700">
@@ -465,7 +510,7 @@ function WelcomeStep({
             </span>
           </h1>
           
-          <p className="text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
+          <p className="text-lg sm:text-xl text-gray-600 max-w-2xl mx-auto leading-relaxed">
             Create an intelligent companion that understands your world through your data. 
             Connect calendars, fitness trackers, location, and more to build an assistant 
             that truly knows you and helps you achieve your goals.
@@ -623,12 +668,12 @@ function PersonalityStep({
         </CardContent>
       </Card>
 
-      <div className="flex justify-between max-w-4xl mx-auto">
-        <Button variant="outline" onClick={onBack}>
+      <div className="flex flex-col sm:flex-row gap-4 sm:justify-between max-w-4xl mx-auto">
+        <Button variant="outline" onClick={onBack} className="order-2 sm:order-1">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <Button onClick={onNext} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+        <Button onClick={onNext} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white order-1 sm:order-2">
           Continue
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
@@ -742,12 +787,12 @@ function ConnectionsStep({
         </CardContent>
       </Card>
 
-      <div className="flex justify-between max-w-4xl mx-auto">
-        <Button variant="outline" onClick={onBack}>
+      <div className="flex flex-col sm:flex-row gap-4 sm:justify-between max-w-4xl mx-auto">
+        <Button variant="outline" onClick={onBack} className="order-2 sm:order-1">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <Button onClick={onNext} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+        <Button onClick={onNext} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white order-1 sm:order-2">
           Continue
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
@@ -817,12 +862,12 @@ function RulesStep({
         </CardContent>
       </Card>
 
-      <div className="flex justify-between max-w-4xl mx-auto">
-        <Button variant="outline" onClick={onBack}>
+      <div className="flex flex-col sm:flex-row gap-4 sm:justify-between max-w-4xl mx-auto">
+        <Button variant="outline" onClick={onBack} className="order-2 sm:order-1">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <Button onClick={onNext} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white">
+        <Button onClick={onNext} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white order-1 sm:order-2">
           Continue
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
@@ -851,8 +896,8 @@ function ReviewStep({
         <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl flex items-center justify-center mx-auto">
           <Eye className="w-8 h-8 text-white" />
         </div>
-        <h2 className="text-3xl font-bold">Review Your Assistant</h2>
-        <p className="text-lg text-gray-600 max-w-2xl mx-auto">
+        <h2 className="text-2xl sm:text-3xl font-bold">Review Your Assistant</h2>
+        <p className="text-base sm:text-lg text-gray-600 max-w-2xl mx-auto">
           Take a final look at your assistant's configuration before deployment. 
           You can always make changes later from your dashboard.
         </p>
@@ -977,15 +1022,15 @@ function ReviewStep({
         </Card>
       </div>
 
-      <div className="flex justify-between max-w-4xl mx-auto">
-        <Button variant="outline" onClick={onBack}>
+      <div className="flex flex-col sm:flex-row gap-4 sm:justify-between max-w-4xl mx-auto">
+        <Button variant="outline" onClick={onBack} className="order-2 sm:order-1">
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
         <Button 
           onClick={onSave} 
           disabled={isSaving}
-          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white"
+          className="bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 text-white order-1 sm:order-2"
         >
           {isSaving ? (
             <>
