@@ -96,11 +96,13 @@ async function fetchLocationSuggestions(query: string): Promise<LocationResult[]
     // 2) "City, ST" or "City ST" → assume US state code if 2 letters
     const cityStateMatch = trimmed.match(/^(.+?)[,\s]+([A-Za-z]{2})$/)
     if (cityStateMatch) {
-      const city = cityStateMatch[1].trim()
-      const state = cityStateMatch[2].toUpperCase()
-      const q = `${city},${state},US`
-      const byCityState = await callDirect(q)
-      if (byCityState.length) return byCityState
+      const city = (cityStateMatch[1] ?? '').trim()
+      const state = (cityStateMatch[2] ?? '').toUpperCase()
+      if (city && state) {
+        const q = `${city},${state},US`
+        const byCityState = await callDirect(q)
+        if (byCityState.length) return byCityState
+      }
     }
 
     // 3) Try as-is
