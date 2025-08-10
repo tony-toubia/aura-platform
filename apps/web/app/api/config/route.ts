@@ -6,10 +6,10 @@ export const dynamic = 'force-dynamic'
 
 export async function GET() {
   // Log minimal status (no secrets)
-  const hasNextPublicWeather = !!process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
+  
   const hasServerWeather = !!process.env.OPENWEATHER_API_KEY
 
-  const openweatherApiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY ?? process.env.OPENWEATHER_API_KEY;
+  
   if (!openweatherApiKey) {
     console.error('Config route: No OpenWeather API key found in env');
   }
@@ -24,7 +24,7 @@ export async function GET() {
     supabaseAnonKey: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
     stripePublishableKey: process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY,
     appUrl: process.env.NEXT_PUBLIC_APP_URL,
-    openweatherApiKey,
+    
   };
 
   return NextResponse.json(config)

@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     const q = searchParams.get('q') || ''
     const limit = searchParams.get('limit') || '8'
 
-    const apiKey = process.env.OPENWEATHER_API_KEY || process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
+    const apiKey = process.env.OPENWEATHER_API_KEY
     if (!apiKey) {
       return NextResponse.json({ error: 'Missing OpenWeather API key' }, { status: 500 })
     }

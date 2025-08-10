@@ -22,8 +22,7 @@ steps:
       - 'NEXT_PUBLIC_MICROSOFT_CLIENT_ID=${_MICROSOFT_CLIENT_ID}'
       - '--build-arg'
       - 'NEXT_PUBLIC_STRAVA_CLIENT_ID=${_STRAVA_CLIENT_ID}'
-      - '--build-arg'
-      - 'NEXT_PUBLIC_OPENWEATHER_API_KEY=${_OPENWEATHER_API_KEY}'
+      
       - '--build-arg'
       - 'OPENAI_API_KEY=build-time-placeholder'
       - '--build-arg'
@@ -79,8 +78,7 @@ steps:
       - 'SUPABASE_SERVICE_ROLE_KEY=SUPABASE_SERVICE_ROLE_KEY:latest'
       - '--update-secrets'
       - 'OPENWEATHER_API_KEY=OPENWEATHER_API_KEY:latest'
-      - '--update-secrets'
-      - 'NEXT_PUBLIC_OPENWEATHER_API_KEY=OPENWEATHER_API_KEY:latest'
+      
       - '--update-secrets'
       - 'NEWS_API_KEY=NEWS_API_KEY:latest'
       - '--update-secrets'
