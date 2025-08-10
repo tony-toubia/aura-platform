@@ -59,27 +59,18 @@ async function fetchLocationSuggestions(query: string): Promise<LocationResult[]
 
   // Helper: direct geocoding by city/state/country
   const callDirect = async (q: string, limit = 8): Promise<LocationResult[]> => {
-    const res = await fetch(
-      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(q)}&limit=${limit}&appid=${apiKey}`
-    )
+    const res = await fetch(`/api/geo/direct?q=${encodeURIComponent(q)}&limit=${limit}`)
     if (!res.ok) return []
     const data = await res.json()
-    return data.map((loc: any) => ({
-      name: `${loc.name}${loc.state ? `, ${loc.state}` : ''}`,
-      lat: loc.lat,
-      lon: loc.lon,
-      country: loc.country,
-    }))
+    return data as LocationResult[]
   }
 
   // Helper: zip code lookup (defaults to US if country not specified)
   const callZip = async (zip: string, country = 'US'): Promise<LocationResult[]> => {
-    const res = await fetch(
-      `https://api.openweathermap.org/geo/1.0/zip?zip=${encodeURIComponent(`${zip},${country}`)}&appid=${apiKey}`
-    )
+    const res = await fetch(`/api/geo/zip?zip=${encodeURIComponent(zip)}&country=${encodeURIComponent(country)}`)
     if (!res.ok) return []
     const data = await res.json()
-    return [{ name: data.name, lat: data.lat, lon: data.lon, country: data.country }]
+    return data as LocationResult[]
   }
 
   try {
