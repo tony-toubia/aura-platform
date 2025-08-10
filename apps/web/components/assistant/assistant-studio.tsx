@@ -563,7 +563,7 @@ function PersonalityStep({
   onBack 
 }: {
   personality: Personality
-  onPersonalityChange: (personality: Personality) => void
+  onPersonalityChange: (update: Partial<Personality>) => void
   onNext: () => void
   onBack: () => void
 }) {
