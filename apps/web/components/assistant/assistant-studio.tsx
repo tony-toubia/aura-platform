@@ -670,11 +670,11 @@ function ConnectionsStep({
             vesselType="digital"
             auraName="Your Assistant"
             onLocationConfig={(senseId, config) => {
-              setLocationConfigs(prev => ({ ...prev, [senseId]: config }))
+              setLocationConfigs((prev: Record<string, any>) => ({ ...prev, [senseId]: config }))
             }}
             locationConfigs={locationConfigs}
             onOAuthConnection={(senseId, providerId, connectionData) => {
-              setOauthConnections(prev => ({
+              setOauthConnections((prev: Record<string, any[]>) => ({
                 ...prev,
                 [senseId]: [...(prev[senseId] || []), {
                   id: connectionData.id,
@@ -689,18 +689,18 @@ function ConnectionsStep({
               }))
             }}
             onOAuthDisconnect={(senseId, connectionId) => {
-              setOauthConnections(prev => ({
+              setOauthConnections((prev: Record<string, any[]>) => ({
                 ...prev,
                 [senseId]: (prev[senseId] || []).filter(conn => conn.id !== connectionId)
               }))
             }}
             oauthConnections={oauthConnections as Record<string, import("../aura/sense-selector").ConnectedProvider[]>}
             onNewsConfiguration={(senseId, locations) => {
-              setNewsConfigurations(prev => ({ ...prev, [senseId]: locations }))
+              setNewsConfigurations((prev: Record<string, any[]>) => ({ ...prev, [senseId]: locations }))
             }}
             newsConfigurations={newsConfigurations}
             onWeatherAirQualityConfiguration={(senseId, locations) => {
-              setWeatherAirQualityConfigurations(prev => ({ ...prev, [senseId]: locations }))
+              setWeatherAirQualityConfigurations((prev: Record<string, any[]>) => ({ ...prev, [senseId]: locations }))
             }}
             weatherAirQualityConfigurations={weatherAirQualityConfigurations}
             hasPersonalConnectedSenses={true}
