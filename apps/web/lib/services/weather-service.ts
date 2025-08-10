@@ -119,34 +119,7 @@ export class WeatherService {
     }
   }
 
-  // New method to geocode location names
-  static async geocodeLocation(query: string): Promise<{
-    name: string
-    lat: number
-    lon: number
-    country: string
-  } | null> {
-    if (!this.apiKey) return null
-
-    try {
-      const res = await fetch(
-        `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${this.apiKey}`
-      )
-      if (!res.ok) return null
-      const data = await res.json()
-      if (!data || data.length === 0) return null
-      const location = data[0]
-      return {
-        name: location.name,
-        lat: location.lat,
-        lon: location.lon,
-        country: location.country,
-      }
-    } catch (error) {
-      console.error('Geocoding failed:', error)
-      return null
-    }
-  }
+  // Duplicate stray method block (remove to avoid parser error)
 }
 
 // Minimal forecast entry typing from OpenWeather 5-day/3-hour API
@@ -182,12 +155,9 @@ export type ForecastEntry = {
       const res = await fetch(
         `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=1&appid=${this.apiKey}`
       )
-      
       if (!res.ok) return null
-      
       const data = await res.json()
       if (!data || data.length === 0) return null
-      
       const location = data[0]
       return {
         name: location.name,
