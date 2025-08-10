@@ -157,7 +157,7 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
         vesselCode: 'assistant',
         name: data.name || 'My AI Assistant',
       }
-      return await auraApi.create(assistantPayload)
+      return await auraApi.createAura(assistantPayload)
     },
     {
       onSuccess: (result) => {
