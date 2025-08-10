@@ -592,7 +592,6 @@ function PersonalityStep({
           <PersonalityMatrix
             personality={personality}
             onChange={onPersonalityChange}
-            showAdvanced={true}
           />
         </CardContent>
       </Card>
