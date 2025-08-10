@@ -47,16 +47,20 @@ export interface LocationConfig {
 type LocationResult = LocationConfig['location']
 
 async function fetchLocationSuggestions(query: string): Promise<LocationResult[]> {
-  // NOTE: It's recommended to move API calls with secret keys to a backend route
-  // to avoid exposing the key on the client side.
-  const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY
+  // Prefer fetching public config via ConfigService to avoid relying on process.env client-side
+  const { ConfigService } = await import('@/lib/services/config-service')
+  const apiKey = await ConfigService.getOpenweatherApiKey()
   if (!apiKey) {
-    console.error("OpenWeather API key is not configured.");
+    console.error("OpenWeather API key is not configured.")
     return []
   }
-  try {
+  const trimmed = query.trim()
+  if (!trimmed) return []
+
+  // Helper: direct geocoding by city/state/country
+  const callDirect = async (q: string, limit = 8): Promise<LocationResult[]> => {
     const res = await fetch(
-      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=5&appid=${apiKey}`
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(q)}&limit=${limit}&appid=${apiKey}`
     )
     if (!res.ok) return []
     const data = await res.json()
@@ -66,10 +70,51 @@ async function fetchLocationSuggestions(query: string): Promise<LocationResult[]
       lon: loc.lon,
       country: loc.country,
     }))
+  }
+
+  // Helper: zip code lookup (defaults to US if country not specified)
+  const callZip = async (zip: string, country = 'US'): Promise<LocationResult[]> => {
+    const res = await fetch(
+      `https://api.openweathermap.org/geo/1.0/zip?zip=${encodeURIComponent(`${zip},${country}`)}&appid=${apiKey}`
+    )
+    if (!res.ok) return []
+    const data = await res.json()
+    return [{ name: data.name, lat: data.lat, lon: data.lon, country: data.country }]
+  }
+
+  try {
+    // 1) Zip code patterns: "12345" or "12345,US"
+    const zipMatch = trimmed.match(/^(\d{5})(?:[\s,]+([A-Za-z]{2,3}))?$/)
+    if (zipMatch) {
+      const [, zip, cc] = zipMatch
+      const country = cc ? cc.toUpperCase() : 'US'
+      const byZip = await callZip(zip, country)
+      if (byZip.length) return byZip
+    }
+
+    // 2) "City, ST" or "City ST" → assume US state code if 2 letters
+    const cityStateMatch = trimmed.match(/^(.+?)[,\s]+([A-Za-z]{2})$/)
+    if (cityStateMatch) {
+      const city = cityStateMatch[1].trim()
+      const state = cityStateMatch[2].toUpperCase()
+      const q = `${city},${state},US`
+      const byCityState = await callDirect(q)
+      if (byCityState.length) return byCityState
+    }
+
+    // 3) Try as-is
+    let results = await callDirect(trimmed)
+    if (results.length) return results
+
+    // 4) Fallback: append country if not provided (default US)
+    if (!trimmed.includes(',')) {
+      results = await callDirect(`${trimmed},US`)
+      if (results.length) return results
+    }
   } catch (e) {
     console.error('Suggestion lookup failed', e)
-    return []
   }
+  return []
 }
 
 export function SenseLocationModal({

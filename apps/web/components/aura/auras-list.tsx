@@ -50,7 +50,7 @@ interface AurasListProps {
 
 export function AurasList({ initialAuras }: AurasListProps) {
   const router = useRouter()
-  const { subscription, checkFeatureAccess } = useSubscription()
+  const { subscription, loading: subscriptionLoading, checkFeatureAccess, canCreateAura: canCreateAuraFromContext } = useSubscription()
   const { auras, loading, error, refresh, updateAura, removeAura } = useAuras({ initialAuras })
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
   const [auraToDelete, setAuraToDelete] = useState<Aura | null>(null)
@@ -73,10 +73,11 @@ export function AurasList({ initialAuras }: AurasListProps) {
       try {
         console.log('AurasList: Checking aura creation access', {
           subscription: subscription?.id,
+          subscriptionLoading,
           activeAuraCount,
           maxAuras: subscription?.features?.maxAuras
         })
-        const canCreate = await checkFeatureAccess('maxAuras')
+        const canCreate = await canCreateAuraFromContext()
         console.log('AurasList: Can create aura result:', canCreate)
         setCanCreateAura(canCreate)
       } catch (error) {
@@ -85,12 +86,19 @@ export function AurasList({ initialAuras }: AurasListProps) {
       }
     }
     
+    // Wait for subscription to finish loading
+    if (subscriptionLoading) {
+      console.log('AurasList: Subscription still loading...')
+      return
+    }
+    
     if (subscription) {
       checkAuraCreation()
     } else {
-      console.log('AurasList: No subscription available yet')
+      console.log('AurasList: No subscription available, setting canCreateAura to false')
+      setCanCreateAura(false)
     }
-  }, [subscription, activeAuraCount, checkFeatureAccess])
+  }, [subscription, subscriptionLoading, activeAuraCount, canCreateAuraFromContext])
 
   const handleDeleteClick = (aura: Aura) => {
     setAuraToDelete(aura)
