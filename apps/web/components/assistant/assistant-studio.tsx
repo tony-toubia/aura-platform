@@ -157,7 +157,14 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
         vesselCode: 'assistant',
         name: data.name || 'My AI Assistant',
       }
-      return await auraApi.createAura(assistantPayload)
+      
+      // If we already have an ID, update the existing assistant
+      if (data.id) {
+        return await auraApi.updateAura(data.id, assistantPayload)
+      } else {
+        // Otherwise create a new one (fallback)
+        return await auraApi.createAura(assistantPayload)
+      }
     },
     {
       onSuccess: (result) => {
@@ -171,9 +178,29 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
     }
   )
 
-  const handleStepChange = (newStep: AssistantStep) => {
+  const handleStepChange = async (newStep: AssistantStep) => {
     setError(null)
     clearError()
+    
+    // If moving to connections step and we don't have an assistant ID yet, create it
+    if (newStep === "connections" && !assistantData.id) {
+      try {
+        const assistantPayload = {
+          ...assistantData,
+          vesselType: 'digital' as VesselTypeId,
+          vesselCode: 'assistant',
+          name: assistantData.name || 'My AI Assistant',
+        }
+        const result = await auraApi.createAura(assistantPayload)
+        setAssistantData(prev => ({ ...prev, id: result.id }))
+        console.log("Assistant created early with ID:", result.id)
+      } catch (error) {
+        console.error("Error creating assistant early:", error)
+        setError("Failed to create assistant. Please try again.")
+        return
+      }
+    }
+    
     setStep(newStep)
   }
 
