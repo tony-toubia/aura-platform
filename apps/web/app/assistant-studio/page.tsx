@@ -1,4 +1,4 @@
-import { AssistantStudio } from '@/components/assistant/assistant-studio'
+import { AssistantStudio } from '@/components/assistant/assistant-studio-simple'
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import { SubscriptionService } from '@/lib/services/subscription-service'
 

@@ -53,6 +53,7 @@ import {
   Save,
   Eye,
   EyeOff,
+  Plus,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import type { BehaviorRule, Personality } from "@/types"
@@ -121,8 +122,8 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
       empathy: 80,
       creativity: 50,
       persona: 'helpful',
-      tone: 'professional',
-      vocabulary: 'sophisticated',
+      tone: 'formal',
+      vocabulary: 'scholarly',
       quirks: [],
     },
     senses: [],
@@ -376,8 +377,8 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
                     empathy: 80,
                     creativity: 50,
                     persona: 'helpful',
-                    tone: 'professional',
-                    vocabulary: 'sophisticated',
+                    tone: 'formal',
+                    vocabulary: 'scholarly',
                     quirks: [],
                   },
                   senses: [],

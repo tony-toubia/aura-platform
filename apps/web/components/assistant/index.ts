@@ -1,1 +1,1 @@
-export { AssistantStudio } from './assistant-studio'
+export { AssistantStudio } from './assistant-studio-simple'
