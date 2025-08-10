@@ -192,8 +192,8 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
           name: assistantData.name || 'My AI Assistant',
         }
         const result = await auraApi.createAura(assistantPayload)
-        setAssistantData(prev => ({ ...prev, id: result.id }))
-        console.log("Assistant created early with ID:", result.id)
+        setAssistantData(prev => ({ ...prev, id: result.data?.id }))
+        console.log("Assistant created early with ID:", result.data?.id)
       } catch (error) {
         console.error("Error creating assistant early:", error)
         setError("Failed to create assistant. Please try again.")
