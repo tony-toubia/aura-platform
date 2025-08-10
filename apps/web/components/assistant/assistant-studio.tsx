@@ -675,12 +675,13 @@ function ConnectionsStep({
             }}
             locationConfigs={locationConfigs}
             onOAuthConnection={(senseId, providerId, connectionData) => {
+              const displayName = connectionData.providerName || providerId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
               const newConnections = {
                 ...oauthConnections,
                 [senseId]: [...(oauthConnections[senseId] || []), {
-                  id: connectionData.id,
-                  name: connectionData.name,
-                  type: connectionData.type,
+                  id: connectionData.id || `${providerId}-${Date.now()}`,
+                  name: displayName,
+                  type: senseId as PersonalSenseType,
                   connectedAt: new Date(),
                   providerId,
                   accountEmail: connectionData.accountEmail,

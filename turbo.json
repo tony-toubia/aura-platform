@@ -1,6 +1,9 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
+  "globalEnv": [
+    "OPENWEATHER_API_KEY"
+  ],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
