@@ -23,6 +23,8 @@ steps:
       - '--build-arg'
       - 'NEXT_PUBLIC_STRAVA_CLIENT_ID=${_STRAVA_CLIENT_ID}'
       - '--build-arg'
+      - 'NEXT_PUBLIC_OPENWEATHER_API_KEY=${_OPENWEATHER_API_KEY}'
+      - '--build-arg'
       - 'OPENAI_API_KEY=build-time-placeholder'
       - '--build-arg'
       - 'JWT_SECRET=build-time-placeholder-will-be-replaced-at-runtime'

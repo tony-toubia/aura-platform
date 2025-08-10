@@ -1,0 +1,160 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  annotations:
+    run.googleapis.com/client-name: gcloud
+    run.googleapis.com/client-version: 533.0.0
+    run.googleapis.com/ingress: all
+    run.googleapis.com/ingress-status: all
+    run.googleapis.com/operation-id: 4dacb81a-72c1-4592-80bd-44aecd2ec84a
+    run.googleapis.com/urls: '["https://aura-dashboard-205298800820.us-central1.run.app","https://aura-dashboard-mn5srfeinq-uc.a.run.app"]'
+    serving.knative.dev/creator: 205298800820-compute@developer.gserviceaccount.com
+    serving.knative.dev/lastModifier: 205298800820-compute@developer.gserviceaccount.com
+  creationTimestamp: '2025-08-05T18:46:54.048916Z'
+  generation: 89
+  labels:
+    cloud.googleapis.com/location: us-central1
+  name: aura-dashboard
+  namespace: '205298800820'
+  resourceVersion: AAY778GnyUM
+  selfLink: /apis/serving.knative.dev/v1/namespaces/205298800820/services/aura-dashboard
+  uid: cc02d266-c7be-4c2f-9740-a345a9938888
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '10'
+        run.googleapis.com/client-name: gcloud
+        run.googleapis.com/client-version: 533.0.0
+        run.googleapis.com/startup-cpu-boost: 'true'
+      labels:
+        client.knative.dev/nonce: zuwmigzzbk
+        run.googleapis.com/startupProbeType: Default
+    spec:
+      containerConcurrency: 80
+      containers:
+      - env:
+        - name: STRIPE_SECRET_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: STRIPE_SECRET_KEY
+        - name: NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: STRIPE_PUBLISHABLE_KEY
+        - name: STRIPE_WEBHOOK_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: STRIPE_WEBHOOK_SECRET
+        - name: STRIPE_PERSONAL_PRICE_ID
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: STRIPE_PERSONAL_PRICE_ID
+        - name: STRIPE_FAMILY_PRICE_ID
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: STRIPE_FAMILY_PRICE_ID
+        - name: STRIPE_BUSINESS_PRICE_ID
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: STRIPE_BUSINESS_PRICE_ID
+        - name: OPENAI_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: OPENAI_API_KEY
+        - name: JWT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: JWT_SECRET
+        - name: SUPABASE_SERVICE_ROLE_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: SUPABASE_SERVICE_ROLE_KEY
+        - name: NEXT_PUBLIC_OPENWEATHER_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: OPENWEATHER_API_KEY
+        - name: NEWS_API_KEY
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: NEWS_API_KEY
+        - name: GOOGLE_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: GOOGLE_CLIENT_SECRET
+        - name: MICROSOFT_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: MICROSOFT_CLIENT_SECRET
+        - name: STRAVA_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              key: latest
+              name: STRAVA_CLIENT_SECRET
+        - name: NEXT_PUBLIC_SUPABASE_URL
+          value: https://ahzmfkjtiiyuipweaktx.supabase.co
+        - name: NEXT_PUBLIC_SUPABASE_ANON_KEY
+          value: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFoem1ma2p0aWl5dWlwd2Vha3R4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTI2Mzc3OTksImV4cCI6MjA2ODIxMzc5OX0.adTiPqedJv1TvuDvj53HGA_jlZr23MJ_L3jiKDb0GTk
+        - name: NEXT_PUBLIC_GOOGLE_CLIENT_ID
+          value: 205298800820-4l2r0ro2m6lvc73g6id03r4fnbp25m52.apps.googleusercontent.com
+        - name: NEXT_PUBLIC_MICROSOFT_CLIENT_ID
+          value: 07a43345-3aa6-4444-8859-c44105e4769d
+        - name: NEXT_PUBLIC_STRAVA_CLIENT_ID
+          value: '170903'
+        - name: NEXT_PUBLIC_APP_URL
+          value: https://aura-dashboard-mn5srfeinq-uc.a.run.app
+        - name: NODE_ENV
+          value: production
+        image: gcr.io/aura-platform-467500/aura-web:a040d04d25c2803468c6c1dba7fa270e53750d8c
+        ports:
+        - containerPort: 3000
+          name: http1
+        resources:
+          limits:
+            cpu: '1'
+            memory: 1Gi
+        startupProbe:
+          failureThreshold: 1
+          periodSeconds: 240
+          tcpSocket:
+            port: 3000
+          timeoutSeconds: 240
+      serviceAccountName: 205298800820-compute@developer.gserviceaccount.com
+      timeoutSeconds: 300
+  traffic:
+  - latestRevision: true
+    percent: 100
+status:
+  address:
+    url: https://aura-dashboard-mn5srfeinq-uc.a.run.app
+  conditions:
+  - lastTransitionTime: '2025-08-09T14:46:32.485187Z'
+    status: 'True'
+    type: Ready
+  - lastTransitionTime: '2025-08-09T14:46:31.131230Z'
+    status: 'True'
+    type: ConfigurationsReady
+  - lastTransitionTime: '2025-08-09T14:46:32.445736Z'
+    status: 'True'
+    type: RoutesReady
+  latestCreatedRevisionName: aura-dashboard-00089-lwv
+  latestReadyRevisionName: aura-dashboard-00089-lwv
+  observedGeneration: 89
+  traffic:
+  - latestRevision: true
+    percent: 100
+    revisionName: aura-dashboard-00089-lwv
+  url: https://aura-dashboard-mn5srfeinq-uc.a.run.app

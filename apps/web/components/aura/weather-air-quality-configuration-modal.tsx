@@ -61,28 +61,16 @@ type LocationResult = {
 async function fetchLocationSuggestions(query: string): Promise<LocationResult[]> {
   const { ConfigService } = await import('@/lib/services/config-service')
   const apiKey = await ConfigService.getOpenweatherApiKey()
-  console.log('OpenWeather API key status:', apiKey ? `Present (${apiKey.length} chars)` : 'Missing')
-  
   if (!apiKey) {
     console.error("OpenWeather API key is not configured.")
     return []
   }
   try {
-    const url = `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=8&appid=${apiKey}`
-    console.log('Fetching location suggestions from:', url.replace(apiKey, 'REDACTED'))
-    
-    const res = await fetch(url)
-    console.log('Response status:', res.status, res.statusText)
-    
-    if (!res.ok) {
-      const errorText = await res.text()
-      console.error('OpenWeather API error:', errorText)
-      return []
-    }
-    
+    const res = await fetch(
+      `https://api.openweathermap.org/geo/1.0/direct?q=${encodeURIComponent(query)}&limit=8&appid=${apiKey}`
+    )
+    if (!res.ok) return []
     const data = await res.json()
-    console.log('Location results:', data.length, 'locations found')
-    
     return data.map((loc: any) => ({
       name: `${loc.name}${loc.state ? `, ${loc.state}` : ''}`,
       lat: loc.lat,

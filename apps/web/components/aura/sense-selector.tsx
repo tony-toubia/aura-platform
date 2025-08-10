@@ -105,6 +105,8 @@ interface SenseSelectorProps {
   weatherAirQualityConfigurations?: Record<string, WeatherAirQualityLocation[]>
   /** Whether user has access to personal connected senses */
   hasPersonalConnectedSenses?: boolean
+  /** Whether this is being used in assistant mode (changes terminology and descriptions) */
+  assistantMode?: boolean
 }
 
 // Normalize IDs for matching
@@ -161,6 +163,7 @@ export function SenseSelector({
   onWeatherAirQualityConfiguration,
   weatherAirQualityConfigurations = {},
   hasPersonalConnectedSenses = false,
+  assistantMode = false,
 }: SenseSelectorProps) {
   const [locationModalOpen, setLocationModalOpen] = useState(false)
   const [configuringSense, setConfiguringSense] = useState<'weather' | 'air_quality' | null>(null)

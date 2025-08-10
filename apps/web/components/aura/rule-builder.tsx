@@ -84,6 +84,7 @@ export function RuleBuilder({
   onAddRule,
   onDeleteRule,
   onToggleRule,
+  assistantMode = false,
 }: RuleBuilderProps) {
   const router = useRouter()
   const [showTemplates, setShowTemplates] = useState(true)

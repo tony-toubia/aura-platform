@@ -26,6 +26,7 @@ export interface RuleBuilderProps {
   onAddRule: (rule: BehaviorRule) => void
   onDeleteRule?: (ruleId: string) => void
   onToggleRule?: (ruleId: string, enabled: boolean) => void
+  assistantMode?: boolean
 }
 
 export interface PriorityConfig {
