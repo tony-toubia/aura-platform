@@ -288,11 +288,14 @@ export class SubscriptionService {
 
   private static async getUserAuraCount(userId: string, supabaseClient?: any) {
     const supabase = supabaseClient || createClient()
-    return supabase
+    const result = await supabase
       .from('auras')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId)
       .eq('enabled', true) // Only count active auras
+    
+    console.log(`[getUserAuraCount] User ${userId}: ${result.count ?? 0} enabled auras`)
+    return result
   }
 
   private static async getUserMessageCount(userId: string, supabaseClient?: any) {
