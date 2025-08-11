@@ -135,18 +135,24 @@ export function RuleBuilder({
     console.log('🔍 Rule Builder - Available senses:', availableSenses);
     console.log('🔍 Rule Builder - All sensor configs:', Object.keys(SENSOR_CONFIGS));
     
+    // If no senses are available, return empty array
+    if (!availableSenses || availableSenses.length === 0) {
+      console.log('🔍 No available senses provided');
+      return [];
+    }
+    
     return Object.values(SENSOR_CONFIGS).filter(sensor => {
-      const baseKey = sensor.id.split('.')[0];
-      if (!baseKey) return false;
-      
-      // Handle news sensor (no dot notation)
-      if (sensor.id === 'news') {
-        const isAvailable = availableSenses.includes('news');
-        console.log(`🔍 News sensor available: ${isAvailable}`);
+      // Handle sensors without dot notation (like 'news')
+      if (!sensor.id.includes('.')) {
+        const isAvailable = availableSenses.includes(sensor.id);
+        console.log(`🔍 Simple sensor ${sensor.id} available: ${isAvailable}`);
         return isAvailable;
       }
       
-      // Handle other sensors with dot notation (e.g., weather.temperature, fitness.steps)
+      // Handle sensors with dot notation (e.g., weather.temperature, fitness.steps)
+      const baseKey = sensor.id.split('.')[0];
+      if (!baseKey) return false;
+      
       // Check if the base sense is available (e.g., 'fitness' for 'fitness.steps')
       const isBaseAvailable = availableSenses.includes(baseKey);
       const isFullIdAvailable = availableSenses.includes(sensor.id);
@@ -532,7 +538,7 @@ export function RuleBuilder({
                 <SelectContent className="max-h-[400px] overflow-y-auto">
                   {Object.entries(sensorsByCategory).map(([category, sensors]) => (
                     <React.Fragment key={category}>
-                      <div className="px-2 py-1.5 text-sm font-semibold text-gray-500 capitalize sticky top-0 bg-white border-b">
+                      <div className="px-2 py-1.5 text-sm font-semibold text-gray-500 capitalize sticky top-0 bg-white border-b z-10">
                         {category}
                       </div>
                       {sensors.map((sensor) => {
