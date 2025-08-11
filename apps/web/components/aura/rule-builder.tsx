@@ -517,40 +517,44 @@ export function RuleBuilder({
               <label className="text-sm font-medium text-gray-700">Select Sensor</label>
               <Select value={selectedSensor} onValueChange={setSelectedSensor}>
                 <SelectTrigger className="border-2 border-gray-200 focus:border-purple-400">
-                  <SelectValue placeholder="Choose a sensor to monitor" />
+                  <SelectValue placeholder="Choose a sensor to monitor">
+                    {selectedSensor && selectedSensorConfig && (
+                      <div className="flex items-center gap-2">
+                        <span>{selectedSensorConfig.icon}</span>
+                        <span>{selectedSensorConfig.name}</span>
+                        {selectedSensorConfig.unit && (
+                          <span className="text-xs text-gray-500">({selectedSensorConfig.unit})</span>
+                        )}
+                      </div>
+                    )}
+                  </SelectValue>
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className="max-h-[400px] overflow-y-auto">
                   {Object.entries(sensorsByCategory).map(([category, sensors]) => (
-                    <div key={category}>
-                      <div className="px-2 py-1.5 text-sm font-semibold text-gray-500 capitalize">
+                    <React.Fragment key={category}>
+                      <div className="px-2 py-1.5 text-sm font-semibold text-gray-500 capitalize sticky top-0 bg-white border-b">
                         {category}
                       </div>
                       {sensors.map((sensor) => {
-                        // Get OAuth connections for this sensor's base type
+                        // Get OAuth connections for this sensor's base type - moved outside render for performance
                         const sensorBaseType = sensor.id.split('.')[0]
-                        const connections = sensorBaseType && oauthConnections ? (oauthConnections[sensorBaseType] || []) : []
+                        const connections = sensorBaseType && oauthConnections ? oauthConnections[sensorBaseType] : undefined
+                        const hasConnections = connections && connections.length > 0
                         
                         return (
-                          <SelectItem key={sensor.id} value={sensor.id}>
-                            <div className="flex items-center gap-2">
-                              <span>{sensor.icon}</span>
-                              <div className="flex flex-col">
+                          <SelectItem key={sensor.id} value={sensor.id} className="py-2">
+                            <div className="flex items-center gap-2 w-full">
+                              <span className="flex-shrink-0">{sensor.icon}</span>
+                              <div className="flex-1 min-w-0">
                                 <div className="flex items-center gap-2">
-                                  <span>{sensor.name}</span>
+                                  <span className="truncate">{sensor.name}</span>
                                   {sensor.unit && (
-                                    <span className="text-xs text-gray-500">({sensor.unit})</span>
+                                    <span className="text-xs text-gray-500 flex-shrink-0">({sensor.unit})</span>
                                   )}
                                 </div>
-                                {connections.length > 0 && (
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {connections.map((conn: any, idx: number) => (
-                                      <span
-                                        key={idx}
-                                        className="text-xs bg-blue-100 text-blue-700 px-1.5 py-0.5 rounded-full"
-                                      >
-                                        {conn.name || conn.providerId}
-                                      </span>
-                                    ))}
+                                {hasConnections && (
+                                  <div className="text-xs text-blue-600 mt-0.5">
+                                    Connected
                                   </div>
                                 )}
                               </div>
@@ -558,7 +562,7 @@ export function RuleBuilder({
                           </SelectItem>
                         )
                       })}
-                    </div>
+                    </React.Fragment>
                   ))}
                 </SelectContent>
               </Select>

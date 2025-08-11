@@ -182,14 +182,16 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
     setError(null)
     clearError()
     
-    // If moving to connections step and we don't have an assistant ID yet, create it
-    if (newStep === "connections" && !assistantData.id) {
+    // If moving to connections or rules step and we don't have an assistant ID yet, create it
+    if ((newStep === "connections" || newStep === "rules") && !assistantData.id) {
       try {
         const assistantPayload = {
           ...assistantData,
           vesselType: 'digital' as VesselTypeId,
           vesselCode: 'assistant',
           name: assistantData.name || 'My AI Assistant',
+          senses: assistantData.senses, // Include selected senses
+          availableSenses: assistantData.senses, // Include available senses
         }
         const result = await auraApi.createAura(assistantPayload)
         
@@ -209,6 +211,24 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
         console.error("Error creating assistant early:", error)
         setError("Failed to create assistant. Please try again.")
         return
+      }
+    }
+    
+    // If moving from connections to rules, update the assistant with selected senses
+    if (step === "connections" && newStep === "rules" && assistantData.id) {
+      try {
+        const updatePayload = {
+          ...assistantData,
+          vesselType: 'digital' as VesselTypeId,
+          vesselCode: 'assistant',
+          senses: assistantData.senses,
+          availableSenses: assistantData.senses,
+        }
+        await auraApi.updateAura(assistantData.id, updatePayload)
+        console.log("Assistant updated with senses:", assistantData.senses)
+      } catch (error) {
+        console.error("Error updating assistant with senses:", error)
+        // Don't block navigation, but log the error
       }
     }
     
@@ -432,6 +452,7 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
               setEditingRule={setEditingRule}
               onNext={() => handleStepChange("review")}
               onBack={() => handleStepChange("connections")}
+              auraId={assistantData.id}
             />
           )}
 
@@ -817,14 +838,15 @@ function ConnectionsStep({
 }
 
 // Rules Step Component
-function RulesStep({ 
+function RulesStep({
   rules,
   senses,
   onRulesChange,
   editingRule,
   setEditingRule,
-  onNext, 
-  onBack 
+  onNext,
+  onBack,
+  auraId
 }: {
   rules: BehaviorRule[]
   senses: SenseId[]
@@ -833,6 +855,7 @@ function RulesStep({
   setEditingRule: (rule: BehaviorRule | null) => void
   onNext: () => void
   onBack: () => void
+  auraId?: string
 }) {
   return (
     <div className="space-y-8">
@@ -857,7 +880,7 @@ function RulesStep({
         </CardHeader>
         <CardContent>
           <RuleBuilder
-            auraId="assistant-temp"
+            auraId={auraId || "assistant-temp"}
             vesselType="digital"
             vesselCode="assistant"
             availableSenses={senses}
