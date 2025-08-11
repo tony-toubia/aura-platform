@@ -92,12 +92,9 @@ export function AurasList({ initialAuras }: AurasListProps) {
       return
     }
     
-    if (subscription) {
-      checkAuraCreation()
-    } else {
-      console.log('AurasList: No subscription available, setting canCreateAura to false')
-      setCanCreateAura(false)
-    }
+    // Only check after subscription has loaded
+    // The subscription context will handle the case where there's no subscription
+    checkAuraCreation()
   }, [subscription, subscriptionLoading, activeAuraCount, canCreateAuraFromContext])
 
   const handleDeleteClick = (aura: Aura) => {

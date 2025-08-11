@@ -26,9 +26,10 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
   const [subscription, setSubscription] = useState<SubscriptionTier | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [lastFetch, setLastFetch] = useState<number>(0)
+  const [lastFetch, setLastFetch] = useState<number>(() => Date.now()) // Initialize with current time
   const [shouldRefresh, setShouldRefresh] = useState(false)
   const [isPageVisible, setIsPageVisible] = useState(true)
+  const [isInitialized, setIsInitialized] = useState(false)
 
   // Cache duration: 5 minutes for normal operations, 30 seconds for critical checks
   const CACHE_DURATION = 5 * 60 * 1000
@@ -126,25 +127,32 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
 
   useEffect(() => {
     if (user) {
-      loadSubscription(shouldRefresh)
-      if (shouldRefresh) {
-        setShouldRefresh(false)
+      // Always load on first initialization or when explicitly requested
+      if (!isInitialized || shouldRefresh) {
+        loadSubscription(true)
+        setIsInitialized(true)
+        if (shouldRefresh) {
+          setShouldRefresh(false)
+        }
+      } else {
+        loadSubscription(false)
       }
     } else {
       setSubscription(null)
       setLoading(false)
       setError(null)
-      setLastFetch(0)
+      setLastFetch(Date.now()) // Set to current time instead of 0
+      setIsInitialized(false)
     }
-  }, [user?.id, shouldRefresh]) // Only depend on user ID and refresh flag
+  }, [user?.id, shouldRefresh, isInitialized]) // Include isInitialized
 
   const loadSubscription = useCallback(async (forceRefresh = false) => {
     if (!user) return
     
     // Check if we have cached data that's still valid
     const now = Date.now()
-    const cacheAge = now - lastFetch
-    const isCacheValid = subscription && cacheAge < CACHE_DURATION
+    const cacheAge = lastFetch > 0 ? (now - lastFetch) : Infinity // Handle uninitialized state
+    const isCacheValid = subscription && lastFetch > 0 && cacheAge < CACHE_DURATION
     
     // Don't use cache if it's too old or if force refresh is requested
     if (!forceRefresh && isCacheValid && isPageVisible) {
@@ -156,7 +164,8 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     if (forceRefresh) {
       console.log('[SubscriptionContext] Force refreshing subscription')
     } else if (!isCacheValid) {
-      console.log(`[SubscriptionContext] Cache expired (age: ${Math.round(cacheAge / 1000)}s)`)
+      const ageDisplay = lastFetch > 0 ? `${Math.round(cacheAge / 1000)}s` : 'uninitialized'
+      console.log(`[SubscriptionContext] Cache invalid (age: ${ageDisplay})`)
     }
     
     // Prevent multiple simultaneous requests
