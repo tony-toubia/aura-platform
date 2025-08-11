@@ -735,7 +735,7 @@ export function EnhancedOAuthConnectionModal({
 
     if (!auraId) {
       console.error('❌ No aura ID provided for connection association')
-      alert('Error: No aura ID provided')
+      alert('Error: Assistant needs to be saved before adding connections. Please save your assistant first.')
       return
     }
 

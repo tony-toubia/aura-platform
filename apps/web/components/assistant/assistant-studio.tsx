@@ -192,8 +192,19 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
           name: assistantData.name || 'My AI Assistant',
         }
         const result = await auraApi.createAura(assistantPayload)
-        setAssistantData(prev => ({ ...prev, id: result.data?.id }))
-        console.log("Assistant created early with ID:", result.data?.id)
+        
+        // Ensure we have a valid ID from the response
+        const newId = result.data?.auraId || result.data?.id
+        if (!newId) {
+          throw new Error("Failed to get assistant ID from creation response")
+        }
+        
+        // Update the assistant data with the new ID
+        setAssistantData(prev => ({ ...prev, id: newId }))
+        console.log("Assistant created early with ID:", newId)
+        
+        // Wait a moment for state to update before proceeding
+        await new Promise(resolve => setTimeout(resolve, 100))
       } catch (error) {
         console.error("Error creating assistant early:", error)
         setError("Failed to create assistant. Please try again.")
@@ -408,6 +419,7 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
               setWeatherAirQualityConfigurations={setWeatherAirQualityConfigurations}
               onNext={() => handleStepChange("rules")}
               onBack={() => handleStepChange("personality")}
+              auraId={assistantData.id}
             />
           )}
 
@@ -683,7 +695,7 @@ function PersonalityStep({
 }
 
 // Connections Step Component
-function ConnectionsStep({ 
+function ConnectionsStep({
   senses,
   onToggleSense,
   locationConfigs,
@@ -694,8 +706,9 @@ function ConnectionsStep({
   setNewsConfigurations,
   weatherAirQualityConfigurations,
   setWeatherAirQualityConfigurations,
-  onNext, 
-  onBack 
+  onNext,
+  onBack,
+  auraId
 }: {
   senses: SenseId[]
   onToggleSense: (senseId: SenseId) => void
@@ -709,6 +722,7 @@ function ConnectionsStep({
   setWeatherAirQualityConfigurations: (configs: Record<string, WeatherAirQualityLocation[]>) => void
   onNext: () => void
   onBack: () => void
+  auraId?: string
 }) {
   return (
     <div className="space-y-8">
@@ -783,6 +797,7 @@ function ConnectionsStep({
             weatherAirQualityConfigurations={weatherAirQualityConfigurations}
             hasPersonalConnectedSenses={true}
             assistantMode={true}
+            auraId={auraId}
           />
         </CardContent>
       </Card>
