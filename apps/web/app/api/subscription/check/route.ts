@@ -13,19 +13,31 @@ export async function POST(request: NextRequest) {
 
     const { feature, auraId, senseId } = await request.json()
 
+    // Clear cache for critical operations to ensure fresh data
+    if (feature === 'canCreateAura' || feature === 'maxAuras') {
+      console.log('[API] Clearing subscription cache for critical check:', feature)
+      SubscriptionService.clearUserCache(user.id)
+    }
+
     let hasAccess = false
 
     if (feature === 'canCreateAura') {
-      hasAccess = await SubscriptionService.canCreateMoreAuras(user.id)
+      // Pass supabase client for server-side operations
+      hasAccess = await SubscriptionService.canCreateMoreAuras(user.id, supabase)
     } else if (feature === 'canAddRule' && auraId) {
       hasAccess = await SubscriptionService.canAddMoreRules(user.id, auraId)
     } else if (feature === 'canUseSense' && senseId) {
       hasAccess = await SubscriptionService.canUseSense(user.id, senseId)
     } else if (feature) {
-      hasAccess = await SubscriptionService.checkFeatureAccess(user.id, feature)
+      hasAccess = await SubscriptionService.checkFeatureAccess(user.id, feature, supabase)
     }
 
-    const subscription = await SubscriptionService.getUserSubscription(user.id)
+    // Force refresh for subscription data to ensure accuracy
+    const subscription = await SubscriptionService.getUserSubscription(
+      user.id,
+      supabase,
+      feature === 'canCreateAura' || feature === 'maxAuras' // Force refresh for critical checks
+    )
 
     return NextResponse.json({
       hasAccess,

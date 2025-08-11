@@ -28,9 +28,11 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
   const [error, setError] = useState<string | null>(null)
   const [lastFetch, setLastFetch] = useState<number>(0)
   const [shouldRefresh, setShouldRefresh] = useState(false)
+  const [isPageVisible, setIsPageVisible] = useState(true)
 
-  // Cache duration: 5 minutes (but can be cleared on demand)
+  // Cache duration: 5 minutes for normal operations, 30 seconds for critical checks
   const CACHE_DURATION = 5 * 60 * 1000
+  const IDLE_REFRESH_THRESHOLD = 60 * 1000 // Refresh if page was hidden for more than 1 minute
   
   // Check URL params for cache clearing
   useEffect(() => {
@@ -48,6 +50,55 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
       }
     }
   }, [user?.id])
+
+  // Handle page visibility changes to refresh stale data after idle
+  useEffect(() => {
+    let hiddenTime: number | null = null
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        // Page is now hidden, record the time
+        hiddenTime = Date.now()
+        setIsPageVisible(false)
+      } else {
+        // Page is now visible
+        setIsPageVisible(true)
+        
+        if (hiddenTime) {
+          const idleDuration = Date.now() - hiddenTime
+          
+          // If page was hidden for more than threshold, refresh subscription
+          if (idleDuration > IDLE_REFRESH_THRESHOLD && user?.id) {
+            console.log(`[SubscriptionContext] Page was idle for ${Math.round(idleDuration / 1000)}s, refreshing subscription...`)
+            
+            // Clear both context and service caches
+            setLastFetch(0)
+            SubscriptionService.clearUserCache(user.id)
+            setShouldRefresh(true)
+          }
+          
+          hiddenTime = null
+        }
+      }
+    }
+
+    // Add visibility change listener
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    
+    // Also listen for focus events as a backup
+    const handleFocus = () => {
+      if (!isPageVisible) {
+        handleVisibilityChange()
+      }
+    }
+    
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener('focus', handleFocus)
+    }
+  }, [user?.id, isPageVisible, IDLE_REFRESH_THRESHOLD])
 
   useEffect(() => {
     const supabase = createClient()
@@ -92,11 +143,20 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     
     // Check if we have cached data that's still valid
     const now = Date.now()
-    const isCacheValid = subscription && (now - lastFetch) < CACHE_DURATION
+    const cacheAge = now - lastFetch
+    const isCacheValid = subscription && cacheAge < CACHE_DURATION
     
-    if (!forceRefresh && isCacheValid) {
+    // Don't use cache if it's too old or if force refresh is requested
+    if (!forceRefresh && isCacheValid && isPageVisible) {
       setLoading(false)
       return
+    }
+    
+    // Log cache status for debugging
+    if (forceRefresh) {
+      console.log('[SubscriptionContext] Force refreshing subscription')
+    } else if (!isCacheValid) {
+      console.log(`[SubscriptionContext] Cache expired (age: ${Math.round(cacheAge / 1000)}s)`)
     }
     
     // Prevent multiple simultaneous requests
@@ -118,12 +178,17 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
     } finally {
       setLoading(false)
     }
-  }, [user?.id, subscription, lastFetch, loading]) // Use user.id instead of user object
+  }, [user?.id, subscription, lastFetch, loading, isPageVisible]) // Include isPageVisible
 
   const refresh = useCallback(async () => {
+    console.log('[SubscriptionContext] Manual refresh requested')
+    if (user?.id) {
+      // Clear service cache as well
+      SubscriptionService.clearUserCache(user.id)
+    }
     setLoading(true)
     await loadSubscription(true)
-  }, [loadSubscription])
+  }, [loadSubscription, user?.id])
 
   const checkFeatureAccess = useCallback(async (feature: keyof SubscriptionTier['features']): Promise<boolean> => {
     if (!user?.id) return false
@@ -156,8 +221,19 @@ export function SubscriptionProvider({ children }: SubscriptionProviderProps) {
 
   const canCreateAura = useCallback(async (): Promise<boolean> => {
     if (!user?.id) return false
+    
+    // Check if cache might be stale
+    const now = Date.now()
+    const cacheAge = now - lastFetch
+    
+    // For critical operations like creating auras, refresh if cache is older than 30 seconds
+    if (cacheAge > 30000) {
+      console.log('[SubscriptionContext] Cache might be stale for aura creation, refreshing...')
+      await refresh()
+    }
+    
     return SubscriptionService.canCreateMoreAuras(user.id)
-  }, [user?.id])
+  }, [user?.id, lastFetch, refresh])
 
   const canAddRule = useCallback(async (auraId: string): Promise<boolean> => {
     if (!user?.id) return false

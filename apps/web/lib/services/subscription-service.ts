@@ -136,14 +136,21 @@ export const SUBSCRIPTION_TIERS: Record<SubscriptionTier['id'], SubscriptionTier
 
 export class SubscriptionService {
   // Add in-memory cache for subscription data
-  private static subscriptionCache = new Map<string, { subscription: SubscriptionTier; timestamp: number }>()
+  private static subscriptionCache = new Map<string, { subscription: SubscriptionTier; timestamp: number; auraCount?: number }>()
   private static readonly CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
+  private static readonly SHORT_CACHE_DURATION = 30 * 1000 // 30 seconds for critical checks
 
-  static async getUserSubscription(userId: string, supabaseClient?: any): Promise<SubscriptionTier> {
-    // Check cache first
-    const cached = this.subscriptionCache.get(userId)
-    if (cached && (Date.now() - cached.timestamp) < this.CACHE_DURATION) {
-      return cached.subscription
+  static async getUserSubscription(userId: string, supabaseClient?: any, forceRefresh = false): Promise<SubscriptionTier> {
+    // Check cache first (unless force refresh is requested)
+    if (!forceRefresh) {
+      const cached = this.subscriptionCache.get(userId)
+      if (cached && (Date.now() - cached.timestamp) < this.CACHE_DURATION) {
+        // Additional check: if we're checking for aura creation, use shorter cache
+        const cacheAge = Date.now() - cached.timestamp
+        if (cacheAge < this.SHORT_CACHE_DURATION) {
+          return cached.subscription
+        }
+      }
     }
 
     // Use provided client (for server-side) or fallback to client-side
@@ -166,10 +173,18 @@ export class SubscriptionService {
       subscription = SUBSCRIPTION_TIERS[key] ?? SUBSCRIPTION_TIERS.free
     }
 
-    // Cache the result
+    // Get current aura count for better cache management
+    const { count: auraCount } = await supabase
+      .from('auras')
+      .select('*', { count: 'exact', head: true })
+      .eq('user_id', userId)
+      .eq('enabled', true)
+
+    // Cache the result with aura count
     this.subscriptionCache.set(userId, {
       subscription,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      auraCount: auraCount ?? 0
     })
 
     return subscription
@@ -190,18 +205,31 @@ export class SubscriptionService {
     feature: keyof SubscriptionFeatures,
     supabaseClient?: any
   ): Promise<boolean> {
-    // For maxAuras, we need fresh data, so clear cache
-    if (feature === 'maxAuras') {
-      this.clearUserCache(userId)
-    }
+    // For critical features like maxAuras, check if cache is stale
+    const cached = this.subscriptionCache.get(userId)
+    const shouldRefresh = feature === 'maxAuras' &&
+      (!cached || (Date.now() - cached.timestamp) > this.SHORT_CACHE_DURATION)
     
-    const sub = await this.getUserSubscription(userId, supabaseClient)
+    const sub = await this.getUserSubscription(userId, supabaseClient, shouldRefresh)
     const f = sub.features
     
     switch (feature) {
       case 'maxAuras': {
+        // Always get fresh count for aura creation checks
         const { count } = await this.getUserAuraCount(userId, supabaseClient)
-        const hasAccess = f.maxAuras === -1 || (count ?? 0) < f.maxAuras
+        const currentCount = count ?? 0
+        
+        // Update cache with current count if it changed
+        if (cached && cached.auraCount !== currentCount) {
+          this.subscriptionCache.set(userId, {
+            ...cached,
+            auraCount: currentCount,
+            timestamp: Date.now()
+          })
+        }
+        
+        const hasAccess = f.maxAuras === -1 || currentCount < f.maxAuras
+        console.log(`[SubscriptionService] Aura limit check: ${currentCount}/${f.maxAuras === -1 ? 'unlimited' : f.maxAuras}, hasAccess: ${hasAccess}`)
         return hasAccess
       }
       case 'maxMessages': {
@@ -224,11 +252,17 @@ export class SubscriptionService {
     return a.includes('all') || a.includes(senseId)
   }
 
-  static async canCreateMoreAuras(userId: string): Promise<boolean> {
-    const sub = await this.getUserSubscription(userId)
+  static async canCreateMoreAuras(userId: string, supabaseClient?: any): Promise<boolean> {
+    // Force refresh for aura creation checks to ensure accurate limits
+    const sub = await this.getUserSubscription(userId, supabaseClient, true)
     if (sub.features.maxAuras === -1) return true
-    const { count } = await this.getUserAuraCount(userId)
-    return (count ?? 0) < sub.features.maxAuras
+    
+    const { count } = await this.getUserAuraCount(userId, supabaseClient)
+    const currentCount = count ?? 0
+    const canCreate = currentCount < sub.features.maxAuras
+    
+    console.log(`[SubscriptionService] Can create more auras: ${canCreate} (${currentCount}/${sub.features.maxAuras})`)
+    return canCreate
   }
 
   static async canAddMoreRules(
