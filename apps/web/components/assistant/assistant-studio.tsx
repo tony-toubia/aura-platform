@@ -857,6 +857,10 @@ function RulesStep({
   onBack: () => void
   auraId?: string
 }) {
+  // Debug logging to see what senses are being passed
+  console.log('🔍 RulesStep - senses passed to RuleBuilder:', senses);
+  console.log('🔍 RulesStep - auraId:', auraId);
+  
   return (
     <div className="space-y-8">
       <div className="text-center space-y-4">
@@ -865,7 +869,7 @@ function RulesStep({
         </div>
         <h2 className="text-3xl font-bold">Define Assistant Behaviors</h2>
         <p className="text-lg text-gray-600 max-w-2xl mx-auto">
-          Create rules that determine how your assistant responds to different situations. 
+          Create rules that determine how your assistant responds to different situations.
           These behaviors make your assistant proactive and helpful in achieving your goals.
         </p>
       </div>
@@ -874,8 +878,13 @@ function RulesStep({
         <CardHeader>
           <CardTitle>Behavior Rules</CardTitle>
           <CardDescription>
-            Set up rules for when and how your assistant should interact with you. 
+            Set up rules for when and how your assistant should interact with you.
             Use templates from the community or create custom behaviors.
+            {senses.length > 0 && (
+              <div className="mt-2 text-sm text-gray-500">
+                Selected data sources: {senses.join(', ')}
+              </div>
+            )}
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -883,7 +892,7 @@ function RulesStep({
             auraId={auraId || "assistant-temp"}
             vesselType="digital"
             vesselCode="assistant"
-            availableSenses={senses}
+            availableSenses={senses.length > 0 ? senses : ['time', 'conversation']}
             existingRules={rules}
             editingRule={editingRule}
             onEditRule={setEditingRule}

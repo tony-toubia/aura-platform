@@ -134,6 +134,7 @@ export function RuleBuilder({
   const availableSensorConfigs = useMemo(() => {
     console.log('🔍 Rule Builder - Available senses:', availableSenses);
     console.log('🔍 Rule Builder - All sensor configs:', Object.keys(SENSOR_CONFIGS));
+    console.log('🔍 Rule Builder - SENSOR_CONFIGS sample:', Object.values(SENSOR_CONFIGS).slice(0, 3).map(s => ({ id: s.id, category: s.category })));
     
     // If no senses are available, return empty array
     if (!availableSenses || availableSenses.length === 0) {
@@ -141,26 +142,35 @@ export function RuleBuilder({
       return [];
     }
     
-    return Object.values(SENSOR_CONFIGS).filter(sensor => {
+    const filtered = Object.values(SENSOR_CONFIGS).filter(sensor => {
       // Handle sensors without dot notation (like 'news')
       if (!sensor.id.includes('.')) {
         const isAvailable = availableSenses.includes(sensor.id);
-        console.log(`🔍 Simple sensor ${sensor.id} available: ${isAvailable}`);
+        console.log(`🔍 Simple sensor ${sensor.id} available: ${isAvailable}, availableSenses:`, availableSenses);
         return isAvailable;
       }
       
       // Handle sensors with dot notation (e.g., weather.temperature, fitness.steps)
+      // Also handle the case where the base sense might have underscores (air_quality, soil_moisture)
       const baseKey = sensor.id.split('.')[0];
       if (!baseKey) return false;
       
       // Check if the base sense is available (e.g., 'fitness' for 'fitness.steps')
+      // Also check with underscores replaced by dots for compatibility
       const isBaseAvailable = availableSenses.includes(baseKey);
+      const isBaseWithUnderscoreAvailable = availableSenses.includes(baseKey.replace('.', '_'));
       const isFullIdAvailable = availableSenses.includes(sensor.id);
+      const isFullIdWithUnderscoreAvailable = availableSenses.includes(sensor.id.replace('.', '_'));
       
-      console.log(`🔍 Sensor ${sensor.id}: baseKey=${baseKey}, baseAvailable=${isBaseAvailable}, fullIdAvailable=${isFullIdAvailable}`);
+      console.log(`🔍 Sensor ${sensor.id}: baseKey=${baseKey}, baseAvailable=${isBaseAvailable}, baseWithUnderscore=${isBaseWithUnderscoreAvailable}, fullIdAvailable=${isFullIdAvailable}, availableSenses:`, availableSenses);
       
-      return isFullIdAvailable || isBaseAvailable;
+      return isBaseAvailable || isBaseWithUnderscoreAvailable || isFullIdAvailable || isFullIdWithUnderscoreAvailable;
     });
+    
+    console.log('🔍 Filtered sensor configs count:', filtered.length);
+    console.log('🔍 Filtered sensor IDs:', filtered.map(s => s.id));
+    
+    return filtered;
   }, [availableSenses]);
 
   // Group sensors by category
