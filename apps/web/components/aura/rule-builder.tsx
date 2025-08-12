@@ -397,13 +397,13 @@ export function RuleBuilder({
     
     // Set appropriate fields based on response type
     if (templateResponseType === 'smart_response' || templateResponseType === 'prompt') {
-      setPromptGuidelines(template.promptGuidelines || '')
-      setPromptTones(template.responseTones || [])
+      setResponseGuidelines(template.promptGuidelines || '')
+      setResponseTones(template.responseTones || [])
       setActionMessage('') // Clear message for prompt-based responses
     } else {
       setActionMessage(template.message || '')
-      setPromptGuidelines('')
-      setPromptTones([])
+      setResponseGuidelines('')
+      setResponseTones([])
     }
     
     setPriority(template.priority)
