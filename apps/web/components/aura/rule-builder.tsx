@@ -106,6 +106,7 @@ export function RuleBuilder({
   const [actionMessage, setActionMessage] = useState("")
   const [showAllPromptVariables, setShowAllPromptVariables] = useState(false)
   const [showAllTemplateVariables, setShowAllTemplateVariables] = useState(false)
+  const [templatePreviewMode, setTemplatePreviewMode] = useState<Record<string, 'template' | 'smart_response'>>({})
 
   // AI Preview state
   const { 
@@ -186,18 +187,37 @@ export function RuleBuilder({
     return grouped
   }, [availableSensorConfigs])
 
-  // Get relevant templates
+  // Get relevant templates grouped by sensor
   const relevantTemplates = useMemo(() => {
-    const templates: any[] = []
+    const templatesBySensor: Record<string, any[]> = {}
+    
     Object.entries(QUICK_TEMPLATES).forEach(([category, categoryTemplates]) => {
       categoryTemplates.forEach(template => {
         const sensorBase = template.sensor.split('.')[0]
         if (sensorBase && (availableSenses.includes(template.sensor) || availableSenses.includes(sensorBase))) {
-          templates.push({ ...template, category })
+          if (!templatesBySensor[template.sensor]) {
+            templatesBySensor[template.sensor] = []
+          }
+          templatesBySensor[template.sensor].push({ ...template, category })
         }
       })
     })
-    return templates
+    
+    // Convert to array of sensor groups, preferring smart_response templates as primary
+    const sensorGroups = Object.entries(templatesBySensor).map(([sensor, templates]) => {
+      const smartTemplate = templates.find(t => t.responseType === 'smart_response')
+      const regularTemplate = templates.find(t => !t.responseType || t.responseType === 'template')
+      
+      return {
+        sensor,
+        primaryTemplate: smartTemplate || regularTemplate || templates[0],
+        templates: templates,
+        hasSmartResponse: !!smartTemplate,
+        hasRegularTemplate: !!regularTemplate
+      }
+    })
+    
+    return sensorGroups
   }, [availableSenses])
 
   // Generate AI preview when relevant values change
@@ -385,18 +405,23 @@ export function RuleBuilder({
     }
   }
 
-  const applyTemplate = (template: any) => {
+  const applyTemplate = (sensorGroup: any) => {
+    const previewMode = templatePreviewMode[sensorGroup.sensor] || 'smart_response'
+    const template = sensorGroup.templates.find((t: any) => 
+      (previewMode === 'smart_response' && t.responseType === 'smart_response') ||
+      (previewMode === 'template' && (!t.responseType || t.responseType === 'template'))
+    ) || sensorGroup.primaryTemplate
+    
     setRuleName(template.name)
     setSelectedSensor(template.sensor)
     setOperator(template.operator)
     setSensorValue(template.value)
     
-    // Set response type based on template, defaulting to 'template'
-    const templateResponseType = template.responseType || 'template'
-    setResponseType(templateResponseType)
+    // Set response type based on preview mode
+    setResponseType(previewMode === 'smart_response' ? 'prompt' : 'template')
     
     // Set appropriate fields based on response type
-    if (templateResponseType === 'smart_response' || templateResponseType === 'prompt') {
+    if (previewMode === 'smart_response') {
       setResponseGuidelines(template.promptGuidelines || '')
       setResponseTones(template.responseTones || [])
       setActionMessage('') // Clear message for prompt-based responses
@@ -439,37 +464,91 @@ export function RuleBuilder({
           </CardHeader>
           {showTemplates && (
             <CardContent className="p-4 sm:p-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3 sm:gap-4">
-                {relevantTemplates.map((template, idx) => (
-                  <Button
-                    key={idx}
-                    variant="outline"
-                    className="h-auto p-4 flex flex-col items-start space-y-2 border-2 hover:border-purple-400 transition-all"
-                    onClick={() => applyTemplate(template)}
-                  >
-                    <div className="flex items-center gap-2 w-full">
-                      <span className="text-2xl">{getSensorConfig(template.sensor)?.icon}</span>
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2">
-                          <span className="font-semibold text-left">{template.name}</span>
-                          {template.responseType === 'smart_response' && (
-                            <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">
-                              <Sparkles className="w-3 h-3 mr-1" />
-                              Smart
-                            </Badge>
-                          )}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {relevantTemplates.map((sensorGroup, idx) => {
+                  const currentMode = templatePreviewMode[sensorGroup.sensor] || 'smart_response'
+                  const currentTemplate = sensorGroup.templates.find((t: any) => 
+                    (currentMode === 'smart_response' && t.responseType === 'smart_response') ||
+                    (currentMode === 'template' && (!t.responseType || t.responseType === 'template'))
+                  ) || sensorGroup.primaryTemplate
+                  
+                  return (
+                    <div key={idx} className="border-2 border-gray-200 rounded-lg p-4 hover:border-purple-400 transition-all">
+                      {/* Header with sensor info */}
+                      <div className="flex items-center gap-2 mb-3">
+                        <span className="text-2xl">{getSensorConfig(sensorGroup.sensor)?.icon}</span>
+                        <div className="flex-1">
+                          <h4 className="font-semibold text-left">{getSensorConfig(sensorGroup.sensor)?.name}</h4>
+                          <p className="text-sm text-muted-foreground">
+                            When {OPERATOR_LABELS[currentTemplate.operator]} {
+                              typeof currentTemplate.value === 'string'
+                                ? getSensorConfig(sensorGroup.sensor)?.enumValues?.find(e => e.value === currentTemplate.value)?.label || currentTemplate.value
+                                : currentTemplate.value
+                            }
+                          </p>
                         </div>
                       </div>
+
+                      {/* Response type toggle */}
+                      {sensorGroup.hasSmartResponse && sensorGroup.hasRegularTemplate && (
+                        <div className="flex gap-1 mb-3 p-1 bg-gray-100 rounded-md">
+                          <Button
+                            size="sm"
+                            variant={currentMode === 'template' ? 'default' : 'ghost'}
+                            className="flex-1 h-8 text-xs"
+                            onClick={() => setTemplatePreviewMode(prev => ({ ...prev, [sensorGroup.sensor]: 'template' }))}
+                          >
+                            <MessageCircle className="w-3 h-3 mr-1" />
+                            Template
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={currentMode === 'smart_response' ? 'default' : 'ghost'}
+                            className="flex-1 h-8 text-xs"
+                            onClick={() => setTemplatePreviewMode(prev => ({ ...prev, [sensorGroup.sensor]: 'smart_response' }))}
+                          >
+                            <Sparkles className="w-3 h-3 mr-1" />
+                            Smart
+                          </Button>
+                        </div>
+                      )}
+
+                      {/* Preview content */}
+                      <div className="mb-3 p-3 bg-gray-50 rounded-md min-h-[60px]">
+                        {currentMode === 'smart_response' ? (
+                          <div>
+                            <div className="flex items-center gap-1 mb-2">
+                              <Sparkles className="w-3 h-3 text-purple-600" />
+                              <span className="text-xs font-medium text-purple-600">AI-Powered Response</span>
+                            </div>
+                            <p className="text-sm text-gray-600 italic">
+                              {currentTemplate.promptGuidelines || 'Intelligent contextual response based on your data and preferences.'}
+                            </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <div className="flex items-center gap-1 mb-2">
+                              <MessageCircle className="w-3 h-3 text-blue-600" />
+                              <span className="text-xs font-medium text-blue-600">Template Message</span>
+                            </div>
+                            <p className="text-sm text-gray-700">
+                              {currentTemplate.message || 'Pre-written message template.'}
+                            </p>
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Apply button */}
+                      <Button
+                        className="w-full"
+                        onClick={() => applyTemplate(sensorGroup)}
+                      >
+                        <Plus className="w-4 h-4 mr-2" />
+                        Use This Rule
+                      </Button>
                     </div>
-                    <span className="text-sm text-muted-foreground text-left">
-                      When {getSensorConfig(template.sensor)?.name} {OPERATOR_LABELS[template.operator]} {
-                        typeof template.value === 'string'
-                          ? getSensorConfig(template.sensor)?.enumValues?.find(e => e.value === template.value)?.label || template.value
-                          : template.value
-                      }
-                    </span>
-                  </Button>
-                ))}
+                  )
+                })}
               </div>
             </CardContent>
           )}
