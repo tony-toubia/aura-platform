@@ -121,21 +121,16 @@ export function SubscriptionGuard({
     if (fallback) {
       return <>{fallback}</>
     }
-    // For dashboard create button, show the actual button in loading state
-    // This ensures the button is visible even while checking subscription
+    // For dashboard create button, show the actual button without loading overlay
+    // This ensures the button is fully visible and clickable
     const childrenArray = React.Children.toArray(children)
     if (childrenArray.length === 1 && React.isValidElement(childrenArray[0])) {
       const child = childrenArray[0] as React.ReactElement<any>
       // Check if this is a Link or Button for creating auras
       if ((child.props?.href && typeof child.props.href === 'string' && child.props.href.includes('/auras/create')) ||
           child.props?.['data-help'] === 'create-aura-button') {
-        // Return the button with a loading state class
-        return (
-          <div className="relative">
-            {children}
-            <div className="absolute inset-0 bg-white/50 rounded-lg animate-pulse pointer-events-none" />
-          </div>
-        )
+        // Return the button without any loading overlay - let it be fully interactive
+        return <>{children}</>
       }
     }
     // Generic inline skeleton that preserves layout without looking broken
