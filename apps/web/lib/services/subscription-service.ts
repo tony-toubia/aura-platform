@@ -1,6 +1,7 @@
 // apps/web/lib/services/subscription-service.ts
 
 import { createClient } from '@/lib/supabase/client'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import type StripeModule from 'stripe'
 import { AuraLimitService } from './aura-limit-service'
 
@@ -140,7 +141,7 @@ export class SubscriptionService {
   private static readonly CACHE_DURATION = 5 * 60 * 1000 // 5 minutes
   private static readonly SHORT_CACHE_DURATION = 30 * 1000 // 30 seconds for critical checks
 
-  static async getUserSubscription(userId: string, supabaseClient?: any, forceRefresh = false): Promise<SubscriptionTier> {
+  static async getUserSubscription(userId: string, supabaseClient?: SupabaseClient, forceRefresh = false): Promise<SubscriptionTier> {
     // Check cache first (unless force refresh is requested)
     if (!forceRefresh) {
       const cached = this.subscriptionCache.get(userId)
@@ -203,7 +204,7 @@ export class SubscriptionService {
   static async checkFeatureAccess(
     userId: string,
     feature: keyof SubscriptionFeatures,
-    supabaseClient?: any
+    supabaseClient?: SupabaseClient
   ): Promise<boolean> {
     // For critical features like maxAuras, check if cache is stale
     const cached = this.subscriptionCache.get(userId)
@@ -252,7 +253,7 @@ export class SubscriptionService {
     return a.includes('all') || a.includes(senseId)
   }
 
-  static async canCreateMoreAuras(userId: string, supabaseClient?: any): Promise<boolean> {
+  static async canCreateMoreAuras(userId: string, supabaseClient?: SupabaseClient): Promise<boolean> {
     // Force refresh for aura creation checks to ensure accurate limits
     const sub = await this.getUserSubscription(userId, supabaseClient, true)
     if (sub.features.maxAuras === -1) return true
@@ -286,7 +287,7 @@ export class SubscriptionService {
     return (count ?? 0) < sub.features.maxMessages
   }
 
-  private static async getUserAuraCount(userId: string, supabaseClient?: any) {
+  private static async getUserAuraCount(userId: string, supabaseClient?: SupabaseClient) {
     const supabase = supabaseClient || createClient()
     const result = await supabase
       .from('auras')
@@ -298,7 +299,7 @@ export class SubscriptionService {
     return result
   }
 
-  private static async getUserMessageCount(userId: string, supabaseClient?: any) {
+  private static async getUserMessageCount(userId: string, supabaseClient?: SupabaseClient) {
     const supabase = supabaseClient || createClient()
     const startOfMonth = new Date()
     startOfMonth.setDate(1)
@@ -316,7 +317,7 @@ export class SubscriptionService {
     tierId: SubscriptionTier['id'],
     successUrl: string,
     cancelUrl: string,
-    supabase?: any,
+    supabase?: SupabaseClient,
     userEmail?: string
   ) {
     // lazy‐load stripe, only on server
@@ -363,7 +364,7 @@ export class SubscriptionService {
       }
     }
 
-    const sessionConfig: any = {
+    const sessionConfig: StripeModule.Checkout.SessionCreateParams = {
       mode: 'subscription',
       payment_method_types: ['card'],
       line_items: [{ price: tier.priceId, quantity: 1 }],
@@ -401,7 +402,7 @@ export class SubscriptionService {
     tierId: SubscriptionTier['id'],
     successUrl: string,
     cancelUrl: string,
-    supabase?: any,
+    supabase?: SupabaseClient,
     userEmail?: string
   ) {
     const Stripe = (await import('stripe')).default as typeof StripeModule
@@ -495,12 +496,7 @@ export class SubscriptionService {
       
       console.log('✅ Supabase client created successfully')
       
-      const Stripe = (await import('stripe')).default as typeof StripeModule
-      const secretKey = process.env.STRIPE_SECRET_KEY
-      if (!secretKey) {
-        throw new Error('STRIPE_SECRET_KEY is not configured')
-      }
-      const stripe = new Stripe(secretKey)
+      // Stripe is not needed in webhook handler as we only process the event data
 
       console.log('🔄 Processing webhook event:', event.type, event.id)
 

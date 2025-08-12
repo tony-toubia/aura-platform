@@ -3,7 +3,7 @@ import { WeatherService } from './weather-service'
 
 export interface SenseData {
   senseId:  string
-  data:      any
+  data:      unknown
   timestamp: Date
   metadata?: {
     unit?:       string

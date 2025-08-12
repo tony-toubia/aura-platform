@@ -10,7 +10,7 @@ export type Point = {
 // This helper is for making authenticated calls, kept for fetchTrackPage.
 function buildAuthHeaders(): Record<string, string> {
   const { MOVEBANK_USER, MOVEBANK_PASS } = process.env;
-  let headers: Record<string, string> = { Accept: "application/json" };
+  const headers: Record<string, string> = { Accept: "application/json" };
   if (MOVEBANK_USER && MOVEBANK_PASS) {
     const creds = Buffer.from(`${MOVEBANK_USER}:${MOVEBANK_PASS}`).toString("base64");
     headers["Authorization"] = `Basic ${creds}`;

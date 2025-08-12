@@ -2,6 +2,14 @@
   "$schema": "https://turborepo.com/schema.json",
   "ui": "tui",
   "globalEnv": [
+    "NODE_ENV",
+    "GOOGLE_CLOUD_PROJECT",
+    "GCP_PROJECT",
+    "STRIPE_PERSONAL_PRICE_ID",
+    "STRIPE_FAMILY_PRICE_ID",
+    "STRIPE_BUSINESS_PRICE_ID",
+    "STRIPE_SECRET_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
     "OPENWEATHER_API_KEY"
   ],
   "tasks": {

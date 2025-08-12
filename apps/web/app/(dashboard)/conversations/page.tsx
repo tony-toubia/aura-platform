@@ -88,7 +88,7 @@ export default async function ConversationsPage() {
   }
 
   // Get message counts separately for each conversation
-  let conversationsWithMessageCounts = []
+  const conversationsWithMessageCounts = []
   if (conversationsWithAuraData) {
     for (const conv of conversationsWithAuraData) {
       const { count: messageCount } = await supabase

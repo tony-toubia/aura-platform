@@ -835,7 +835,7 @@ export function RuleTemplateLibrary({ availableSenses, onApplyTemplate, onClose 
 
   // Filter templates based on available senses and user filters
   const filteredTemplates = useMemo(() => {
-    let filtered = RULE_TEMPLATES.filter(template => {
+    const filtered = RULE_TEMPLATES.filter(template => {
       // Check if sensor is available
       const sensorBase = template.sensor.split('.')[0]
       const sensorAvailable = availableSenses.includes(template.sensor) || 

@@ -95,7 +95,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Prepare location configs for the aura - merge agent location info with manual configs
-    let finalLocationConfigs: Record<string, any> = { ...locationConfigs }
+    const finalLocationConfigs: Record<string, any> = { ...locationConfigs }
     if (locationInfo) {
       // Convert agent location info to the expected LocationConfig format
       const locationConfig = {
@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Prepare news configurations - merge agent news type with manual configs
-    let finalNewsConfigurations: Record<string, any[]> = { ...newsConfigurations }
+    const finalNewsConfigurations: Record<string, any[]> = { ...newsConfigurations }
     if (newsType && senses?.includes('news')) {
       // Convert agent news type to news configuration format
       if (newsType === 'global') {

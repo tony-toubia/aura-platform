@@ -57,7 +57,7 @@ export function VisualRuleBuilder({
 
   // Filter rules based on search and visibility settings
   const filteredRules = useMemo(() => {
-    let filtered = existingRules.filter(rule => {
+    const filtered = existingRules.filter(rule => {
       if (!showInactive && !rule.enabled) return false
       if (searchTerm && !rule.name.toLowerCase().includes(searchTerm.toLowerCase())) return false
       return true

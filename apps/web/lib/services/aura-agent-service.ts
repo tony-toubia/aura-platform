@@ -611,7 +611,7 @@ If they say yes/confirm/ready, move to complete immediately.`
       personalityUpdates.vocabulary = 'average'
       
       // Start with default quirks, but preserve any user-specified quirks from the same message
-      let generatedQuirks = ['uses_emojis']
+      const generatedQuirks = ['uses_emojis']
       
       // Check if user specified quirks in the same message and add them
       for (const [quirk, keywords] of Object.entries(quirkKeywords)) {
