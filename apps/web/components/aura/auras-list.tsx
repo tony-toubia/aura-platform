@@ -588,9 +588,9 @@ export function AurasList({ initialAuras }: AurasListProps) {
         description={`Are you sure you want to delete "${auraToDelete?.name}"? This action cannot be undone. Messages, rules and any senses not connected to other Auras will be lost.`}
         confirmText="Delete Permanently"
         cancelText="Cancel"
-        deactivateText="Just Deactivate"
+        deactivateText={auraToDelete?.enabled ? "Just Deactivate" : undefined}
         onConfirm={handleDeleteConfirm}
-        onDeactivate={handleDeactivateConfirm}
+        onDeactivate={auraToDelete?.enabled ? handleDeactivateConfirm : undefined}
         variant="destructive"
       />
 
