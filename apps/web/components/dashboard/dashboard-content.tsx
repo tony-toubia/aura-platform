@@ -1,4 +1,5 @@
 // apps/web/components/dashboard/dashboard-content.tsx
+// apps/web/components/dashboard/dashboard-content.tsx
 
 import React from 'react'
 import Link from 'next/link'
@@ -108,7 +109,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                         <div className="flex-1 flex flex-col justify-center">
                           <h4 className="font-semibold text-lg text-gray-800 mb-2">AI-Guided Creation</h4>
                           <p className="text-sm text-gray-600 mb-3">Let our AI assistant help you design the perfect companion through conversation</p>
-                          <div className="inline-flex items-center gap-2 text-xs text-purple-600 font-medium">
+                          <div className="inline-flex justify-center gap-2 text-xs text-purple-600 font-medium">
                             <Sparkles className="w-3 h-3" />
                             <span>Recommended for beginners</span>
                           </div>
@@ -135,7 +136,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                         <div className="flex-1 flex flex-col justify-center">
                           <h4 className="font-semibold text-lg text-gray-800 mb-2">Custom Creation</h4>
                           <p className="text-sm text-gray-600 mb-3">Take full control and design every aspect of your Aura's personality</p>
-                          <div className="inline-flex items-center gap-2 text-xs text-green-600 font-medium">
+                          <div className="inline-flex justify-center gap-2 text-xs text-green-600 font-medium">
                             <Wand2 className="w-3 h-3" />
                             <span>For advanced users</span>
                           </div>
