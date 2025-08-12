@@ -191,7 +191,7 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
           vesselCode: 'assistant',
           name: assistantData.name || 'My AI Assistant',
           senses: assistantData.senses, // Include selected senses
-          availableSenses: assistantData.senses, // Include available senses
+          availableSenses: assistantData.senses, // Set available senses to match selected senses
         }
         const result = await auraApi.createAura(assistantPayload)
         
@@ -217,6 +217,12 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
     // If moving from connections to rules, update the assistant with selected senses
     if (step === "connections" && newStep === "rules" && assistantData.id) {
       try {
+        // Update the assistantData state to ensure availableSenses is set
+        setAssistantData(prev => ({
+          ...prev,
+          availableSenses: prev.senses
+        }))
+        
         const updatePayload = {
           ...assistantData,
           vesselType: 'digital' as VesselTypeId,
@@ -226,6 +232,7 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
         }
         await auraApi.updateAura(assistantData.id, updatePayload)
         console.log("Assistant updated with senses:", assistantData.senses)
+        console.log("Assistant availableSenses set to:", assistantData.senses)
       } catch (error) {
         console.error("Error updating assistant with senses:", error)
         // Don't block navigation, but log the error
@@ -248,10 +255,12 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
         ? prev.senses.filter(s => s !== senseId)
         : [...prev.senses, senseId]
       
+      console.log('🔄 Toggling sense:', senseId, 'New senses:', newSenses)
+      
       return {
         ...prev,
         senses: newSenses,
-        availableSenses: newSenses
+        availableSenses: newSenses // Ensure availableSenses is always in sync
       }
     })
   }
@@ -861,6 +870,10 @@ function RulesStep({
   console.log('🔍 RulesStep - senses passed to RuleBuilder:', senses);
   console.log('🔍 RulesStep - auraId:', auraId);
   
+  // Ensure we always have some senses available, but prefer the configured ones
+  const effectiveSenses = senses.length > 0 ? senses : ['time', 'conversation'];
+  console.log('🔍 RulesStep - effectiveSenses for RuleBuilder:', effectiveSenses);
+  
   return (
     <div className="space-y-8">
       <div className="text-center space-y-4">
@@ -892,7 +905,7 @@ function RulesStep({
             auraId={auraId || "assistant-temp"}
             vesselType="digital"
             vesselCode="assistant"
-            availableSenses={senses.length > 0 ? senses : ['time', 'conversation']}
+            availableSenses={effectiveSenses}
             existingRules={rules}
             editingRule={editingRule}
             onEditRule={setEditingRule}
