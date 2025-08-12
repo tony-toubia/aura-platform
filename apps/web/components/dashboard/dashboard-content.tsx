@@ -99,13 +99,13 @@ export function DashboardContent({ stats }: DashboardContentProps) {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
                 {/* AI-Guided Option */}
                 <SubscriptionGuard feature="maxAuras">
-                  <Link href="/auras/create-with-agent" className="block" data-help="create-aura-button">
-                    <div className="bg-white/80 backdrop-blur border-2 border-purple-200 rounded-xl p-6 hover:border-purple-400 hover:shadow-lg transition-all cursor-pointer group h-full">
-                      <div className="flex flex-col items-center text-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg">
+                  <Link href="/auras/create-with-agent" className="block h-full" data-help="create-aura-button">
+                    <div className="bg-white backdrop-blur border-2 border-purple-300 rounded-xl p-6 hover:border-purple-500 hover:shadow-lg transition-all cursor-pointer group h-full flex flex-col">
+                      <div className="flex flex-col items-center text-center h-full">
+                        <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-blue-500 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg mb-4">
                           <Bot className="w-6 h-6 text-white" />
                         </div>
-                        <div>
+                        <div className="flex-1 flex flex-col justify-center">
                           <h4 className="font-semibold text-lg text-gray-800 mb-2">AI-Guided Creation</h4>
                           <p className="text-sm text-gray-600 mb-3">Let our AI assistant help you design the perfect companion through conversation</p>
                           <div className="inline-flex items-center gap-2 text-xs text-purple-600 font-medium">
@@ -113,8 +113,8 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                             <span>Recommended for beginners</span>
                           </div>
                         </div>
-                        <div className="mt-auto">
-                          <span className="inline-flex items-center gap-2 px-4 py-2 bg-purple-100 text-purple-700 rounded-lg font-medium text-sm group-hover:bg-purple-200 transition-colors">
+                        <div className="w-full flex justify-center mt-4">
+                          <span className="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 text-white rounded-lg font-medium text-sm group-hover:bg-purple-700 transition-colors shadow-md hover:shadow-lg">
                             Start with AI
                             <ArrowRight className="w-4 h-4" />
                           </span>
@@ -126,13 +126,13 @@ export function DashboardContent({ stats }: DashboardContentProps) {
 
                 {/* Manual Option */}
                 <SubscriptionGuard feature="maxAuras">
-                  <Link href="/auras/create" className="block">
-                    <div className="bg-white/80 backdrop-blur border-2 border-green-200 rounded-xl p-6 hover:border-green-400 hover:shadow-lg transition-all cursor-pointer group h-full">
-                      <div className="flex flex-col items-center text-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg">
+                  <Link href="/auras/create" className="block h-full">
+                    <div className="bg-white backdrop-blur border-2 border-green-300 rounded-xl p-6 hover:border-green-500 hover:shadow-lg transition-all cursor-pointer group h-full flex flex-col">
+                      <div className="flex flex-col items-center text-center h-full">
+                        <div className="w-12 h-12 bg-gradient-to-r from-green-500 to-emerald-500 rounded-lg flex items-center justify-center flex-shrink-0 group-hover:scale-110 transition-transform shadow-lg mb-4">
                           <Settings className="w-6 h-6 text-white" />
                         </div>
-                        <div>
+                        <div className="flex-1 flex flex-col justify-center">
                           <h4 className="font-semibold text-lg text-gray-800 mb-2">Custom Creation</h4>
                           <p className="text-sm text-gray-600 mb-3">Take full control and design every aspect of your Aura's personality</p>
                           <div className="inline-flex items-center gap-2 text-xs text-green-600 font-medium">
@@ -140,12 +140,12 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                             <span>For advanced users</span>
                           </div>
                         </div>
-                      </div>
-                      <div className="mt-auto">
-                        <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-100 text-green-700 rounded-lg font-medium text-sm group-hover:bg-green-200 transition-colors">
-                          Create Manually
-                          <ArrowRight className="w-4 h-4" />
-                        </span>
+                        <div className="w-full flex justify-center mt-4">
+                          <span className="inline-flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-lg font-medium text-sm group-hover:bg-green-700 transition-colors shadow-md hover:shadow-lg">
+                            Create Manually
+                            <ArrowRight className="w-4 h-4" />
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </Link>
