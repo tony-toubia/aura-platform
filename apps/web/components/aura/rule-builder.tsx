@@ -187,37 +187,20 @@ export function RuleBuilder({
     return grouped
   }, [availableSensorConfigs])
 
-  // Get relevant templates grouped by sensor
+  // Get relevant templates (now properly grouped)
   const relevantTemplates = useMemo(() => {
-    const templatesBySensor: Record<string, any[]> = {}
+    const templates: any[] = []
     
     Object.entries(QUICK_TEMPLATES).forEach(([category, categoryTemplates]) => {
       categoryTemplates.forEach(template => {
         const sensorBase = template.sensor.split('.')[0]
         if (sensorBase && (availableSenses.includes(template.sensor) || availableSenses.includes(sensorBase))) {
-          if (!templatesBySensor[template.sensor]) {
-            templatesBySensor[template.sensor] = []
-          }
-          templatesBySensor[template.sensor].push({ ...template, category })
+          templates.push({ ...template, category })
         }
       })
     })
     
-    // Convert to array of sensor groups, preferring smart_response templates as primary
-    const sensorGroups = Object.entries(templatesBySensor).map(([sensor, templates]) => {
-      const smartTemplate = templates.find(t => t.responseType === 'smart_response')
-      const regularTemplate = templates.find(t => !t.responseType || t.responseType === 'template')
-      
-      return {
-        sensor,
-        primaryTemplate: smartTemplate || regularTemplate || templates[0],
-        templates: templates,
-        hasSmartResponse: !!smartTemplate,
-        hasRegularTemplate: !!regularTemplate
-      }
-    })
-    
-    return sensorGroups
+    return templates
   }, [availableSenses])
 
   // Generate AI preview when relevant values change
@@ -405,12 +388,8 @@ export function RuleBuilder({
     }
   }
 
-  const applyTemplate = (sensorGroup: any) => {
-    const previewMode = templatePreviewMode[sensorGroup.sensor] || 'smart_response'
-    const template = sensorGroup.templates.find((t: any) => 
-      (previewMode === 'smart_response' && t.responseType === 'smart_response') ||
-      (previewMode === 'template' && (!t.responseType || t.responseType === 'template'))
-    ) || sensorGroup.primaryTemplate
+  const applyTemplate = (template: any) => {
+    const previewMode = templatePreviewMode[template.id] || 'smart_response'
     
     setRuleName(template.name)
     setSelectedSensor(template.sensor)
@@ -421,12 +400,12 @@ export function RuleBuilder({
     setResponseType(previewMode === 'smart_response' ? 'prompt' : 'template')
     
     // Set appropriate fields based on response type
-    if (previewMode === 'smart_response') {
-      setResponseGuidelines(template.promptGuidelines || '')
-      setResponseTones(template.responseTones || [])
+    if (previewMode === 'smart_response' && template.smart_response) {
+      setResponseGuidelines(template.smart_response.promptGuidelines || '')
+      setResponseTones(template.smart_response.responseTones || [])
       setActionMessage('') // Clear message for prompt-based responses
-    } else {
-      setActionMessage(template.message || '')
+    } else if (template.template) {
+      setActionMessage(template.template.message || '')
       setResponseGuidelines('')
       setResponseTones([])
     }
@@ -465,38 +444,34 @@ export function RuleBuilder({
           {showTemplates && (
             <CardContent className="p-4 sm:p-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {relevantTemplates.map((sensorGroup, idx) => {
-                  const currentMode = templatePreviewMode[sensorGroup.sensor] || 'smart_response'
-                  const currentTemplate = sensorGroup.templates.find((t: any) => 
-                    (currentMode === 'smart_response' && t.responseType === 'smart_response') ||
-                    (currentMode === 'template' && (!t.responseType || t.responseType === 'template'))
-                  ) || sensorGroup.primaryTemplate
+                {relevantTemplates.map((template, idx) => {
+                  const currentMode = templatePreviewMode[template.id] || 'smart_response'
                   
                   return (
                     <div key={idx} className="border-2 border-gray-200 rounded-lg p-4 hover:border-purple-400 transition-all">
                       {/* Header with sensor info */}
                       <div className="flex items-center gap-2 mb-3">
-                        <span className="text-2xl">{getSensorConfig(sensorGroup.sensor)?.icon}</span>
+                        <span className="text-2xl">{getSensorConfig(template.sensor)?.icon}</span>
                         <div className="flex-1">
-                          <h4 className="font-semibold text-left">{getSensorConfig(sensorGroup.sensor)?.name}</h4>
+                          <h4 className="font-semibold text-left">{template.name}</h4>
                           <p className="text-sm text-muted-foreground">
-                            When {OPERATOR_LABELS[currentTemplate.operator]} {
-                              typeof currentTemplate.value === 'string'
-                                ? getSensorConfig(sensorGroup.sensor)?.enumValues?.find(e => e.value === currentTemplate.value)?.label || currentTemplate.value
-                                : currentTemplate.value
+                            When {getSensorConfig(template.sensor)?.name} {OPERATOR_LABELS[template.operator]} {
+                              typeof template.value === 'string'
+                                ? getSensorConfig(template.sensor)?.enumValues?.find(e => e.value === template.value)?.label || template.value
+                                : template.value
                             }
                           </p>
                         </div>
                       </div>
 
                       {/* Response type toggle */}
-                      {sensorGroup.hasSmartResponse && sensorGroup.hasRegularTemplate && (
+                      {template.template && template.smart_response && (
                         <div className="flex gap-1 mb-3 p-1 bg-gray-100 rounded-md">
                           <Button
                             size="sm"
                             variant={currentMode === 'template' ? 'default' : 'ghost'}
                             className="flex-1 h-8 text-xs"
-                            onClick={() => setTemplatePreviewMode(prev => ({ ...prev, [sensorGroup.sensor]: 'template' }))}
+                            onClick={() => setTemplatePreviewMode(prev => ({ ...prev, [template.id]: 'template' }))}
                           >
                             <MessageCircle className="w-3 h-3 mr-1" />
                             Template
@@ -505,7 +480,7 @@ export function RuleBuilder({
                             size="sm"
                             variant={currentMode === 'smart_response' ? 'default' : 'ghost'}
                             className="flex-1 h-8 text-xs"
-                            onClick={() => setTemplatePreviewMode(prev => ({ ...prev, [sensorGroup.sensor]: 'smart_response' }))}
+                            onClick={() => setTemplatePreviewMode(prev => ({ ...prev, [template.id]: 'smart_response' }))}
                           >
                             <Sparkles className="w-3 h-3 mr-1" />
                             Smart
@@ -515,25 +490,29 @@ export function RuleBuilder({
 
                       {/* Preview content */}
                       <div className="mb-3 p-3 bg-gray-50 rounded-md min-h-[60px]">
-                        {currentMode === 'smart_response' ? (
+                        {currentMode === 'smart_response' && template.smart_response ? (
                           <div>
                             <div className="flex items-center gap-1 mb-2">
                               <Sparkles className="w-3 h-3 text-purple-600" />
                               <span className="text-xs font-medium text-purple-600">AI-Powered Response</span>
                             </div>
                             <p className="text-sm text-gray-600 italic">
-                              {currentTemplate.promptGuidelines || 'Intelligent contextual response based on your data and preferences.'}
+                              {template.smart_response.promptGuidelines || 'Intelligent contextual response based on your data and preferences.'}
                             </p>
                           </div>
-                        ) : (
+                        ) : template.template ? (
                           <div>
                             <div className="flex items-center gap-1 mb-2">
                               <MessageCircle className="w-3 h-3 text-blue-600" />
                               <span className="text-xs font-medium text-blue-600">Template Message</span>
                             </div>
                             <p className="text-sm text-gray-700">
-                              {currentTemplate.message || 'Pre-written message template.'}
+                              {template.template.message || 'Pre-written message template.'}
                             </p>
+                          </div>
+                        ) : (
+                          <div>
+                            <p className="text-sm text-gray-500 italic">No preview available</p>
                           </div>
                         )}
                       </div>
@@ -541,7 +520,7 @@ export function RuleBuilder({
                       {/* Apply button */}
                       <Button
                         className="w-full"
-                        onClick={() => applyTemplate(sensorGroup)}
+                        onClick={() => applyTemplate(template)}
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Use This Rule

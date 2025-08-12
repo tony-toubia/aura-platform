@@ -23,166 +23,164 @@ export const PRIORITY_CONFIGS: PriorityConfig[] = [
 export const getPriorityConfig = (priority: number): PriorityConfig =>
   PRIORITY_CONFIGS.find((c) => priority >= c.min)!
 
-export const QUICK_TEMPLATES: Record<string, RuleTemplate[]> = {
+// Grouped templates by functionality, each with both template and smart response options
+export const QUICK_TEMPLATES: Record<string, any[]> = {
   sleep: [
     {
-      name: "Poor Sleep Alert",
+      id: "sleep-quality-poor",
+      name: "Poor Sleep Quality",
       sensor: "sleep.quality",
       operator: "==",
       value: "poor",
-      message: "Looks like you didn't get much sleep last night... 😴 Only got {sleep.duration} hours of sleep. Better caffiene up!",
-      priority: "6"
+      priority: "6",
+      template: {
+        message: "Looks like you didn't get much sleep last night... 😴 Only got {sleep.duration} hours of sleep. Better caffeine up!"
+      },
+      smart_response: {
+        promptGuidelines: "Analyze my sleep quality and provide personalized advice for better rest. Consider my sleep patterns, lifestyle, and offer gentle, supportive suggestions.",
+        responseTones: ["supportive", "understanding", "helpful"]
+      }
     },
     {
-      name: "Smart Sleep Quality Response",
-      sensor: "sleep.quality",
-      operator: "==",
-      value: "poor",
-      responseType: "smart_response",
-      promptGuidelines: "Analyze my sleep quality and provide personalized advice for better rest. Consider my sleep patterns, lifestyle, and offer gentle, supportive suggestions.",
-      priority: "6"
-    },
-    {
-      name: "Great Sleep Celebration",
+      id: "sleep-quality-good",
+      name: "Great Sleep Quality",
       sensor: "sleep.quality",
       operator: "==",
       value: "excellent",
-      message: "You look amazing today! 🌟 Must be that {sleep.duration} hours of quality sleep!",
-      priority: "4"
+      priority: "4",
+      template: {
+        message: "You look amazing today! 🌟 Must be that {sleep.duration} hours of quality sleep!"
+      },
+      smart_response: {
+        promptGuidelines: "Celebrate my excellent sleep quality with personalized encouragement. Consider how good sleep affects my day and suggest ways to maintain this pattern.",
+        responseTones: ["celebratory", "positive", "encouraging"]
+      }
     },
     {
-      name: "Smart Sleep Duration Analysis",
+      id: "sleep-duration-short",
+      name: "Short Sleep Duration",
       sensor: "sleep.duration",
       operator: "<",
       value: 7,
-      responseType: "smart_response",
-      promptGuidelines: "Provide intelligent insights about my sleep duration. Offer personalized advice for improving sleep habits while being supportive and understanding.",
-      priority: "7"
+      priority: "7",
+      template: {
+        message: "Only {sleep.duration} hours of sleep? 😴 Your body needs more rest to perform at its best!"
+      },
+      smart_response: {
+        promptGuidelines: "Analyze sleep duration patterns and provide personalized advice for better sleep habits while being supportive and understanding.",
+        responseTones: ["caring", "educational", "encouraging"]
+      }
     }
   ],
   fitness: [
     {
-      name: "Step Goal Achieved",
+      id: "step-goals",
+      name: "Step Goals",
       sensor: "fitness.steps",
       operator: ">=",
       value: 10000,
-      message: "Yes! Nice work hitting your step goal with {fitness.steps} steps today! 🎯",
-      priority: "5"
+      priority: "5",
+      template: {
+        message: "Yes! Nice work hitting your step goal with {fitness.steps} steps today! 🎯"
+      },
+      smart_response: {
+        promptGuidelines: "Celebrate my step achievement with personalized motivation. Consider my progress patterns, time of day, and suggest next goals or activities.",
+        responseTones: ["celebratory", "motivating", "personalized"]
+      }
     },
     {
-      name: "Smart Step Goal Tracker",
-      sensor: "fitness.steps",
-      operator: ">=",
-      value: 8000,
-      responseType: "smart_response",
-      promptGuidelines: "Celebrate my step achievement with personalized motivation. Consider my progress patterns, time of day, and suggest next goals or activities.",
-      priority: "5"
-    },
-    {
-      name: "High Heart Rate Warning",
+      id: "heart-rate-monitor",
+      name: "Heart Rate Monitor",
       sensor: "fitness.heartRate",
       operator: ">",
-      value: 160,
-      message: "Whoa, your heart is racing at {fitness.heartRate} bpm! Time to slow down? 💓",
-      priority: "8"
+      value: 140,
+      priority: "8",
+      template: {
+        message: "Whoa, your heart is racing at {fitness.heartRate} bpm! Time to slow down? 💓"
+      },
+      smart_response: {
+        promptGuidelines: "Analyze my heart rate data and provide contextual health insights. Consider my activity level, time of day, and suggest appropriate actions or rest.",
+        responseTones: ["health-focused", "informative", "caring"]
+      }
     },
     {
-      name: "Smart Heart Rate Monitor",
-      sensor: "fitness.heartRate",
-      operator: ">",
-      value: 120,
-      responseType: "smart_response",
-      promptGuidelines: "Analyze my heart rate data and provide contextual health insights. Consider my activity level, time of day, and suggest appropriate actions or rest.",
-      priority: "8"
-    },
-    {
-      name: "Calories Burned Goal",
+      id: "calorie-goals",
+      name: "Calorie Goals",
       sensor: "fitness.calories",
       operator: ">=",
       value: 500,
-      message: "Great job! You've burned {fitness.calories} calories today! 🔥 Keep up the momentum!",
-      priority: "5"
+      priority: "5",
+      template: {
+        message: "Great job! You've burned {fitness.calories} calories today! 🔥 Keep up the momentum!"
+      },
+      smart_response: {
+        promptGuidelines: "Celebrate my calorie burning achievement with personalized motivation. Consider my fitness goals, time of day, and suggest next activities.",
+        responseTones: ["celebratory", "motivating", "energizing"]
+      }
     },
     {
-      name: "Smart Calorie Tracker",
-      sensor: "fitness.calories",
-      operator: ">=",
-      value: 400,
-      responseType: "smart_response",
-      promptGuidelines: "Celebrate my calorie burning achievement with personalized motivation. Consider my fitness goals, time of day, and suggest next activities.",
-      priority: "5"
-    },
-    {
-      name: "Distance Achievement",
+      id: "distance-goals",
+      name: "Distance Goals",
       sensor: "fitness.distance",
       operator: ">=",
       value: 5,
-      message: "Amazing! You've traveled {fitness.distance}km today! 📏 That's some serious distance!",
-      priority: "5"
+      priority: "5",
+      template: {
+        message: "Amazing! You've traveled {fitness.distance}km today! 📏 That's some serious distance!"
+      },
+      smart_response: {
+        promptGuidelines: "Celebrate my distance achievement with personalized encouragement. Consider my activity type, progress patterns, and suggest next goals.",
+        responseTones: ["celebratory", "encouraging", "achievement-focused"]
+      }
     },
     {
-      name: "Smart Distance Tracker",
-      sensor: "fitness.distance",
-      operator: ">=",
-      value: 3,
-      responseType: "smart_response",
-      promptGuidelines: "Celebrate my distance achievement with personalized encouragement. Consider my activity type, progress patterns, and suggest next goals.",
-      priority: "5"
-    },
-    {
-      name: "Activity Change Alert",
+      id: "activity-alerts",
+      name: "Activity Alerts",
       sensor: "fitness.activity",
       operator: "==",
       value: "workout",
-      message: "Time to crush this workout! 💪 You've got this!",
-      priority: "6"
-    },
-    {
-      name: "Smart Activity Response",
-      sensor: "fitness.activity",
-      operator: "==",
-      value: "workout",
-      responseType: "smart_response",
-      promptGuidelines: "Provide motivational support based on my current activity. Offer encouragement, tips, or reminders relevant to the specific activity type.",
-      priority: "6"
+      priority: "6",
+      template: {
+        message: "Time to crush this workout! 💪 You've got this!"
+      },
+      smart_response: {
+        promptGuidelines: "Provide motivational support based on my current activity. Offer encouragement, tips, or reminders relevant to the specific activity type.",
+        responseTones: ["motivating", "supportive", "energizing"]
+      }
     }
   ],
   calendar: [
     {
-      name: "Meeting Reminder",
-      sensor: "calendar.timeUntilNext",
-      operator: "<=",
-      value: 15,
-      message: "Heads up! Your {calendar.nextEvent} starts in {calendar.timeUntilNext} minutes! ⏰",
-      priority: "7"
-    },
-    {
-      name: "Smart Meeting Preparation",
+      id: "meeting-reminders",
+      name: "Meeting Reminders",
       sensor: "calendar.next_meeting",
       operator: "<=",
       value: 15,
-      responseType: "smart_response",
-      promptGuidelines: "Provide intelligent meeting preparation assistance. Consider meeting type, duration, participants, and suggest preparation actions.",
-      priority: "9"
+      priority: "7",
+      template: {
+        message: "Heads up! Your meeting starts in {calendar.next_meeting} minutes! ⏰"
+      },
+      smart_response: {
+        promptGuidelines: "Provide intelligent meeting preparation assistance. Consider meeting type, duration, participants, and suggest preparation actions.",
+        responseTones: ["professional", "organized", "helpful"]
+      }
     }
   ],
   location: [
     {
-      name: "Arrived at Gym",
+      id: "location-alerts",
+      name: "Location Alerts",
       sensor: "location.place",
       operator: "==",
       value: "gym",
-      message: "Time to crush this workout! 💪 You got this!",
-      priority: "5"
-    },
-    {
-      name: "Smart Location Context",
-      sensor: "location.place",
-      operator: "==",
-      value: "gym",
-      responseType: "smart_response",
-      promptGuidelines: "Provide contextual responses based on my location. Suggest activities, reminders, or motivational messages relevant to the specific place.",
-      priority: "6"
+      priority: "5",
+      template: {
+        message: "Time to crush this workout! 💪 You got this!"
+      },
+      smart_response: {
+        promptGuidelines: "Provide contextual responses based on my location. Suggest activities, reminders, or motivational messages relevant to the specific place.",
+        responseTones: ["contextual", "motivating", "helpful"]
+      }
     }
   ],
   weather: [
