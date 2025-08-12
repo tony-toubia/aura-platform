@@ -204,19 +204,28 @@ function buildSystemPrompt(
   if (senseData.length > 0) {
     systemPrompt += "Current sensor readings:\n"
     senseData.forEach(s => {
-      if (s.senseId === 'weather' && s.data?.main?.temp) {
-        systemPrompt += `- Temperature: ${Math.round(s.data.main.temp)}°C\n`
-        if (s.data.weather?.[0]?.description) {
-          systemPrompt += `- Weather: ${s.data.weather[0].description}\n`
+      if (s.senseId === 'weather' && s.data && typeof s.data === 'object' && 'main' in s.data) {
+        const weatherData = s.data as { main?: { temp?: number }; weather?: Array<{ description?: string }> }
+        if (weatherData.main?.temp) {
+          systemPrompt += `- Temperature: ${Math.round(weatherData.main.temp)}°C\n`
         }
-      } else if (s.senseId === 'soil_moisture') {
+        if (weatherData.weather?.[0]?.description) {
+          systemPrompt += `- Weather: ${weatherData.weather[0].description}\n`
+        }
+      } else if (s.senseId === 'soil_moisture' && typeof s.data === 'number') {
         systemPrompt += `- Soil moisture: ${Math.round(s.data)}%\n`
-      } else if (s.senseId === 'light_level') {
+      } else if (s.senseId === 'light_level' && typeof s.data === 'number') {
         systemPrompt += `- Light level: ${Math.round(s.data)} lux\n`
-      } else if (s.senseId === 'air_quality' && s.data?.aqi) {
-        systemPrompt += `- Air quality index: ${s.data.aqi}\n`
-      } else if (s.senseId === 'news' && s.data?.articles?.length) {
-        systemPrompt += `- Recent news: ${s.data.articles.length} new articles\n`
+      } else if (s.senseId === 'air_quality' && s.data && typeof s.data === 'object' && 'aqi' in s.data) {
+        const airData = s.data as { aqi?: number }
+        if (airData.aqi) {
+          systemPrompt += `- Air quality index: ${airData.aqi}\n`
+        }
+      } else if (s.senseId === 'news' && s.data && typeof s.data === 'object' && 'articles' in s.data) {
+        const newsData = s.data as { articles?: Array<unknown> }
+        if (newsData.articles?.length) {
+          systemPrompt += `- Recent news: ${newsData.articles.length} new articles\n`
+        }
       } else {
         systemPrompt += `- ${s.senseId}: ${JSON.stringify(s.data)}\n`
       }

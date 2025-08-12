@@ -240,7 +240,7 @@ export class SubscriptionService {
       case 'availableSenses':
         return true
       default:
-        return Boolean((f as any)[feature])
+        return Boolean(f[feature as keyof SubscriptionFeatures])
     }
   }
 
