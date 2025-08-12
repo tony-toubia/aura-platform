@@ -256,11 +256,15 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
 
   const toggleSense = (senseId: SenseId) => {
     setAssistantData(prev => {
-      const newSenses = prev.senses.includes(senseId)
+      const isCurrentlySelected = prev.senses.includes(senseId)
+      const newSenses = isCurrentlySelected
         ? prev.senses.filter(s => s !== senseId)
         : [...prev.senses, senseId]
       
-      console.log('🔄 Toggling sense:', senseId, 'New senses:', newSenses)
+      console.log('🔄 Toggling sense:', senseId)
+      console.log('  Was selected:', isCurrentlySelected)
+      console.log('  Previous senses:', prev.senses)
+      console.log('  New senses:', newSenses)
       
       return {
         ...prev,
@@ -802,9 +806,14 @@ function ConnectionsStep({
             onLocationConfig={(senseId, config) => {
               const newConfigs = { ...locationConfigs, [senseId]: config }
               setLocationConfigs(newConfigs)
+              // If location is configured, ensure the sense is added to senses
+              if (!senses.includes(senseId)) {
+                onToggleSense(senseId)
+              }
             }}
             locationConfigs={locationConfigs}
             onOAuthConnection={(senseId, providerId, connectionData) => {
+              console.log('🔐 OAuth connection received:', senseId, providerId)
               const displayName = connectionData.providerName || providerId.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
               const newConnections = {
                 ...oauthConnections,
@@ -820,6 +829,11 @@ function ConnectionsStep({
                 }]
               }
               setOauthConnections(newConnections)
+              // If OAuth connection is made, ensure the sense is added to senses
+              if (!senses.includes(senseId)) {
+                console.log('  Adding', senseId, 'to senses array')
+                onToggleSense(senseId)
+              }
             }}
             onOAuthDisconnect={(senseId, connectionId) => {
               const newConnections = {
@@ -830,13 +844,25 @@ function ConnectionsStep({
             }}
             oauthConnections={oauthConnections as Record<string, import("../aura/sense-selector").ConnectedProvider[]>}
             onNewsConfiguration={(senseId, locations) => {
+              console.log('📰 News configuration received:', senseId, locations)
               const newConfigurations = { ...newsConfigurations, [senseId]: locations }
               setNewsConfigurations(newConfigurations)
+              // If news is configured with locations, ensure it's added to senses
+              if (locations.length > 0 && !senses.includes(senseId)) {
+                console.log('  Adding news to senses array')
+                onToggleSense(senseId)
+              }
             }}
             newsConfigurations={newsConfigurations}
             onWeatherAirQualityConfiguration={(senseId, locations) => {
+              console.log('🌤️ Weather/AQ configuration received:', senseId, locations)
               const newConfigurations = { ...weatherAirQualityConfigurations, [senseId]: locations }
               setWeatherAirQualityConfigurations(newConfigurations)
+              // If weather/air_quality is configured with locations, ensure it's added to senses
+              if (locations.length > 0 && !senses.includes(senseId)) {
+                console.log('  Adding', senseId, 'to senses array')
+                onToggleSense(senseId)
+              }
             }}
             weatherAirQualityConfigurations={weatherAirQualityConfigurations}
             hasPersonalConnectedSenses={true}
