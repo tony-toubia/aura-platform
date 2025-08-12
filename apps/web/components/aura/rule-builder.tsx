@@ -1031,7 +1031,7 @@ export function RuleBuilder({
                   </>
                 ) : (
                   <>
-                    <Save className="w-5 h-5 mr-2" /> Save Changes
+                    <Save className="w-5 h-5 mr-2" /> Save Rule
                   </>
                 )}
               </Button>
@@ -1043,7 +1043,7 @@ export function RuleBuilder({
                     disabled
                     className="flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r from-purple-600 to-blue-600 opacity-50 cursor-not-allowed"
                   >
-                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Loading...
+                    <Plus className="w-5 h-5 mr-2" /> Save Rule
                   </Button>
                 }
               >
@@ -1059,7 +1059,15 @@ export function RuleBuilder({
                     (responseType === 'template' && !actionMessage)
                   }
                 >
-                  <Plus className="w-5 h-5 mr-2" /> Create Rule
+                  {isSaving ? (
+                    <>
+                      <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Saving...
+                    </>
+                  ) : (
+                    <>
+                      <Plus className="w-5 h-5 mr-2" /> Save Rule
+                    </>
+                  )}
                 </Button>
               </SubscriptionGuard>
             )}
