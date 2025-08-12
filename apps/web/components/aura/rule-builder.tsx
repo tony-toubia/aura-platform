@@ -89,6 +89,7 @@ export function RuleBuilder({
   const router = useRouter()
   const [showTemplates, setShowTemplates] = useState(true)
   const [showActiveRules, setShowActiveRules] = useState(true)
+  const [isSaving, setIsSaving] = useState(false)
   const cooldownConfig = useCooldownConfig()
 
   // Form state
@@ -324,58 +325,64 @@ export function RuleBuilder({
       return
     }
 
-    const cooldownPayload = cooldownConfig.getCooldownPayload()
+    setIsSaving(true)
+    
+    try {
+      const cooldownPayload = cooldownConfig.getCooldownPayload()
 
-    const payload = {
-      auraId,
-      name: ruleName,
-      trigger: {
-        type: "simple" as const,
-        sensor: selectedSensor,
-        operator: operator as RuleTrigger['operator'],
-        value: sensorValue,
-        ...cooldownPayload
-      },
-      action: {
-        type: responseType === 'prompt' ? "prompt_respond" : "respond" as const,
-        message: responseType === 'prompt' ? undefined : actionMessage,
-        promptGuidelines: responseType === 'prompt' ? responseGuidelines : undefined,
-        responseTones: responseType === 'prompt' ? responseTones : undefined,
-        responseType,
-        severity: "info" as const,
-      },
-      priority: parseInt(priority, 10),
-      enabled: true,
-    }
-
-    if (isEditing && editingRule) {
-      const res = await fetch(`/api/behavior-rules/${editingRule.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) {
-        console.error("Failed to save rule", await res.text())
-        return
+      const payload = {
+        auraId,
+        name: ruleName,
+        trigger: {
+          type: "simple" as const,
+          sensor: selectedSensor,
+          operator: operator as RuleTrigger['operator'],
+          value: sensorValue,
+          ...cooldownPayload
+        },
+        action: {
+          type: responseType === 'prompt' ? "prompt_respond" : "respond" as const,
+          message: responseType === 'prompt' ? undefined : actionMessage,
+          promptGuidelines: responseType === 'prompt' ? responseGuidelines : undefined,
+          responseTones: responseType === 'prompt' ? responseTones : undefined,
+          responseType,
+          severity: "info" as const,
+        },
+        priority: parseInt(priority, 10),
+        enabled: true,
       }
-      const updated: BehaviorRule = await res.json()
-      onSaveEditedRule?.(updated)
-    } else {
-      const res = await fetch("/api/behavior-rules", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload),
-      })
-      if (!res.ok) {
-        console.error("Failed to save rule:", await res.text())
-        return
-      }
-      const newRule: BehaviorRule = await res.json()
-      onAddRule(newRule)
-    }
 
-    clearForm()
-    router.refresh()
+      if (isEditing && editingRule) {
+        const res = await fetch(`/api/behavior-rules/${editingRule.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) {
+          console.error("Failed to save rule", await res.text())
+          return
+        }
+        const updated: BehaviorRule = await res.json()
+        onSaveEditedRule?.(updated)
+      } else {
+        const res = await fetch("/api/behavior-rules", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        })
+        if (!res.ok) {
+          console.error("Failed to save rule:", await res.text())
+          return
+        }
+        const newRule: BehaviorRule = await res.json()
+        onAddRule(newRule)
+      }
+
+      clearForm()
+      router.refresh()
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const applyTemplate = (template: any) => {
@@ -807,7 +814,7 @@ export function RuleBuilder({
                       </span>
                       <div className={cn(
                         "w-2 h-2 rounded-full",
-                        previewLoading ? "bg-yellow-500 animate-pulse" : preview ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                        previewLoading ? "bg-yellow-500 animate-pulse" : preview ? "bg-green-500" : "bg-gray-400"
                       )}></div>
                     </div>
                     
@@ -1010,24 +1017,44 @@ export function RuleBuilder({
                 onClick={handleAddOrSave}
                 className="flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r from-blue-600 to-purple-600 hover:from-blue-700 hover:to-purple-700"
                 disabled={
-                  !ruleName || 
-                  !selectedSensor || 
-                  sensorValue === null || 
+                  isSaving ||
+                  !ruleName ||
+                  !selectedSensor ||
+                  sensorValue === null ||
                   (responseType === 'prompt' && !responseGuidelines) ||
                   (responseType === 'template' && !actionMessage)
                 }
               >
-                <Save className="w-5 h-5 mr-2" /> Save Changes
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <Save className="w-5 h-5 mr-2" /> Save Changes
+                  </>
+                )}
               </Button>
             ) : (
-              <SubscriptionGuard feature="maxRulesPerAura">
+              <SubscriptionGuard
+                feature="maxRulesPerAura"
+                fallback={
+                  <Button
+                    disabled
+                    className="flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r from-purple-600 to-blue-600 opacity-50 cursor-not-allowed"
+                  >
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Loading...
+                  </Button>
+                }
+              >
                 <Button
                   onClick={handleAddOrSave}
                   className="flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
                   disabled={
-                    !ruleName || 
-                    !selectedSensor || 
-                    sensorValue === null || 
+                    isSaving ||
+                    !ruleName ||
+                    !selectedSensor ||
+                    sensorValue === null ||
                     (responseType === 'prompt' && !responseGuidelines) ||
                     (responseType === 'template' && !actionMessage)
                   }
