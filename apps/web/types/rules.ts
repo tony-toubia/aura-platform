@@ -7,10 +7,13 @@ export interface RuleTemplate {
   sensor: string
   operator: string
   value: any
-  message: string
+  message?: string
   priority: string
   cooldown?: string
   category?: string
+  responseType?: 'template' | 'prompt' | 'smart_response'
+  promptGuidelines?: string
+  responseTones?: string[]
 }
 
 export interface RuleBuilderProps {

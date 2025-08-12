@@ -20,6 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Badge } from "@/components/ui/badge"
 import {
   Plus,
   Edit2,
@@ -389,9 +390,23 @@ export function RuleBuilder({
     setSelectedSensor(template.sensor)
     setOperator(template.operator)
     setSensorValue(template.value)
-    setActionMessage(template.message)
+    
+    // Set response type based on template, defaulting to 'template'
+    const templateResponseType = template.responseType || 'template'
+    setResponseType(templateResponseType)
+    
+    // Set appropriate fields based on response type
+    if (templateResponseType === 'smart_response' || templateResponseType === 'prompt') {
+      setPromptGuidelines(template.promptGuidelines || '')
+      setPromptTones(template.responseTones || [])
+      setActionMessage('') // Clear message for prompt-based responses
+    } else {
+      setActionMessage(template.message || '')
+      setPromptGuidelines('')
+      setPromptTones([])
+    }
+    
     setPriority(template.priority)
-    setResponseType('template') // Templates use template mode
     // Templates use simple cooldown for now
     cooldownConfig.setCooldownType('simple')
     cooldownConfig.setSimpleCooldown(template.cooldown || '60')
@@ -434,7 +449,17 @@ export function RuleBuilder({
                   >
                     <div className="flex items-center gap-2 w-full">
                       <span className="text-2xl">{getSensorConfig(template.sensor)?.icon}</span>
-                      <span className="font-semibold text-left">{template.name}</span>
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2">
+                          <span className="font-semibold text-left">{template.name}</span>
+                          {template.responseType === 'smart_response' && (
+                            <Badge variant="secondary" className="text-xs bg-purple-100 text-purple-700">
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              Smart
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
                     </div>
                     <span className="text-sm text-muted-foreground text-left">
                       When {getSensorConfig(template.sensor)?.name} {OPERATOR_LABELS[template.operator]} {
