@@ -413,6 +413,80 @@ export const SENSOR_CONFIGS: Record<string, SensorMetadata> = {
     icon: '🌤️',
     category: 'personal',
     operators: ['==', '!=']
+  },
+  
+  // Time-based sensors
+  'time.hour': {
+    id: 'time.hour',
+    name: 'Current Hour',
+    type: 'numeric',
+    unit: 'hour',
+    range: { min: 0, max: 23 },
+    icon: '🕐',
+    category: 'digital',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
+  },
+  'time.minute': {
+    id: 'time.minute',
+    name: 'Current Minute',
+    type: 'numeric',
+    unit: 'minute',
+    range: { min: 0, max: 59 },
+    icon: '⏱️',
+    category: 'digital',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
+  },
+  'time.day_of_week': {
+    id: 'time.day_of_week',
+    name: 'Day of Week',
+    type: 'enum',
+    enumValues: [
+      { value: 'monday', label: 'Monday' },
+      { value: 'tuesday', label: 'Tuesday' },
+      { value: 'wednesday', label: 'Wednesday' },
+      { value: 'thursday', label: 'Thursday' },
+      { value: 'friday', label: 'Friday' },
+      { value: 'saturday', label: 'Saturday' },
+      { value: 'sunday', label: 'Sunday' }
+    ],
+    icon: '📅',
+    category: 'digital',
+    operators: ['==', '!=']
+  },
+  
+  // Additional sleep sensors
+  
+  // Calendar sensors
+  'calendar.next_meeting': {
+    id: 'calendar.next_meeting',
+    name: 'Minutes Until Next Meeting',
+    type: 'numeric',
+    unit: 'minutes',
+    range: { min: 0, max: 1440 },
+    icon: '📅',
+    category: 'digital',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
+  },
+  
+  // Location sensors
+  'location.current': {
+    id: 'location.current',
+    name: 'Current Location',
+    type: 'enum',
+    enumValues: [
+      { value: 'home', label: 'Home' },
+      { value: 'work', label: 'Work' },
+      { value: 'gym', label: 'Gym' },
+      { value: 'school', label: 'School' },
+      { value: 'store', label: 'Store' },
+      { value: 'restaurant', label: 'Restaurant' },
+      { value: 'outdoors', label: 'Outdoors' },
+      { value: 'transit', label: 'In Transit' },
+      { value: 'other', label: 'Other' }
+    ],
+    icon: '📍',
+    category: 'personal',
+    operators: ['==', '!=']
   }
 }
 
