@@ -14,7 +14,9 @@ import {
   Share2,
   Heart,
   ArrowRight,
-  CheckCircle2
+  CheckCircle2,
+  Home,
+  Brain
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
@@ -41,10 +43,16 @@ export function SuccessStep() {
     router.push('/auras/create-unified')
   }
 
-  const handleGoToDashboard = () => {
-    // Complete the wizard and navigate to the main auras dashboard
+  const handleGoToAuras = () => {
+    // Complete the wizard and navigate to the auras page
     creationContext.completeWizard()
     router.push('/auras')
+  }
+
+  const handleGoToDashboard = () => {
+    // Complete the wizard and navigate to the main dashboard
+    creationContext.completeWizard()
+    router.push('/dashboard')
   }
 
   return (
@@ -148,13 +156,13 @@ export function SuccessStep() {
               </Button>
 
               <Button
-                onClick={handleGoToDashboard}
+                onClick={handleGoToAuras}
                 variant="ghost"
                 size="lg"
                 className="w-full h-16 text-lg hover:bg-gray-100"
               >
-                <ArrowRight className="w-6 h-6 mr-3" />
-                Go to Aura Dashboard
+                <Brain className="w-6 h-6 mr-3" />
+                View All Auras
               </Button>
             </div>
           </div>
@@ -229,20 +237,32 @@ export function SuccessStep() {
         </CardContent>
       </Card>
 
-      {/* Final CTA */}
-      <div className="text-center">
+      {/* Final CTA with Navigation Options */}
+      <div className="text-center space-y-4">
         <p className="text-gray-600 mb-6">
           Ready to begin this incredible journey together?
         </p>
-        <Button
-          onClick={handleStartChatting}
-          size="lg"
-          className="px-8 py-4 text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
-        >
-          <MessageCircle className="w-6 h-6 mr-3" />
-          Start Your First Conversation
-          <ArrowRight className="w-5 h-5 ml-3" />
-        </Button>
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <Button
+            onClick={handleStartChatting}
+            size="lg"
+            className="px-8 py-4 text-lg bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700 text-white shadow-lg hover:shadow-xl transition-all duration-200"
+          >
+            <MessageCircle className="w-6 h-6 mr-3" />
+            Meet Your Aura
+            <ArrowRight className="w-5 h-5 ml-3" />
+          </Button>
+          
+          <Button
+            onClick={handleGoToDashboard}
+            variant="outline"
+            size="lg"
+            className="px-8 py-4 text-lg border-2 border-gray-300 hover:border-gray-400"
+          >
+            <Home className="w-6 h-6 mr-3" />
+            Go to Dashboard
+          </Button>
+        </div>
       </div>
     </div>
   )
