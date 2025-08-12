@@ -1,9 +1,8 @@
 // apps/web/lib/services/aura-service.server.ts
 import { createServerSupabase } from '@/lib/supabase/server.server'
 import type { Aura } from '@/types'
-
-// Global lock to prevent concurrent aura creation
-const creationLocks = new Set<string>()
+import { CacheInvalidation } from '@/lib/redis'
+import { CachedSubscriptionService } from './subscription-service-cached'
 
 export interface CreateAuraServerInput {
   name: string
@@ -208,18 +207,9 @@ export class AuraServiceServer {
     } = await supabase.auth.getUser()
     if (userErr || !user) throw new Error('Not authenticated')
 
-    // Create a unique lock key for this user + aura name
-    const lockKey = `${user.id}:${input.name}`
+    // Note: Distributed locking is now handled at the API route level
+    // using Redis DistributedLock instead of in-memory locks
     
-    if (creationLocks.has(lockKey)) {
-      console.warn(`[${timestamp}] Aura creation already in progress for: "${input.name}" (user: ${user.id})`)
-      throw new Error(`Aura creation already in progress for "${input.name}"`)
-    }
-    
-    creationLocks.add(lockKey)
-    console.log(`[${timestamp}] Added creation lock for: ${lockKey}`)
-    
-    try {
     console.log(`[${timestamp}] Starting aura creation process for "${input.name}"`)
     console.log(`[${timestamp}] Input data:`, {
       name: input.name,
@@ -361,6 +351,10 @@ export class AuraServiceServer {
       }
     }
 
+    // Invalidate user's aura count cache after successful creation
+    await CachedSubscriptionService.onAuraChange(user.id)
+    console.log(`[${timestamp}] Invalidated aura count cache for user: ${user.id}`)
+
     return {
       id: aura.id,
       name: aura.name,
@@ -376,12 +370,6 @@ export class AuraServiceServer {
       updatedAt: new Date(aura.updated_at),
       selectedStudyId: aura.selected_study_id ?? null,
       selectedIndividualId: aura.selected_individual_id ?? null,
-    }
-    
-    } finally {
-      // Always clean up the lock
-      creationLocks.delete(lockKey)
-      console.log(`[${timestamp}] Removed creation lock for: ${lockKey}`)
     }
   }
 
@@ -480,6 +468,11 @@ export class AuraServiceServer {
       .eq('id', id)
       .eq('user_id', user.id)
     if (error) throw error
+    
+    // Invalidate caches after deletion
+    await CacheInvalidation.invalidateAura(id)
+    await CachedSubscriptionService.onAuraChange(user.id)
+    console.log(`Invalidated caches after deleting aura: ${id}`)
   }
 
   private static getAvatarForVessel(vesselType: string, vesselCode?: string | null): string {

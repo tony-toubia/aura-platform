@@ -10,14 +10,12 @@ import {
   createApiSuccess
 } from '@/types/api'
 import { AuraServiceServer } from '@/lib/services/aura-service.server'
-
-// Global request tracking to detect duplicate requests
-const activeRequests = new Map<string, { timestamp: number, requestId: string }>()
+import { DistributedLock, CacheKeys } from '@/lib/redis'
 
 export async function POST(req: NextRequest) {
   const timestamp = new Date().toISOString()
   const requestId = uuidv4()
-  let requestKey = ''
+  let lock: DistributedLock | null = null
   
   console.log(`[${timestamp}] /api/auras/create-agent-aura POST called - Request ID: ${requestId}`)
   
@@ -26,31 +24,6 @@ export async function POST(req: NextRequest) {
     const body = await req.json()
     
     console.log(`[${timestamp}] create-agent-aura payload (${requestId}):`, body)
-    
-    // Create a unique key for this request based on user + aura name + timestamp window
-    requestKey = `${body.userId}:${body.name}:${Math.floor(Date.now() / 2000)}` // 2-second window
-    
-    if (activeRequests.has(requestKey)) {
-      const existing = activeRequests.get(requestKey)!
-      console.warn(`[${timestamp}] DUPLICATE REQUEST DETECTED! Current: ${requestId}, Existing: ${existing.requestId}`)
-      console.warn(`[${timestamp}] Time difference: ${Date.now() - existing.timestamp}ms`)
-      console.warn(`[${timestamp}] Frontend duplicate prevention should handle this, but allowing request to proceed`)
-      
-      // Remove the duplicate from tracking since we're allowing it
-      activeRequests.delete(requestKey)
-    }
-    
-    // Track this request
-    activeRequests.set(requestKey, { timestamp: Date.now(), requestId })
-    console.log(`[${timestamp}] Tracking request ${requestId} with key: ${requestKey}`)
-    
-    // Clean up old requests (older than 10 seconds)
-    const cutoff = Date.now() - 10000
-    for (const [key, value] of activeRequests.entries()) {
-      if (value.timestamp < cutoff) {
-        activeRequests.delete(key)
-      }
-    }
 
     const validation = validateApiRequest(CreateAuraSchema, body)
     if (!validation.success) {
@@ -75,6 +48,21 @@ export async function POST(req: NextRequest) {
       oauthConnections = {},
       newsConfigurations = {},
     } = validation.data
+
+    // Use distributed lock to prevent duplicate aura creation
+    const lockKey = CacheKeys.createAuraLock(userId, name)
+    lock = new DistributedLock(lockKey, 10) // 10 second timeout
+    
+    const acquired = await lock.acquire(3, 100) // 3 retries, 100ms delay
+    if (!acquired) {
+      console.warn(`[${timestamp}] Could not acquire lock for aura creation: ${name} (user: ${userId})`)
+      return NextResponse.json(
+        createApiError('Aura creation in progress', 'Please wait a moment and try again'),
+        { status: 409 }
+      )
+    }
+    
+    console.log(`[${timestamp}] Acquired lock for aura creation: ${name} (Request ID: ${requestId})`)
 
     // Ensure digital vessels have proper vessel code
     const finalVesselCode = vesselCode || (vesselType === 'digital' ? 'digital-only' : '')
@@ -195,10 +183,10 @@ export async function POST(req: NextRequest) {
       { status: 500 }
     )
   } finally {
-    // Clean up the request tracking
-    if (requestKey) {
-      activeRequests.delete(requestKey)
-      console.log(`[${timestamp}] Cleaned up request tracking for ${requestId}`)
+    // Always release the lock if we acquired it
+    if (lock) {
+      await lock.release()
+      console.log(`[${timestamp}] Released lock for request ${requestId}`)
     }
   }
 }
