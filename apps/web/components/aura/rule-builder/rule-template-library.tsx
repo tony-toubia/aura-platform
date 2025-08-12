@@ -29,7 +29,10 @@ import {
   Bell,
   MessageCircle,
   Plus,
-  ChevronRight
+  ChevronRight,
+  Cloud,
+  Navigation,
+  Newspaper
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { getSensorConfig } from '@/types'
@@ -45,7 +48,7 @@ interface RuleTemplate {
   sensor: string
   operator: string
   value: any
-  responseType: 'prompt' | 'template'
+  responseType: 'prompt' | 'template' | 'smart_response'
   promptGuidelines?: string
   responseTones?: string[]
   message?: string
@@ -824,6 +827,287 @@ const RULE_TEMPLATES: RuleTemplate[] = [
     tags: ['wake time', 'sleep', 'morning'],
     estimatedSetupTime: '2 minutes',
     popularity: 52
+  },
+
+  // ===== SMART RESPONSE TEMPLATES =====
+  // These templates use AI-powered contextual responses
+
+  // Weather Smart Responses
+  {
+    id: 'weather-temp-smart',
+    name: 'Smart Temperature Response',
+    description: 'AI-powered temperature alerts with contextual advice',
+    category: 'environment',
+    difficulty: 'beginner',
+    icon: Thermometer,
+    gradient: 'from-blue-400 to-red-400',
+    sensor: 'weather.temperature',
+    operator: '<',
+    value: 5,
+    responseType: 'smart_response',
+    promptGuidelines: 'Analyze the temperature and provide contextual advice about clothing, activities, and comfort. Consider time of day, season, and personal preferences.',
+    responseTones: ['helpful', 'practical', 'caring'],
+    priority: 6,
+    cooldown: 3600,
+    tags: ['weather', 'temperature', 'smart', 'AI'],
+    estimatedSetupTime: '2 minutes',
+    popularity: 85
+  },
+  {
+    id: 'weather-conditions-smart',
+    name: 'Smart Weather Conditions',
+    description: 'Intelligent weather condition responses with activity suggestions',
+    category: 'environment',
+    difficulty: 'beginner',
+    icon: Cloud,
+    gradient: 'from-gray-400 to-blue-500',
+    sensor: 'weather.conditions',
+    operator: '==',
+    value: 'rainy',
+    responseType: 'smart_response',
+    promptGuidelines: 'Provide intelligent responses to weather conditions. Suggest indoor/outdoor activities, clothing choices, and mood-boosting tips based on the weather.',
+    responseTones: ['adaptive', 'encouraging', 'practical'],
+    priority: 6,
+    cooldown: 3600,
+    tags: ['weather', 'conditions', 'smart', 'activities'],
+    estimatedSetupTime: '2 minutes',
+    popularity: 78
+  },
+
+  // Fitness Smart Responses
+  {
+    id: 'fitness-steps-smart',
+    name: 'Smart Step Goal Tracker',
+    description: 'AI-powered step tracking with personalized motivation',
+    category: 'wellness',
+    difficulty: 'beginner',
+    icon: Activity,
+    gradient: 'from-green-400 to-blue-500',
+    sensor: 'fitness.steps',
+    operator: '>=',
+    value: 8000,
+    responseType: 'smart_response',
+    promptGuidelines: 'Celebrate step achievements with personalized motivation. Consider progress patterns, time of day, and suggest next goals or activities.',
+    responseTones: ['celebratory', 'motivating', 'personalized'],
+    priority: 7,
+    cooldown: 3600,
+    tags: ['fitness', 'steps', 'goals', 'smart'],
+    estimatedSetupTime: '2 minutes',
+    popularity: 92
+  },
+  {
+    id: 'heart-rate-smart',
+    name: 'Smart Heart Rate Monitor',
+    description: 'Intelligent heart rate analysis with health insights',
+    category: 'wellness',
+    difficulty: 'intermediate',
+    icon: Heart,
+    gradient: 'from-red-400 to-pink-500',
+    sensor: 'fitness.heartRate',
+    operator: '>',
+    value: 120,
+    responseType: 'smart_response',
+    promptGuidelines: 'Analyze heart rate data and provide contextual health insights. Consider activity level, time of day, and suggest appropriate actions or rest.',
+    responseTones: ['health-focused', 'informative', 'caring'],
+    priority: 8,
+    cooldown: 1800,
+    tags: ['heart rate', 'health', 'smart', 'monitoring'],
+    estimatedSetupTime: '3 minutes',
+    popularity: 74
+  },
+
+  // Sleep Smart Responses
+  {
+    id: 'sleep-quality-smart',
+    name: 'Smart Sleep Quality Analysis',
+    description: 'AI-powered sleep quality insights with improvement tips',
+    category: 'wellness',
+    difficulty: 'intermediate',
+    icon: Moon,
+    gradient: 'from-purple-400 to-blue-600',
+    sensor: 'sleep.quality',
+    operator: '==',
+    value: 'poor',
+    responseType: 'smart_response',
+    promptGuidelines: 'Analyze sleep quality patterns and provide personalized improvement suggestions. Consider recent activities, stress levels, and environmental factors.',
+    responseTones: ['supportive', 'analytical', 'helpful'],
+    priority: 8,
+    cooldown: 3600,
+    tags: ['sleep', 'quality', 'smart', 'wellness'],
+    estimatedSetupTime: '3 minutes',
+    popularity: 86
+  },
+  {
+    id: 'sleep-duration-smart',
+    name: 'Smart Sleep Duration Tracker',
+    description: 'Intelligent sleep duration analysis with personalized advice',
+    category: 'wellness',
+    difficulty: 'beginner',
+    icon: Clock,
+    gradient: 'from-indigo-400 to-purple-500',
+    sensor: 'sleep.duration',
+    operator: '<',
+    value: 7,
+    responseType: 'smart_response',
+    promptGuidelines: 'Analyze sleep duration patterns and provide personalized advice for better sleep habits. Consider lifestyle, schedule, and sleep debt.',
+    responseTones: ['caring', 'educational', 'encouraging'],
+    priority: 7,
+    cooldown: 3600,
+    tags: ['sleep', 'duration', 'smart', 'health'],
+    estimatedSetupTime: '2 minutes',
+    popularity: 81
+  },
+
+  // Location Smart Responses
+  {
+    id: 'location-place-smart',
+    name: 'Smart Location Context',
+    description: 'AI-powered location-based suggestions and insights',
+    category: 'social',
+    difficulty: 'intermediate',
+    icon: MapPin,
+    gradient: 'from-green-400 to-teal-500',
+    sensor: 'location.place',
+    operator: '==',
+    value: 'gym',
+    responseType: 'smart_response',
+    promptGuidelines: 'Provide contextual responses based on location. Suggest activities, reminders, or motivational messages relevant to the specific place.',
+    responseTones: ['contextual', 'motivating', 'helpful'],
+    priority: 6,
+    cooldown: 3600,
+    tags: ['location', 'context', 'smart', 'activities'],
+    estimatedSetupTime: '3 minutes',
+    popularity: 69
+  },
+  {
+    id: 'location-movement-smart',
+    name: 'Smart Movement Tracker',
+    description: 'Intelligent movement pattern analysis with activity suggestions',
+    category: 'wellness',
+    difficulty: 'intermediate',
+    icon: Navigation,
+    gradient: 'from-blue-400 to-green-500',
+    sensor: 'location.movement',
+    operator: '==',
+    value: 'walking',
+    responseType: 'smart_response',
+    promptGuidelines: 'Analyze movement patterns and provide intelligent responses. Encourage healthy movement, suggest routes, or provide motivational support.',
+    responseTones: ['encouraging', 'health-focused', 'adaptive'],
+    priority: 5,
+    cooldown: 1800,
+    tags: ['movement', 'walking', 'smart', 'health'],
+    estimatedSetupTime: '2 minutes',
+    popularity: 72
+  },
+
+  // Calendar Smart Responses
+  {
+    id: 'calendar-meeting-smart',
+    name: 'Smart Meeting Preparation',
+    description: 'AI-powered meeting preparation with contextual reminders',
+    category: 'productivity',
+    difficulty: 'intermediate',
+    icon: Calendar,
+    gradient: 'from-orange-400 to-red-500',
+    sensor: 'calendar.next_meeting',
+    operator: '<=',
+    value: 15,
+    responseType: 'smart_response',
+    promptGuidelines: 'Provide intelligent meeting preparation assistance. Consider meeting type, duration, participants, and suggest preparation actions.',
+    responseTones: ['professional', 'organized', 'helpful'],
+    priority: 9,
+    cooldown: 900,
+    tags: ['calendar', 'meetings', 'smart', 'productivity'],
+    estimatedSetupTime: '3 minutes',
+    popularity: 88
+  },
+
+  // Time-based Smart Responses
+  {
+    id: 'time-hour-smart',
+    name: 'Smart Time-based Insights',
+    description: 'AI-powered time-aware responses with productivity tips',
+    category: 'productivity',
+    difficulty: 'beginner',
+    icon: Clock,
+    gradient: 'from-yellow-400 to-orange-500',
+    sensor: 'time.hour',
+    operator: '==',
+    value: 14,
+    responseType: 'smart_response',
+    promptGuidelines: 'Provide time-aware insights and suggestions. Consider energy levels, productivity patterns, and suggest optimal activities for the time of day.',
+    responseTones: ['time-aware', 'productive', 'energizing'],
+    priority: 4,
+    cooldown: 3600,
+    tags: ['time', 'productivity', 'smart', 'energy'],
+    estimatedSetupTime: '2 minutes',
+    popularity: 65
+  },
+
+  // Air Quality Smart Responses
+  {
+    id: 'air-quality-smart',
+    name: 'Smart Air Quality Monitor',
+    description: 'Intelligent air quality analysis with health recommendations',
+    category: 'environment',
+    difficulty: 'intermediate',
+    icon: Wind,
+    gradient: 'from-green-400 to-yellow-500',
+    sensor: 'air_quality.aqi',
+    operator: '>',
+    value: 100,
+    responseType: 'smart_response',
+    promptGuidelines: 'Analyze air quality data and provide personalized health recommendations. Consider individual sensitivities, outdoor plans, and suggest protective measures.',
+    responseTones: ['health-conscious', 'protective', 'informative'],
+    priority: 8,
+    cooldown: 3600,
+    tags: ['air quality', 'health', 'smart', 'environment'],
+    estimatedSetupTime: '3 minutes',
+    popularity: 71
+  },
+
+  // News Smart Responses
+  {
+    id: 'news-smart',
+    name: 'Smart News Digest',
+    description: 'AI-powered news analysis with personalized insights',
+    category: 'social',
+    difficulty: 'advanced',
+    icon: Newspaper,
+    gradient: 'from-blue-400 to-purple-500',
+    sensor: 'news',
+    operator: 'contains',
+    value: 'technology',
+    responseType: 'smart_response',
+    promptGuidelines: 'Analyze news content and provide personalized insights. Summarize key points, relate to personal interests, and suggest relevant actions or discussions.',
+    responseTones: ['informative', 'analytical', 'engaging'],
+    priority: 5,
+    cooldown: 7200,
+    tags: ['news', 'analysis', 'smart', 'insights'],
+    estimatedSetupTime: '4 minutes',
+    popularity: 58
+  },
+
+  // Soil Moisture Smart Response (for Terra vessels)
+  {
+    id: 'soil-moisture-smart',
+    name: 'Smart Plant Care Assistant',
+    description: 'AI-powered plant care with personalized gardening advice',
+    category: 'environment',
+    difficulty: 'beginner',
+    icon: Droplets,
+    gradient: 'from-green-400 to-blue-500',
+    sensor: 'soil_moisture.value',
+    operator: '<',
+    value: 30,
+    responseType: 'smart_response',
+    promptGuidelines: 'Provide intelligent plant care advice based on soil moisture levels. Consider plant type, season, weather, and suggest optimal care routines.',
+    responseTones: ['nurturing', 'educational', 'plant-focused'],
+    priority: 7,
+    cooldown: 3600,
+    tags: ['plants', 'soil', 'smart', 'gardening'],
+    estimatedSetupTime: '2 minutes',
+    popularity: 76
   }
 ]
 
