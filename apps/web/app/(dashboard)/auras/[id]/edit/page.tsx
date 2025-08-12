@@ -1,4 +1,4 @@
-e// apps/web/app/(dashboard)/auras/[id]/edit/page.tsx
+// apps/web/app/(dashboard)/auras/[id]/edit/page.tsx
 import React from "react"
 import { redirect } from "next/navigation"
 import { createServerSupabase } from "@/lib/supabase/server.server"
