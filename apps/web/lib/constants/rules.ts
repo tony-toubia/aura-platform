@@ -251,21 +251,19 @@ export const QUICK_TEMPLATES: Record<string, any[]> = {
   ],
   news: [
     {
-      name: "News Update",
+      id: "news-updates",
+      name: "News Updates",
       sensor: "news",
       operator: "contains",
       value: "technology",
-      message: "📰 There's some interesting tech news today! Want to catch up?",
-      priority: "3"
-    },
-    {
-      name: "Smart News Digest",
-      sensor: "news",
-      operator: "contains",
-      value: "technology",
-      responseType: "smart_response",
-      promptGuidelines: "Analyze news content and provide personalized insights. Summarize key points, relate to personal interests, and suggest relevant actions or discussions.",
-      priority: "5"
+      priority: "4",
+      template: {
+        message: "📰 There's some interesting tech news today! Want to catch up?"
+      },
+      smart_response: {
+        promptGuidelines: "Analyze news content and provide personalized insights. Summarize key points, relate to personal interests, and suggest relevant actions or discussions.",
+        responseTones: ["informative", "engaging", "personalized"]
+      }
     }
   ],
   soil_moisture: [

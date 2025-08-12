@@ -106,7 +106,7 @@ export function RuleBuilder({
   const [actionMessage, setActionMessage] = useState("")
   const [showAllPromptVariables, setShowAllPromptVariables] = useState(false)
   const [showAllTemplateVariables, setShowAllTemplateVariables] = useState(false)
-  const [templatePreviewMode, setTemplatePreviewMode] = useState<Record<string, 'template' | 'smart_response'>>({})
+  const [globalTemplateMode, setGlobalTemplateMode] = useState<'template' | 'smart_response'>('smart_response')
 
   // AI Preview state
   const { 
@@ -389,18 +389,16 @@ export function RuleBuilder({
   }
 
   const applyTemplate = (template: any) => {
-    const previewMode = templatePreviewMode[template.id] || 'smart_response'
-    
     setRuleName(template.name)
     setSelectedSensor(template.sensor)
     setOperator(template.operator)
     setSensorValue(template.value)
     
-    // Set response type based on preview mode
-    setResponseType(previewMode === 'smart_response' ? 'prompt' : 'template')
+    // Set response type based on global mode
+    setResponseType(globalTemplateMode === 'smart_response' ? 'prompt' : 'template')
     
-    // Set appropriate fields based on response type
-    if (previewMode === 'smart_response' && template.smart_response) {
+    // Set appropriate fields based on global mode
+    if (globalTemplateMode === 'smart_response' && template.smart_response) {
       setResponseGuidelines(template.smart_response.promptGuidelines || '')
       setResponseTones(template.smart_response.responseTones || [])
       setActionMessage('') // Clear message for prompt-based responses
@@ -438,14 +436,48 @@ export function RuleBuilder({
               )}
             </CardTitle>
             <CardDescription>
-              Click any template to instantly configure a rule, then customize it
+              Choose your response style, then click any template to configure a rule
             </CardDescription>
           </CardHeader>
           {showTemplates && (
             <CardContent className="p-4 sm:p-6">
+              {/* Global Response Type Toggle */}
+              <div className="mb-6">
+                <div className="flex justify-center mb-3">
+                  <div className="flex gap-1 p-1 bg-gray-100 rounded-lg">
+                    <Button
+                      size="sm"
+                      variant={globalTemplateMode === 'template' ? 'default' : 'ghost'}
+                      className="px-4 py-2"
+                      onClick={() => setGlobalTemplateMode('template')}
+                    >
+                      <MessageCircle className="w-4 h-4 mr-2" />
+                      Template Messages
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant={globalTemplateMode === 'smart_response' ? 'default' : 'ghost'}
+                      className="px-4 py-2"
+                      onClick={() => setGlobalTemplateMode('smart_response')}
+                    >
+                      <Sparkles className="w-4 h-4 mr-2" />
+                      Smart Responses
+                    </Button>
+                  </div>
+                </div>
+                <p className="text-center text-sm text-muted-foreground">
+                  {globalTemplateMode === 'smart_response' 
+                    ? "AI-powered responses that adapt to your context and provide personalized insights"
+                    : "Pre-written messages with variable placeholders for consistent responses"
+                  }
+                </p>
+              </div>
+              
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 {relevantTemplates.map((template, idx) => {
-                  const currentMode = templatePreviewMode[template.id] || 'smart_response'
+                  // Only show templates that have the current global mode available
+                  const hasCurrentMode = globalTemplateMode === 'smart_response' ? template.smart_response : template.template
+                  if (!hasCurrentMode) return null
                   
                   return (
                     <div key={idx} className="border-2 border-gray-200 rounded-lg p-4 hover:border-purple-400 transition-all">
@@ -464,33 +496,9 @@ export function RuleBuilder({
                         </div>
                       </div>
 
-                      {/* Response type toggle */}
-                      {template.template && template.smart_response && (
-                        <div className="flex gap-1 mb-3 p-1 bg-gray-100 rounded-md">
-                          <Button
-                            size="sm"
-                            variant={currentMode === 'template' ? 'default' : 'ghost'}
-                            className="flex-1 h-8 text-xs"
-                            onClick={() => setTemplatePreviewMode(prev => ({ ...prev, [template.id]: 'template' }))}
-                          >
-                            <MessageCircle className="w-3 h-3 mr-1" />
-                            Template
-                          </Button>
-                          <Button
-                            size="sm"
-                            variant={currentMode === 'smart_response' ? 'default' : 'ghost'}
-                            className="flex-1 h-8 text-xs"
-                            onClick={() => setTemplatePreviewMode(prev => ({ ...prev, [template.id]: 'smart_response' }))}
-                          >
-                            <Sparkles className="w-3 h-3 mr-1" />
-                            Smart
-                          </Button>
-                        </div>
-                      )}
-
                       {/* Preview content */}
                       <div className="mb-3 p-3 bg-gray-50 rounded-md min-h-[60px]">
-                        {currentMode === 'smart_response' && template.smart_response ? (
+                        {globalTemplateMode === 'smart_response' && template.smart_response ? (
                           <div>
                             <div className="flex items-center gap-1 mb-2">
                               <Sparkles className="w-3 h-3 text-purple-600" />
