@@ -214,39 +214,34 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
       }
     }
     
-    // If moving from connections to rules, update the assistant with selected senses
+    // If moving from connections to rules, ensure senses are properly set
     if (step === "connections" && newStep === "rules") {
-      // First update the state to ensure availableSenses is synchronized
-      await new Promise<void>((resolve) => {
-        setAssistantData(prev => {
-          const updatedData = {
-            ...prev,
-            availableSenses: prev.senses
-          }
-          console.log("Setting availableSenses to:", prev.senses)
-          return updatedData
-        })
-        // Give React time to process the state update
-        setTimeout(resolve, 100)
-      })
-      
-      if (assistantData.id) {
-        try {
+      // Use a callback to get the latest state
+      setAssistantData(prev => {
+        console.log("Moving from connections to rules, current senses from state:", prev.senses)
+        
+        // Update the assistant in the database if we have an ID
+        if (prev.id) {
           const updatePayload = {
-            ...assistantData,
+            ...prev,
             vesselType: 'digital' as VesselTypeId,
             vesselCode: 'assistant',
-            senses: assistantData.senses,
-            availableSenses: assistantData.senses,
+            senses: prev.senses,
+            availableSenses: prev.senses,
           }
-          await auraApi.updateAura(assistantData.id, updatePayload)
-          console.log("Assistant updated with senses:", assistantData.senses)
-          console.log("Assistant availableSenses set to:", assistantData.senses)
-        } catch (error) {
-          console.error("Error updating assistant with senses:", error)
-          // Don't block navigation, but log the error
+          
+          // Update async but don't block navigation
+          auraApi.updateAura(prev.id, updatePayload)
+            .then(() => {
+              console.log("Assistant updated with senses:", prev.senses)
+            })
+            .catch((error) => {
+              console.error("Error updating assistant with senses:", error)
+            })
         }
-      }
+        
+        return prev // Return unchanged state
+      })
     }
     
     setStep(newStep)
@@ -456,16 +451,21 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
               setNewsConfigurations={setNewsConfigurations}
               weatherAirQualityConfigurations={weatherAirQualityConfigurations}
               setWeatherAirQualityConfigurations={setWeatherAirQualityConfigurations}
-              onNext={() => handleStepChange("rules")}
+              onNext={() => {
+                // Log the current senses before navigating
+                console.log("ConnectionsStep onNext - current senses:", assistantData.senses)
+                handleStepChange("rules")
+              }}
               onBack={() => handleStepChange("personality")}
               auraId={assistantData.id}
+              assistantData={assistantData}
             />
           )}
 
           {step === "rules" && (
             <RulesStep
               rules={assistantData.rules}
-              senses={assistantData.availableSenses.length > 0 ? assistantData.availableSenses : assistantData.senses}
+              senses={assistantData.senses}
               onRulesChange={handleRulesChange}
               editingRule={editingRule}
               setEditingRule={setEditingRule}
@@ -748,7 +748,8 @@ function ConnectionsStep({
   setWeatherAirQualityConfigurations,
   onNext,
   onBack,
-  auraId
+  auraId,
+  assistantData
 }: {
   senses: SenseId[]
   onToggleSense: (senseId: SenseId) => void
@@ -763,7 +764,10 @@ function ConnectionsStep({
   onNext: () => void
   onBack: () => void
   auraId?: string
+  assistantData?: any
 }) {
+  // Log current senses when component renders
+  console.log("ConnectionsStep - current senses:", senses)
   return (
     <div className="space-y-8">
       <div className="text-center space-y-4">
@@ -847,7 +851,13 @@ function ConnectionsStep({
           <ArrowLeft className="w-4 h-4 mr-2" />
           Back
         </Button>
-        <Button onClick={onNext} className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white order-1 sm:order-2">
+        <Button
+          onClick={() => {
+            console.log("Continue button clicked, current senses:", senses)
+            onNext()
+          }}
+          className="bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white order-1 sm:order-2"
+        >
           Continue
           <ArrowRight className="w-4 h-4 ml-2" />
         </Button>
@@ -880,10 +890,9 @@ function RulesStep({
   console.log('🔍 RulesStep - senses prop received:', senses);
   console.log('🔍 RulesStep - auraId:', auraId);
   
-  // Ensure we always have some senses available, but prefer the configured ones
-  // Also handle the case where senses might be an array with the correct values
-  const effectiveSenses = (senses && senses.length > 0) ? senses : ['time', 'conversation'];
-  console.log('🔍 RulesStep - effectiveSenses being passed to RuleBuilder:', effectiveSenses);
+  // Use the senses directly as they're passed from the parent component
+  // The parent should ensure these are the correct senses
+  console.log('🔍 RulesStep - senses being passed to RuleBuilder:', senses);
   
   return (
     <div className="space-y-8">
@@ -916,7 +925,7 @@ function RulesStep({
             auraId={auraId || "assistant-temp"}
             vesselType="digital"
             vesselCode="assistant"
-            availableSenses={effectiveSenses}
+            availableSenses={senses}
             existingRules={rules}
             editingRule={editingRule}
             onEditRule={setEditingRule}
