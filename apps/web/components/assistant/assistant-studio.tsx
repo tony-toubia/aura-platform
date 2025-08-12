@@ -215,27 +215,37 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
     }
     
     // If moving from connections to rules, update the assistant with selected senses
-    if (step === "connections" && newStep === "rules" && assistantData.id) {
-      try {
-        // Update the assistantData state to ensure availableSenses is set
-        setAssistantData(prev => ({
-          ...prev,
-          availableSenses: prev.senses
-        }))
-        
-        const updatePayload = {
-          ...assistantData,
-          vesselType: 'digital' as VesselTypeId,
-          vesselCode: 'assistant',
-          senses: assistantData.senses,
-          availableSenses: assistantData.senses,
+    if (step === "connections" && newStep === "rules") {
+      // First update the state to ensure availableSenses is synchronized
+      await new Promise<void>((resolve) => {
+        setAssistantData(prev => {
+          const updatedData = {
+            ...prev,
+            availableSenses: prev.senses
+          }
+          console.log("Setting availableSenses to:", prev.senses)
+          return updatedData
+        })
+        // Give React time to process the state update
+        setTimeout(resolve, 100)
+      })
+      
+      if (assistantData.id) {
+        try {
+          const updatePayload = {
+            ...assistantData,
+            vesselType: 'digital' as VesselTypeId,
+            vesselCode: 'assistant',
+            senses: assistantData.senses,
+            availableSenses: assistantData.senses,
+          }
+          await auraApi.updateAura(assistantData.id, updatePayload)
+          console.log("Assistant updated with senses:", assistantData.senses)
+          console.log("Assistant availableSenses set to:", assistantData.senses)
+        } catch (error) {
+          console.error("Error updating assistant with senses:", error)
+          // Don't block navigation, but log the error
         }
-        await auraApi.updateAura(assistantData.id, updatePayload)
-        console.log("Assistant updated with senses:", assistantData.senses)
-        console.log("Assistant availableSenses set to:", assistantData.senses)
-      } catch (error) {
-        console.error("Error updating assistant with senses:", error)
-        // Don't block navigation, but log the error
       }
     }
     
@@ -455,7 +465,7 @@ export function AssistantStudio({ canCreate }: AssistantStudioProps) {
           {step === "rules" && (
             <RulesStep
               rules={assistantData.rules}
-              senses={assistantData.senses}
+              senses={assistantData.availableSenses.length > 0 ? assistantData.availableSenses : assistantData.senses}
               onRulesChange={handleRulesChange}
               editingRule={editingRule}
               setEditingRule={setEditingRule}
@@ -867,12 +877,13 @@ function RulesStep({
   auraId?: string
 }) {
   // Debug logging to see what senses are being passed
-  console.log('🔍 RulesStep - senses passed to RuleBuilder:', senses);
+  console.log('🔍 RulesStep - senses prop received:', senses);
   console.log('🔍 RulesStep - auraId:', auraId);
   
   // Ensure we always have some senses available, but prefer the configured ones
-  const effectiveSenses = senses.length > 0 ? senses : ['time', 'conversation'];
-  console.log('🔍 RulesStep - effectiveSenses for RuleBuilder:', effectiveSenses);
+  // Also handle the case where senses might be an array with the correct values
+  const effectiveSenses = (senses && senses.length > 0) ? senses : ['time', 'conversation'];
+  console.log('🔍 RulesStep - effectiveSenses being passed to RuleBuilder:', effectiveSenses);
   
   return (
     <div className="space-y-8">
