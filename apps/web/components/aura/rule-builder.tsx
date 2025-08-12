@@ -41,7 +41,6 @@ import { cn } from "@/lib/utils"
 import { RuleCard } from "@/components/rules/rule-card"
 import { SensorValueInput } from "@/components/rules/sensor-value-input"
 import { CooldownConfig } from "@/components/rules/cooldown-config"
-import { SubscriptionGuard } from "@/components/subscription/subscription-guard"
 import { useCooldownConfig } from "@/hooks/use-cooldown-config"
 import { useRulePreview } from "@/hooks/use-rule-preview"
 import { 
@@ -102,7 +101,7 @@ export function RuleBuilder({
   // Enhanced response state
   const [responseType, setResponseType] = useState<'prompt' | 'template'>('prompt')
   const [responseGuidelines, setResponseGuidelines] = useState("")
-  const [responseTones, setResponseTones] = useState<string[]>(['encouraging'])
+  const [responseTones, setResponseTones] = useState<string[]>([])
   const [actionMessage, setActionMessage] = useState("")
   const [showAllPromptVariables, setShowAllPromptVariables] = useState(false)
   const [showAllTemplateVariables, setShowAllTemplateVariables] = useState(false)
@@ -276,7 +275,7 @@ export function RuleBuilder({
       if (action.responseType === 'prompt') {
         setResponseType('prompt')
         setResponseGuidelines(action.promptGuidelines || "")
-        setResponseTones(action.responseTones || ['encouraging'])
+        setResponseTones(action.responseTones || [])
       } else {
         setResponseType(action.responseType || 'template')
         setActionMessage(action.message || "")
@@ -300,7 +299,7 @@ export function RuleBuilder({
     setActionMessage("")
     setResponseType('prompt')
     setResponseGuidelines("")
-    setResponseTones(['encouraging'])
+    setResponseTones([])
     setShowAllPromptVariables(false)
     setShowAllTemplateVariables(false)
     setPriority(String(DEFAULT_PRIORITY))
@@ -1036,40 +1035,28 @@ export function RuleBuilder({
                 )}
               </Button>
             ) : (
-              <SubscriptionGuard
-                feature="maxRulesPerAura"
-                fallback={
-                  <Button
-                    disabled
-                    className="flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r from-purple-600 to-blue-600 opacity-50 cursor-not-allowed"
-                  >
-                    <Plus className="w-5 h-5 mr-2" /> Save Rule
-                  </Button>
+              <Button
+                onClick={handleAddOrSave}
+                className="flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
+                disabled={
+                  isSaving ||
+                  !ruleName ||
+                  !selectedSensor ||
+                  sensorValue === null ||
+                  (responseType === 'prompt' && !responseGuidelines) ||
+                  (responseType === 'template' && !actionMessage)
                 }
               >
-                <Button
-                  onClick={handleAddOrSave}
-                  className="flex-1 py-6 text-lg font-semibold shadow-lg transition-all bg-gradient-to-r from-purple-600 to-blue-600 hover:from-purple-700 hover:to-blue-700"
-                  disabled={
-                    isSaving ||
-                    !ruleName ||
-                    !selectedSensor ||
-                    sensorValue === null ||
-                    (responseType === 'prompt' && !responseGuidelines) ||
-                    (responseType === 'template' && !actionMessage)
-                  }
-                >
-                  {isSaving ? (
-                    <>
-                      <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Saving...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-5 h-5 mr-2" /> Save Rule
-                    </>
-                  )}
-                </Button>
-              </SubscriptionGuard>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="w-5 h-5 mr-2 animate-spin" /> Saving...
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5 mr-2" /> Save Rule
+                  </>
+                )}
+              </Button>
             )}
             {isEditing && (
               <Button variant="outline" onClick={clearForm} className="px-6 py-6">
