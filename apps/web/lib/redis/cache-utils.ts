@@ -1,5 +1,5 @@
 // apps/web/lib/redis/cache-utils.ts
-import { getRedisClient } from './client'
+import { getRedisClient, getRedisClientSync } from './client'
 import crypto from 'crypto'
 
 /**
@@ -72,7 +72,7 @@ function hashString(str: string): string {
  */
 export async function cacheGet<T>(key: string): Promise<T | null> {
   try {
-    const redis = getRedisClient()
+    const redis = await getRedisClient()
     const value = await redis.get(key)
     
     if (!value) return null
@@ -88,12 +88,12 @@ export async function cacheGet<T>(key: string): Promise<T | null> {
  * Generic cache set with JSON stringification and TTL
  */
 export async function cacheSet<T>(
-  key: string, 
-  value: T, 
+  key: string,
+  value: T,
   ttlSeconds: number = 600
 ): Promise<boolean> {
   try {
-    const redis = getRedisClient()
+    const redis = await getRedisClient()
     const serialized = JSON.stringify(value)
     
     await redis.setex(key, ttlSeconds, serialized)
@@ -109,7 +109,7 @@ export async function cacheSet<T>(
  */
 export async function cacheDelete(pattern: string): Promise<number> {
   try {
-    const redis = getRedisClient()
+    const redis = await getRedisClient()
     
     // For production Redis, use SCAN to find keys
     // For mock Redis, we'll just delete the specific key
@@ -156,7 +156,7 @@ export async function withCache<T>(
  * Distributed lock implementation using Redis
  */
 export class DistributedLock {
-  private redis = getRedisClient()
+  private redis: any = null
   private lockKey: string
   private lockValue: string
   private ttlSeconds: number
@@ -167,14 +167,23 @@ export class DistributedLock {
     this.ttlSeconds = ttlSeconds
   }
   
+  private async getRedis() {
+    if (!this.redis) {
+      this.redis = await getRedisClient()
+    }
+    return this.redis
+  }
+  
   /**
    * Try to acquire the lock
    */
   async acquire(retries: number = 3, retryDelay: number = 100): Promise<boolean> {
+    const redis = await this.getRedis()
+    
     for (let i = 0; i < retries; i++) {
       try {
         // SET NX EX - set if not exists with expiry
-        const result = await this.redis.set(
+        const result = await redis.set(
           this.lockKey,
           this.lockValue,
           'EX',
@@ -202,6 +211,8 @@ export class DistributedLock {
    */
   async release(): Promise<boolean> {
     try {
+      const redis = await this.getRedis()
+      
       // Use Lua script to ensure atomic check-and-delete
       const script = `
         if redis.call("get", KEYS[1]) == ARGV[1] then
@@ -213,9 +224,9 @@ export class DistributedLock {
       
       // For mock Redis, we'll do a simple delete
       // In production, you'd use redis.eval(script, 1, this.lockKey, this.lockValue)
-      const currentValue = await this.redis.get(this.lockKey)
+      const currentValue = await redis.get(this.lockKey)
       if (currentValue === this.lockValue) {
-        await this.redis.del(this.lockKey)
+        await redis.del(this.lockKey)
         return true
       }
       
@@ -231,7 +242,14 @@ export class DistributedLock {
  * Rate limiter using Redis
  */
 export class RateLimiter {
-  private redis = getRedisClient()
+  private redis: any = null
+  
+  private async getRedis() {
+    if (!this.redis) {
+      this.redis = await getRedisClient()
+    }
+    return this.redis
+  }
   
   /**
    * Check if request is allowed under rate limit
@@ -245,16 +263,18 @@ export class RateLimiter {
     const windowStart = now - (windowSeconds * 1000)
     
     try {
+      const redis = await this.getRedis()
+      
       // Remove old entries outside the window
       // In production, you'd use ZREMRANGEBYSCORE
       // For now, we'll use a simple counter with expiry
-      const count = await this.redis.incr(key)
+      const count = await redis.incr(key)
       
       if (count === 1) {
-        await this.redis.expire(key, windowSeconds)
+        await redis.expire(key, windowSeconds)
       }
       
-      const ttl = await this.redis.ttl(key)
+      const ttl = await redis.ttl(key)
       const resetAt = now + (ttl * 1000)
       
       return {

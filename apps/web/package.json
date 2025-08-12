@@ -11,7 +11,9 @@
     "check-types": "tsc --noEmit",
     "validate": "npm run check-types && npm run lint",
     "clean": "rm -rf .next out dist",
-    "analyze": "ANALYZE=true npm run build"
+    "analyze": "ANALYZE=true npm run build",
+    "setup:redis": "bash scripts/setup-memorystore.sh",
+    "test:redis": "tsx scripts/test-redis.ts"
   },
   "dependencies": {
     "@google-cloud/secret-manager": "^6.1.0",
@@ -43,7 +45,7 @@
     "ioredis": "^5.7.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^0.525.0",
-    "next": "^15.3.0",
+    "next": "^15.4.6",
     "next-auth": "^4.24.11",
     "openai": "^5.10.1",
     "react": "^19.1.0",

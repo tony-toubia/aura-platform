@@ -2,22 +2,38 @@
 import Redis from 'ioredis'
 
 let redis: Redis | null = null
+let isInitializing = false
 
 /**
  * Get or create a Redis client instance
  * Uses singleton pattern to ensure only one connection
  */
-export function getRedisClient(): Redis {
-  if (!redis) {
-    const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL
-    
-    if (!redisUrl) {
-      console.warn('Redis URL not configured. Using in-memory fallback.')
-      // For development without Redis, we'll create a mock client
-      // In production, you should always have Redis configured
-      redis = createMockRedisClient() as any
-    } else {
-      redis = new Redis(redisUrl, {
+export async function getRedisClient(): Promise<Redis> {
+  if (redis) {
+    return redis
+  }
+
+  // Prevent multiple simultaneous initializations
+  if (isInitializing) {
+    // Wait for initialization to complete
+    while (isInitializing) {
+      await new Promise(resolve => setTimeout(resolve, 50))
+    }
+    return redis!
+  }
+
+  isInitializing = true
+
+  try {
+    // In production, get config from Secret Manager
+    if (process.env.NODE_ENV === 'production') {
+      const { getRedisConfig } = await import('@/lib/services/secrets-manager-redis.server')
+      const config = await getRedisConfig()
+      
+      redis = new Redis({
+        host: config.host,
+        port: config.port,
+        password: config.password,
         maxRetriesPerRequest: 3,
         retryStrategy: (times) => {
           if (times > 3) {
@@ -30,8 +46,37 @@ export function getRedisClient(): Redis {
           const targetErrors = ['READONLY', 'ECONNRESET', 'ETIMEDOUT']
           return targetErrors.some(e => err.message.includes(e))
         },
+        // Memorystore specific options
+        enableReadyCheck: true,
+        connectTimeout: 10000,
+        family: 4, // Force IPv4 for GCP
       })
+    } else {
+      // Development: use local Redis or environment variable
+      const redisUrl = process.env.REDIS_URL || process.env.UPSTASH_REDIS_URL
+      
+      if (!redisUrl) {
+        console.warn('Redis URL not configured. Using in-memory fallback.')
+        redis = createMockRedisClient() as any
+      } else {
+        redis = new Redis(redisUrl, {
+          maxRetriesPerRequest: 3,
+          retryStrategy: (times) => {
+            if (times > 3) {
+              console.error('Redis connection failed after 3 retries')
+              return null
+            }
+            return Math.min(times * 100, 3000)
+          },
+          reconnectOnError: (err) => {
+            const targetErrors = ['READONLY', 'ECONNRESET', 'ETIMEDOUT']
+            return targetErrors.some(e => err.message.includes(e))
+          },
+        })
+      }
+    }
 
+    if (redis && typeof redis.on === 'function') {
       redis.on('error', (err) => {
         console.error('Redis Client Error:', err)
       })
@@ -39,10 +84,27 @@ export function getRedisClient(): Redis {
       redis.on('connect', () => {
         console.log('Redis Client Connected')
       })
+
+      redis.on('ready', () => {
+        console.log('Redis Client Ready')
+      })
     }
+  } finally {
+    isInitializing = false
   }
   
   return redis!
+}
+
+/**
+ * Synchronous wrapper for backward compatibility
+ * Note: This will use cached client or throw if not initialized
+ */
+export function getRedisClientSync(): Redis {
+  if (!redis) {
+    throw new Error('Redis client not initialized. Call getRedisClient() first.')
+  }
+  return redis
 }
 
 /**
