@@ -91,6 +91,11 @@ Utility functions:
 - Tests specific sensor data retrieval
 - Body: `{ "senseId": "weather.temperature", "auraId": "optional" }`
 
+### System Test Endpoint
+- **GET** `/api/debug/test-diagnostics`
+- Comprehensive system validation and health check
+- Returns test results, recommendations, and system status
+
 ### Existing Debug Endpoints
 - **GET** `/api/debug/senses` - Raw database senses
 - **GET** `/api/debug/subscription-guard` - Subscription system test
@@ -125,6 +130,28 @@ Downloads complete diagnostic data as `senses-diagnostic-YYYY-MM-DD-HH-MM.json`
 - **Rule Builder diagnostics**: Validates sensor configurations used in rules
 - **OAuth connection management**: Troubleshoots sense connections
 
+## Quick Start & Testing
+
+### First Time Setup Validation
+1. **System Test**: Visit `/api/debug/test-diagnostics` to validate your setup
+2. **Check Results**: Look for any FAIL status tests
+3. **Fix Issues**: Follow the provided recommendations
+4. **Access UI**: Navigate to `/senses-diagnostics` once all tests pass
+
+### Testing Commands
+```bash
+# Test the diagnostics system
+curl https://your-domain.com/api/debug/test-diagnostics
+
+# Test individual sensor data
+curl -X POST https://your-domain.com/api/debug/test-sense-data \
+  -H "Content-Type: application/json" \
+  -d '{"senseId": "weather.temperature"}'
+
+# Check raw sensor configurations
+curl https://your-domain.com/api/debug/senses
+```
+
 ## Best Practices
 
 ### Regular Monitoring
@@ -133,11 +160,12 @@ Downloads complete diagnostic data as `senses-diagnostic-YYYY-MM-DD-HH-MM.json`
 - Verify OAuth connections haven't expired
 
 ### Troubleshooting Workflow
-1. **System Overview**: Start with System Status dashboard
-2. **Identify Issues**: Look for red/yellow status indicators  
-3. **Isolate Problems**: Use aura filtering to narrow down issues
-4. **Test Solutions**: Use built-in testing tools to verify fixes
-5. **Export Data**: Save diagnostic reports for comparison
+1. **System Test**: Run `/api/debug/test-diagnostics` first
+2. **System Overview**: Check System Status dashboard
+3. **Identify Issues**: Look for red/yellow status indicators  
+4. **Isolate Problems**: Use aura filtering to narrow down issues
+5. **Test Solutions**: Use built-in testing tools to verify fixes
+6. **Export Data**: Save diagnostic reports for comparison
 
 ### Performance Optimization
 - Monitor rule evaluation frequency

@@ -1,8 +1,6 @@
 // app/api/debug/senses-diagnostics/route.ts
 import { NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase/server.server'
-import { WeatherService } from '@/lib/services/weather-service'
-import { SENSOR_CONFIGS } from '@/types'
 
 interface SenseData {
   id: string
@@ -44,7 +42,8 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (aurasError) {
-      throw new Error(`Failed to fetch auras: ${aurasError.message}`)
+      console.error('Failed to fetch auras:', aurasError)
+      return NextResponse.json({ error: `Failed to fetch auras: ${aurasError.message}` }, { status: 500 })
     }
 
     // Fetch behavior rules
@@ -58,12 +57,12 @@ export async function GET() {
       .from('proactive_messages')
       .select(`
         id,
+        aura_id,
         message,
         status,
         created_at,
         delivered_at,
-        error_message,
-        aura:auras(name)
+        error_message
       `)
       .in('aura_id', (auras || []).map(a => a.id))
       .order('created_at', { ascending: false })
@@ -86,14 +85,19 @@ export async function GET() {
       .gte('created_at', startOfDay.toISOString())
 
     // Process auras data
-    const processedAuras = (auras || []).map(aura => ({
-      id: aura.id,
-      name: aura.name,
-      enabled: aura.enabled,
-      senseCount: aura.senses?.length || 0,
-      ruleCount: (rules || []).filter(r => r.aura_id === aura.id).length,
-      notificationCount: (notifications || []).filter(n => n.aura?.name === aura.name).length
-    }))
+    const processedAuras = (auras || []).map(aura => {
+      // Find notifications for this aura
+      const auraNotifications = (notifications || []).filter(n => n.aura_id === aura.id)
+      
+      return {
+        id: aura.id,
+        name: aura.name,
+        enabled: aura.enabled,
+        senseCount: aura.senses?.length || 0,
+        ruleCount: (rules || []).filter(r => r.aura_id === aura.id).length,
+        notificationCount: auraNotifications.length
+      }
+    })
 
     // Collect all unique senses across auras
     const allSenses = new Set<string>()
@@ -145,14 +149,13 @@ export async function GET() {
       })
     })
 
-    // Build senses data with real-time testing
+    // Build senses data with simulated testing
     const sensesData: SenseData[] = []
     
     for (const senseId of Array.from(allSenses)) {
-      const sensorConfig = SENSOR_CONFIGS[senseId]
       let senseData: SenseData = {
         id: senseId,
-        name: sensorConfig?.name || senseId,
+        name: senseId.replace(/_/g, ' ').replace(/\./g, ' '),
         type: 'data',
         status: 'inactive'
       }
@@ -167,9 +170,9 @@ export async function GET() {
           senseData.connections = [...connections, ...typeConnections]
           senseData.status = senseData.connections.length > 0 ? 'active' : 'inactive'
           
-          // Try to fetch sample data if we have connections
+          // Generate mock data if we have connections
           if (senseData.connections.length > 0) {
-            senseData.value = await fetchConnectedSenseData(senseId, senseData.connections[0])
+            senseData.value = await generateMockSenseData(senseId)
             senseData.lastUpdate = new Date().toISOString()
           }
         }
@@ -182,13 +185,7 @@ export async function GET() {
           if (config) {
             senseData.config = config
             senseData.status = 'active'
-            
-            // Try to fetch current data
-            if (senseId.startsWith('weather.')) {
-              senseData.value = await fetchWeatherData(config)
-            } else if (senseId.startsWith('news')) {
-              senseData.value = await fetchNewsData(config)
-            }
+            senseData.value = await generateMockSenseData(senseId)
             senseData.lastUpdate = new Date().toISOString()
           } else {
             senseData.status = 'warning'
@@ -199,7 +196,7 @@ export async function GET() {
         else {
           senseData.type = 'data'
           senseData.status = 'active'
-          senseData.value = generateSampleSensorData(senseId, sensorConfig)
+          senseData.value = await generateMockSenseData(senseId)
           senseData.lastUpdate = new Date().toISOString()
         }
       } catch (error) {
@@ -223,15 +220,20 @@ export async function GET() {
     }
 
     // Format notifications for response
-    const formattedNotifications = (notifications || []).map(notif => ({
-      id: notif.id,
-      auraName: (notif.aura as any)?.name || 'Unknown Aura',
-      message: notif.message,
-      status: notif.status,
-      createdAt: notif.created_at,
-      deliveredAt: notif.delivered_at,
-      errorMessage: notif.error_message
-    }))
+    const formattedNotifications = (notifications || []).map(notif => {
+      // Find the aura name for this notification
+      const aura = processedAuras.find(a => a.id === notif.aura_id)
+      
+      return {
+        id: notif.id,
+        auraName: aura?.name || 'Unknown Aura',
+        message: notif.message,
+        status: notif.status,
+        createdAt: notif.created_at,
+        deliveredAt: notif.delivered_at,
+        errorMessage: notif.error_message
+      }
+    })
 
     return NextResponse.json({
       auras: processedAuras,
@@ -250,101 +252,74 @@ export async function GET() {
   }
 }
 
-// Helper functions for fetching real sensor data
-async function fetchConnectedSenseData(senseId: string, connection: any): Promise<any> {
-  try {
-    switch (senseId) {
-      case 'fitness':
-        return {
-          steps: Math.floor(Math.random() * 10000) + 2000,
-          heartRate: Math.floor(Math.random() * 60) + 60,
-          calories: Math.floor(Math.random() * 500) + 1000,
-          lastActivity: 'walking'
-        }
-      case 'sleep':
-        return {
-          duration: Math.floor(Math.random() * 3) + 6,
-          quality: ['poor', 'fair', 'good', 'excellent'][Math.floor(Math.random() * 4)],
-          bedtime: '23:30',
-          wakeTime: '07:00'
-        }
-      case 'calendar':
-        return {
-          nextEvent: 'Meeting with team',
-          timeUntilNext: 45,
-          eventType: 'meeting'
-        }
-      case 'location':
-        return {
-          place: 'home',
-          city: 'San Francisco',
-          movement: 'stationary'
-        }
-      default:
-        return { status: 'connected', provider: connection.provider_id || 'unknown' }
-    }
-  } catch (error) {
-    throw new Error(`Failed to fetch ${senseId} data: ${error}`)
-  }
-}
-
-async function fetchWeatherData(config: any): Promise<any> {
-  try {
-    const weather = await WeatherService.getCurrentWeather(
-      config.location?.lat || 39.0997,
-      config.location?.lon || -94.5786,
-      config
-    )
-    return weather ? {
-      temperature: weather.temperature,
-      conditions: weather.description,
-      humidity: weather.humidity,
-      city: weather.city
-    } : null
-  } catch (error) {
-    throw new Error(`Failed to fetch weather data: ${error}`)
-  }
-}
-
-async function fetchNewsData(config: any): Promise<any> {
-  try {
-    // Mock news data for now
-    return {
-      headlines: [
-        'Tech Innovation Continues to Drive Market Growth',
-        'Climate Change Initiatives Gain Global Support',
-        'Local Community Event Brings Residents Together'
-      ],
-      source: 'multiple',
-      lastUpdate: new Date().toISOString()
-    }
-  } catch (error) {
-    throw new Error(`Failed to fetch news data: ${error}`)
-  }
-}
-
-function generateSampleSensorData(senseId: string, config: any): any {
-  if (!config) return null
+// Helper function to generate mock sensor data
+async function generateMockSenseData(senseId: string): Promise<any> {
+  const baseSenseId = senseId.split('.')[0]
   
-  switch (config.type) {
-    case 'numeric':
-      const range = config.range || { min: 0, max: 100 }
-      return Math.floor(Math.random() * (range.max - range.min) + range.min)
-    case 'boolean':
-      return Math.random() > 0.5
-    case 'enum':
-      const values = config.enumValues || [{ value: 'unknown' }]
-      return values[Math.floor(Math.random() * values.length)].value
-    case 'text':
-      return `Sample text data for ${senseId}`
+  switch (baseSenseId) {
+    case 'weather':
+      return {
+        temperature: Math.floor(Math.random() * 30) + 10,
+        conditions: ['sunny', 'cloudy', 'rainy'][Math.floor(Math.random() * 3)],
+        humidity: Math.floor(Math.random() * 50) + 30,
+        city: 'San Francisco'
+      }
+    case 'fitness':
+      return {
+        steps: Math.floor(Math.random() * 8000) + 2000,
+        heartRate: Math.floor(Math.random() * 50) + 65,
+        calories: Math.floor(Math.random() * 800) + 1200,
+        activity: 'walking'
+      }
+    case 'sleep':
+      return {
+        duration: Math.floor(Math.random() * 3) + 6,
+        quality: ['poor', 'fair', 'good', 'excellent'][Math.floor(Math.random() * 4)],
+        bedtime: '23:30',
+        wakeTime: '07:00'
+      }
+    case 'calendar':
+      return {
+        nextEvent: 'Meeting with team',
+        timeUntilNext: 45,
+        eventType: 'meeting'
+      }
+    case 'location':
+      return {
+        place: 'home',
+        city: 'San Francisco',
+        movement: 'stationary'
+      }
+    case 'news':
+      return {
+        headlines: [
+          'Tech Innovation Continues',
+          'Climate Action Advances',
+          'Community Events'
+        ],
+        source: 'multiple'
+      }
+    case 'air_quality':
+      return {
+        aqi: Math.floor(Math.random() * 200) + 50,
+        pm25: Math.floor(Math.random() * 100) + 10
+      }
+    case 'soil_moisture':
+      return {
+        value: Math.floor(Math.random() * 70) + 20,
+        unit: '%'
+      }
     default:
-      return { type: config.type, sampleData: true }
+      return {
+        value: Math.floor(Math.random() * 100),
+        type: 'generic',
+        generated: true
+      }
   }
 }
 
 function getLastCronRun(): string | undefined {
-  // In a real implementation, this would check when cron jobs last ran
-  // For now, simulate a recent run
+  // Mock a recent cron run
   const lastRun = new Date()
   lastRun.setMinutes(lastRun.getMinutes() - (Math.random() * 5))
   return lastRun.toISOString()
