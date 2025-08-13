@@ -111,7 +111,7 @@ export default function VesselsPage() {
           </CardHeader>
           <CardContent>
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-8 text-center mt-8">
-              {Object.entries(VESSEL_TYPE_LABELS).map(([key, config]) => (
+              {Object.entries(VESSEL_TYPE_LABELS).map(([key, config]: [string, any]) => (
                 <div key={key} className="space-y-3">
                   <div className={`w-16 h-16 mx-auto bg-gradient-to-r ${config.gradient} rounded-full flex items-center justify-center text-white text-2xl shadow-lg`}>
                     {config.icon}

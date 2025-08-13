@@ -50,7 +50,7 @@ export async function GET() {
     const { data: rules } = await supabase
       .from('behavior_rules')
       .select('id, aura_id, name, enabled, trigger, last_triggered_at')
-      .in('aura_id', (auras || []).map(a => a.id))
+      .in('aura_id', (auras || []).map((a: any) => a.id))
 
     // Fetch recent notifications
     const { data: notifications } = await supabase
@@ -64,7 +64,7 @@ export async function GET() {
         delivered_at,
         error_message
       `)
-      .in('aura_id', (auras || []).map(a => a.id))
+      .in('aura_id', (auras || []).map((a: any) => a.id))
       .order('created_at', { ascending: false })
       .limit(50)
 
@@ -81,11 +81,11 @@ export async function GET() {
     const { count: notificationsToday } = await supabase
       .from('proactive_messages')
       .select('*', { count: 'exact', head: true })
-      .in('aura_id', (auras || []).map(a => a.id))
+      .in('aura_id', (auras || []).map((a: any) => a.id))
       .gte('created_at', startOfDay.toISOString())
 
     // Process auras data
-    const processedAuras = (auras || []).map(aura => {
+    const processedAuras = (auras || []).map((aura: any) => {
       // Find notifications for this aura
       const auraNotifications = (notifications || []).filter(n => n.aura_id === aura.id)
       
@@ -104,30 +104,30 @@ export async function GET() {
     const senseConfigurations = new Map<string, any>()
     const senseConnections = new Map<string, any[]>()
 
-    ;(auras || []).forEach(aura => {
+    ;(auras || []).forEach((aura: any) => {
       // Add senses
       ;(aura.senses || []).forEach((sense: string) => allSenses.add(sense))
       
       // Store configurations
       if (aura.location_configs) {
-        Object.entries(aura.location_configs).forEach(([key, config]) => {
+        Object.entries(aura.location_configs).forEach(([key, config]: [string, any]) => {
           senseConfigurations.set(`location:${key}`, config)
         })
       }
       if (aura.news_configurations) {
-        Object.entries(aura.news_configurations).forEach(([key, config]) => {
+        Object.entries(aura.news_configurations).forEach(([key, config]: [string, any]) => {
           senseConfigurations.set(`news:${key}`, config)
         })
       }
       if (aura.weather_air_quality_configurations) {
-        Object.entries(aura.weather_air_quality_configurations).forEach(([key, config]) => {
+        Object.entries(aura.weather_air_quality_configurations).forEach(([key, config]: [string, any]) => {
           senseConfigurations.set(`weather:${key}`, config)
         })
       }
       
       // Store OAuth connections
       if (aura.oauth_connections) {
-        Object.entries(aura.oauth_connections).forEach(([senseId, connections]) => {
+        Object.entries(aura.oauth_connections).forEach(([senseId, connections]: [string, any]) => {
           if (!senseConnections.has(senseId)) {
             senseConnections.set(senseId, [])
           }
@@ -138,7 +138,7 @@ export async function GET() {
 
     // Group OAuth connections by provider type
     const oauthConnectionsByType: Record<string, any[]> = {}
-    ;(oauthConnections || []).forEach(conn => {
+    ;(oauthConnections || []).forEach((conn: any) => {
       const type = conn.provider_type || conn.provider_id || 'unknown'
       if (!oauthConnectionsByType[type]) {
         oauthConnectionsByType[type] = []

@@ -78,7 +78,7 @@ export async function GET() {
         name: 'User Auras Query',
         status: error ? 'FAIL' : 'PASS',
         details: error ? error.message : `Found ${auras?.length || 0} auras`,
-        data: auras?.map(a => ({ id: a.id, name: a.name, senseCount: a.senses?.length || 0 })) || []
+        data: auras?.map((a: any) => ({ id: a.id, name: a.name, senseCount: a.senses?.length || 0 })) || []
       })
     } catch (error) {
       testResults.tests.push({

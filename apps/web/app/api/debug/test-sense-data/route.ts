@@ -243,7 +243,7 @@ async function testFitnessSense(senseId: string, auraConfig: any, supabase: any,
     value: mockFitnessData[field as keyof typeof mockFitnessData] || mockFitnessData.steps,
     fullData: mockFitnessData,
     oauthConnections: oauthConnections?.length || 0,
-    connectedProviders: oauthConnections?.map(c => c.provider_id) || [],
+    connectedProviders: oauthConnections?.map((c: any) => c.provider_id) || [],
     source: oauthConnections?.length ? 'oauth_connected' : 'mock_data',
     timestamp: new Date().toISOString()
   }
@@ -271,7 +271,7 @@ async function testSleepSense(senseId: string, auraConfig: any, supabase: any, u
     value: mockSleepData[field as keyof typeof mockSleepData] || mockSleepData.duration,
     fullData: mockSleepData,
     oauthConnections: oauthConnections?.length || 0,
-    connectedProviders: oauthConnections?.map(c => c.provider_id) || [],
+    connectedProviders: oauthConnections?.map((c: any) => c.provider_id) || [],
     source: oauthConnections?.length ? 'oauth_connected' : 'mock_data',
     timestamp: new Date().toISOString()
   }
@@ -297,7 +297,7 @@ async function testCalendarSense(senseId: string, auraConfig: any, supabase: any
     value: mockCalendarData[field as keyof typeof mockCalendarData] || mockCalendarData.nextEvent,
     fullData: mockCalendarData,
     oauthConnections: oauthConnections?.length || 0,
-    connectedProviders: oauthConnections?.map(c => c.provider_id) || [],
+    connectedProviders: oauthConnections?.map((c: any) => c.provider_id) || [],
     source: oauthConnections?.length ? 'oauth_connected' : 'mock_data',
     timestamp: new Date().toISOString()
   }
@@ -323,7 +323,7 @@ async function testLocationSense(senseId: string, auraConfig: any, supabase: any
     value: mockLocationData[field as keyof typeof mockLocationData] || mockLocationData.place,
     fullData: mockLocationData,
     oauthConnections: oauthConnections?.length || 0,
-    connectedProviders: oauthConnections?.map(c => c.provider_id) || [],
+    connectedProviders: oauthConnections?.map((c: any) => c.provider_id) || [],
     source: oauthConnections?.length ? 'oauth_connected' : 'mock_data',
     timestamp: new Date().toISOString()
   }

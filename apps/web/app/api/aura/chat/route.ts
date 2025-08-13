@@ -61,7 +61,7 @@ export async function POST(req: NextRequest) {
 
   // 2) Load live sense-data (use provided data if available, otherwise fetch fresh)
   const rawSenseData = providedSenseData 
-    ? Object.entries(providedSenseData).map(([senseId, data]) => ({ 
+    ? Object.entries(providedSenseData).map(([senseId, data]: [string, any]) => ({ 
         senseId, 
         data, 
         timestamp: new Date()

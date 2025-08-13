@@ -410,7 +410,7 @@ export default function SensesDiagnosticsPage() {
                     <div>
                       <Label className="text-xs font-medium text-gray-600">Connections ({sense.connections.length})</Label>
                       <div className="space-y-1 mt-1">
-                        {sense.connections.map((conn, idx) => (
+                        {sense.connections.map((conn: any, idx: number) => (
                           <div key={idx} className="text-xs bg-blue-50 p-2 rounded">
                             <span className="font-medium">{conn.name || conn.providerId}</span>
                             {conn.accountEmail && <span className="text-gray-600 ml-2">({conn.accountEmail})</span>}
@@ -454,7 +454,7 @@ export default function SensesDiagnosticsPage() {
         </TabsContent>
 
         <TabsContent value="connections" className="space-y-4">
-          {Object.entries(data?.oauthConnections || {}).map(([senseType, connections]) => (
+          {Object.entries(data?.oauthConnections || {}).map(([senseType, connections]: [string, any]) => (
             <Card key={senseType}>
               <CardHeader>
                 <CardTitle className="flex items-center">
@@ -467,7 +467,7 @@ export default function SensesDiagnosticsPage() {
                   <p className="text-gray-500 text-center py-4">No connections found</p>
                 ) : (
                   <div className="space-y-2">
-                    {connections.map((conn, idx) => (
+                    {connections.map((conn: any, idx: number) => (
                       <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded">
                         <div>
                           <span className="font-medium">{conn.name || conn.providerId}</span>
@@ -507,7 +507,7 @@ export default function SensesDiagnosticsPage() {
                 </CardContent>
               </Card>
             ) : (
-              data?.notifications.map(notification => (
+              data?.notifications.map((notification: any) => (
                 <Card key={notification.id} className={cn(
                   "border-l-4",
                   notification.status === 'DELIVERED' && "border-l-green-500",
