@@ -1,6 +1,6 @@
 // app/api/notifications/[id]/read/route.ts
 
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabase } from '@/lib/supabase/server.server'
 import { NextRequest, NextResponse } from 'next/server'
 import { NotificationService } from '@/lib/services/notification-service'
 
@@ -18,7 +18,7 @@ export async function PATCH(
   { params }: { params: { id: string } }
 ) {
   try {
-    const supabase = createClient()
+    const supabase = await createServerSupabase()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {

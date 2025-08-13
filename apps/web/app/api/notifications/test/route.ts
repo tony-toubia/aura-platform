@@ -1,6 +1,6 @@
 // app/api/notifications/test/route.ts
 
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabase } from '@/lib/supabase/server.server'
 import { NextRequest, NextResponse } from 'next/server'
 import { NotificationService } from '@/lib/services/notification-service'
 import type { TestNotificationRequest, NotificationChannel } from '@/types/notifications'
@@ -11,7 +11,7 @@ import type { TestNotificationRequest, NotificationChannel } from '@/types/notif
  */
 export async function POST(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createServerSupabase()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {

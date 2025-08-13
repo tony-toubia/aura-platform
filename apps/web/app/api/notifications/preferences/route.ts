@@ -1,6 +1,6 @@
 // app/api/notifications/preferences/route.ts
 
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabase } from '@/lib/supabase/server.server'
 import { NextRequest, NextResponse } from 'next/server'
 import type { 
   UpdatePreferencesRequest,
@@ -19,7 +19,7 @@ interface GetPreferencesResponse {
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createServerSupabase()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
  */
 export async function PUT(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createServerSupabase()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
@@ -180,7 +180,7 @@ export async function PUT(request: NextRequest) {
  */
 export async function DELETE(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createServerSupabase()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {

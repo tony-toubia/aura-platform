@@ -1,6 +1,6 @@
 // app/api/notifications/history/route.ts
 
-import { createClient } from '@/lib/supabase/server'
+import { createServerSupabase } from '@/lib/supabase/server.server'
 import { NextRequest, NextResponse } from 'next/server'
 import { NotificationService } from '@/lib/services/notification-service'
 import type { GetHistoryRequest, GetHistoryResponse } from '@/types/notifications'
@@ -11,7 +11,7 @@ import type { GetHistoryRequest, GetHistoryResponse } from '@/types/notification
  */
 export async function GET(request: NextRequest) {
   try {
-    const supabase = createClient()
+    const supabase = await createServerSupabase()
     const { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
