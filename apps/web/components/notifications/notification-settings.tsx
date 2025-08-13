@@ -14,7 +14,7 @@ import { Badge } from '@/components/ui/badge'
 import { Slider } from '@/components/ui/slider'
 import { useNotifications } from '@/hooks/use-notifications'
 import { useAuth } from '@/hooks/use-auth'
-import { Loader2, Bell, BellOff, Clock, MessageSquare, Smartphone, Mail, MessageCircle } from 'lucide-react'
+import { Loader2, Bell, BellOff, Clock, MessageSquare, Smartphone, Mail, MessageCircle, Sparkles, Wand2 } from 'lucide-react'
 import { toast } from 'sonner'
 import type { NotificationChannel, UpdatePreferencesRequest } from '@/types/notifications'
 
@@ -169,10 +169,10 @@ export function NotificationSettings({ auraId, auraName }: NotificationSettingsP
 
   if (preferences.loading) {
     return (
-      <Card>
+      <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 to-indigo-50">
         <CardContent className="flex items-center justify-center py-8">
-          <Loader2 className="h-6 w-6 animate-spin" />
-          <span className="ml-2">Loading preferences...</span>
+          <Loader2 className="h-6 w-6 animate-spin text-purple-600" />
+          <span className="ml-2 text-purple-700">Loading magical preferences...</span>
         </CardContent>
       </Card>
     )
@@ -180,21 +180,35 @@ export function NotificationSettings({ auraId, auraName }: NotificationSettingsP
 
   return (
     <div className="space-y-6">
-      <div>
-        <h3 className="text-lg font-semibold">Notification Settings</h3>
-        <p className="text-sm text-muted-foreground">
-          {auraId 
-            ? `Configure notifications for ${auraName || 'this aura'}`
-            : 'Configure global notification preferences'
-          }
-        </p>
-      </div>
-
-      <Tabs defaultValue="channels" className="w-full">
-        <TabsList className="grid w-full grid-cols-2">
-          <TabsTrigger value="channels">Channels</TabsTrigger>
-          <TabsTrigger value="timing">Timing & Limits</TabsTrigger>
-        </TabsList>
+      <Card className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50">
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Wand2 className="w-5 h-5 text-purple-600" />
+            Channel Configuration
+            <Badge className="bg-purple-100 text-purple-700 border-purple-200">
+              <Sparkles className="w-3 h-3 mr-1" />
+              {auraId ? 'Aura-Specific' : 'Global'}
+            </Badge>
+          </CardTitle>
+          <CardDescription>
+            {auraId
+              ? `Configure how ${auraName || 'this aura'} reaches out to you`
+              : 'Set default notification preferences for all your auras'
+            }
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <Tabs defaultValue="channels" className="w-full">
+            <TabsList className="grid w-full grid-cols-2 bg-gradient-to-r from-purple-100 to-indigo-100">
+              <TabsTrigger value="channels" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <Bell className="w-4 h-4 mr-2" />
+                Channels
+              </TabsTrigger>
+              <TabsTrigger value="timing" className="data-[state=active]:bg-white data-[state=active]:shadow-sm">
+                <Clock className="w-4 h-4 mr-2" />
+                Timing & Limits
+              </TabsTrigger>
+            </TabsList>
 
         <TabsContent value="channels" className="space-y-4">
           {CHANNELS.map((channelConfig) => {
@@ -202,19 +216,35 @@ export function NotificationSettings({ auraId, auraName }: NotificationSettingsP
             const isAvailable = channelConfig.tier.includes(userTier)
             
             return (
-              <Card key={channelConfig.channel}>
+              <Card
+                key={channelConfig.channel}
+                className={`border-2 transition-all duration-300 ${
+                  preference.enabled && isAvailable
+                    ? 'border-purple-300 bg-gradient-to-br from-purple-50 to-indigo-50 shadow-md'
+                    : 'border-gray-200 bg-white'
+                }`}
+              >
                 <CardContent className="pt-6">
                   <div className="flex items-start justify-between">
                     <div className="flex items-start space-x-3">
-                      <div className="flex-shrink-0 mt-1">
+                      <div className={`flex-shrink-0 mt-1 p-2 rounded-lg ${
+                        preference.enabled && isAvailable
+                          ? 'bg-purple-100 text-purple-600'
+                          : 'bg-gray-100 text-gray-500'
+                      }`}>
                         {channelConfig.icon}
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center space-x-2">
                           <h4 className="font-medium">{channelConfig.label}</h4>
                           {!isAvailable && (
-                            <Badge variant="outline" className="text-xs">
-                              {channelConfig.tier[0]} required
+                            <Badge className="bg-orange-100 text-orange-700 border-orange-200 text-xs">
+                              {channelConfig.tier[0]} plan required
+                            </Badge>
+                          )}
+                          {preference.enabled && isAvailable && (
+                            <Badge className="bg-green-100 text-green-700 border-green-200 text-xs">
+                              Active
                             </Badge>
                           )}
                         </div>
@@ -242,11 +272,15 @@ export function NotificationSettings({ auraId, auraName }: NotificationSettingsP
                           size="sm"
                           disabled={isTestingChannel === channelConfig.channel}
                           onClick={() => handleTestNotification(channelConfig.channel)}
+                          className="bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-purple-200"
                         >
                           {isTestingChannel === channelConfig.channel ? (
-                            <Loader2 className="h-3 w-3 animate-spin" />
+                            <Loader2 className="h-3 w-3 animate-spin text-purple-600" />
                           ) : (
-                            'Test'
+                            <>
+                              <Sparkles className="w-3 h-3 mr-1" />
+                              Test
+                            </>
                           )}
                         </Button>
                       )}
@@ -265,21 +299,29 @@ export function NotificationSettings({ auraId, auraName }: NotificationSettingsP
             if (!preference.enabled) return null
 
             return (
-              <Card key={channelConfig.channel}>
-                <CardHeader>
+              <Card
+                key={channelConfig.channel}
+                className="border-2 border-purple-200 bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50"
+              >
+                <CardHeader className="pb-4">
                   <CardTitle className="text-base flex items-center space-x-2">
-                    {channelConfig.icon}
+                    <div className="p-1.5 bg-purple-100 rounded-lg text-purple-600">
+                      {channelConfig.icon}
+                    </div>
                     <span>{channelConfig.label}</span>
+                    <Badge className="bg-purple-100 text-purple-700 border-purple-200 text-xs ml-auto">
+                      Configured
+                    </Badge>
                   </CardTitle>
                 </CardHeader>
                 
                 <CardContent className="space-y-6">
                   {/* Quiet Hours */}
                   <div className="space-y-4">
-                    <div className="flex items-center justify-between">
+                    <div className="flex items-center justify-between p-3 bg-white rounded-lg border border-purple-100">
                       <div className="flex items-center space-x-2">
-                        <Clock className="h-4 w-4" />
-                        <Label>Quiet Hours</Label>
+                        <Clock className="h-4 w-4 text-purple-600" />
+                        <Label className="text-purple-900">Quiet Hours</Label>
                       </div>
                       <Switch
                         checked={preference.quietHoursEnabled}
@@ -301,7 +343,7 @@ export function NotificationSettings({ auraId, auraName }: NotificationSettingsP
                     </div>
                     
                     {preference.quietHoursEnabled && (
-                      <div className="grid grid-cols-2 gap-4 pl-6">
+                      <div className="grid grid-cols-2 gap-4 mt-3 p-3 bg-purple-50 rounded-lg">
                         <div>
                           <Label className="text-xs">Start Time</Label>
                           <Input
@@ -378,12 +420,12 @@ export function NotificationSettings({ auraId, auraName }: NotificationSettingsP
                   </div>
 
                   {/* Daily Limit */}
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <BellOff className="h-4 w-4" />
-                      <Label>Daily Limit</Label>
+                  <div className="p-3 bg-white rounded-lg border border-indigo-100">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <BellOff className="h-4 w-4 text-indigo-600" />
+                      <Label className="text-indigo-900">Daily Limit</Label>
                     </div>
-                    <div className="pl-6">
+                    <div>
                       <div className="flex items-center space-x-4">
                         <div className="flex-1">
                           <Slider
@@ -413,12 +455,12 @@ export function NotificationSettings({ auraId, auraName }: NotificationSettingsP
                   </div>
 
                   {/* Priority Threshold */}
-                  <div className="space-y-3">
-                    <div className="flex items-center space-x-2">
-                      <Bell className="h-4 w-4" />
-                      <Label>Priority Threshold</Label>
+                  <div className="p-3 bg-white rounded-lg border border-blue-100">
+                    <div className="flex items-center space-x-2 mb-3">
+                      <Bell className="h-4 w-4 text-blue-600" />
+                      <Label className="text-blue-900">Priority Threshold</Label>
                     </div>
-                    <div className="pl-6">
+                    <div>
                       <div className="flex items-center space-x-4">
                         <div className="flex-1">
                           <Slider
@@ -450,8 +492,10 @@ export function NotificationSettings({ auraId, auraName }: NotificationSettingsP
               </Card>
             )
           })}
-        </TabsContent>
-      </Tabs>
+          </TabsContent>
+        </Tabs>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -6,6 +6,8 @@ export interface DashboardStats {
   disabledAuras?: number
   conversations: number
   subscription: SubscriptionTier
+  maxAuras?: number
+  hasAvailableSlots?: boolean
 }
 
 export type SubscriptionTier = 'free' | 'personal' | 'family' | 'business'

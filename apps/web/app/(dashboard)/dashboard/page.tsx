@@ -53,12 +53,23 @@ export default async function DashboardPage() {
     activeAuraIds: userAuraIds.length > 0 ? userAuraIds : 'No active auras found'
   })
 
-  // Get user's subscription
+  // Get user's subscription with limits
   const { data: subscription } = await supabase
     .from('subscriptions')
-    .select('tier')
+    .select('tier, max_auras')
     .eq('user_id', user.id)
     .single()
+
+  // Determine the max auras based on tier
+  const tierLimits = {
+    free: 1,
+    personal: 3,
+    family: 10,
+    business: -1 // unlimited
+  }
+  
+  const maxAuras = subscription?.max_auras || tierLimits[subscription?.tier as keyof typeof tierLimits] || 1
+  const hasAvailableSlots = maxAuras === -1 || totalAurasCount < maxAuras
 
   // FIX: Cast the imported component to explicitly tell TypeScript it accepts the 'stats' prop.
   const TypedDashboardContent = DashboardContent as React.FC<DashboardContentProps>
@@ -70,7 +81,9 @@ export default async function DashboardPage() {
           auras: enabledAurasCount,
           totalAuras: totalAurasCount,
           conversations: conversationsCount || 0,
-          subscription: subscription?.tier || 'free'
+          subscription: subscription?.tier || 'free',
+          maxAuras,
+          hasAvailableSlots
         }}
       />
     </ContextualHelpProvider>

@@ -6,7 +6,7 @@ import React from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, CardFooter, CardHeader } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
-import { MessageCircle, BarChart3, Download, Trash2 } from 'lucide-react'
+import { MessageCircle, BarChart3, Download, Trash2, Bell } from 'lucide-react'
 import { AURA_CARD_CONFIG } from '@/lib/constants/aura'
 import { VESSEL_TYPE_CONFIG } from '@/lib/vessel-config'
 import { cn } from '@/lib/utils'
@@ -132,6 +132,14 @@ export function AuraCard({ aura, onDelete, onExport, onEdit, className }: AuraCa
         >
           <MessageCircle className="w-4 h-4 mr-2" />
           Interact
+        </Button>
+        <Button
+          variant="outline"
+          onClick={() => router.push(`/auras/${aura.id}/rules`)}
+          title="Configure notification rules"
+          className="bg-gradient-to-r from-purple-50 to-indigo-50 hover:from-purple-100 hover:to-indigo-100 border-purple-200"
+        >
+          <Bell className="w-4 h-4 text-purple-600" />
         </Button>
         <Button
           variant="outline"

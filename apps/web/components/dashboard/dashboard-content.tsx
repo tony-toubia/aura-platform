@@ -28,6 +28,8 @@ import {
   Wand2,
   Bot,
   ArrowRight,
+  Bell,
+  Clock,
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { DashboardStatCard } from '@/components/dashboard/dashboard-stat-card'
@@ -299,6 +301,108 @@ export function DashboardContent({ stats }: DashboardContentProps) {
         </div>
       )}
 
+      {/* Proactive Notifications Module - New! */}
+      {stats.auras > 0 && (
+        <Card className="border-2 border-purple-300 bg-gradient-to-br from-purple-50 via-indigo-50 to-blue-50 shadow-xl hover:shadow-2xl transition-all">
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gradient-to-r from-purple-500 to-indigo-500 rounded-xl flex items-center justify-center shadow-lg">
+                  <Bell className="w-6 h-6 text-white animate-pulse" />
+                </div>
+                <div>
+                  <CardTitle className="text-xl font-bold bg-gradient-to-r from-purple-600 to-indigo-600 bg-clip-text text-transparent">
+                    Proactive Notifications
+                  </CardTitle>
+                  <CardDescription className="text-sm">
+                    Your auras can now reach out to you proactively
+                  </CardDescription>
+                </div>
+              </div>
+              <Badge className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white border-0">
+                ✨ New
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* Quick Stats */}
+            <div className="grid grid-cols-3 gap-3">
+              <div className="bg-white/80 backdrop-blur rounded-lg p-3 text-center border border-purple-200">
+                <div className="text-2xl font-bold text-purple-600">0</div>
+                <div className="text-xs text-gray-600">Active Rules</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur rounded-lg p-3 text-center border border-indigo-200">
+                <div className="text-2xl font-bold text-indigo-600">0</div>
+                <div className="text-xs text-gray-600">Sent Today</div>
+              </div>
+              <div className="bg-white/80 backdrop-blur rounded-lg p-3 text-center border border-blue-200">
+                <div className="text-2xl font-bold text-blue-600">IN_APP</div>
+                <div className="text-xs text-gray-600">Active Channel</div>
+              </div>
+            </div>
+
+            {/* Feature Highlights */}
+            <div className="space-y-2 bg-white/50 rounded-lg p-4 border border-purple-100">
+              <div className="flex items-start gap-2">
+                <Sparkles className="w-4 h-4 text-purple-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <span className="font-medium text-gray-700">Smart Rules:</span>
+                  <span className="text-gray-600 ml-1">Create conditions for when your auras should reach out</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <Clock className="w-4 h-4 text-indigo-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <span className="font-medium text-gray-700">Background Monitoring:</span>
+                  <span className="text-gray-600 ml-1">Rules are evaluated every 5 minutes</span>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <MessageCircle className="w-4 h-4 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div className="text-sm">
+                  <span className="font-medium text-gray-700">Multi-Channel:</span>
+                  <span className="text-gray-600 ml-1">In-app messages with more channels coming soon</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                asChild
+                className="bg-gradient-to-r from-purple-500 to-indigo-500 text-white hover:from-purple-600 hover:to-indigo-600 shadow-md"
+              >
+                <Link href={`/auras/${(stats.totalAuras || 0) > 0 ? '[aura-id]' : 'create'}/rules`}>
+                  <Wand2 className="w-4 h-4 mr-2" />
+                  Configure Rules
+                </Link>
+              </Button>
+              <Button
+                asChild
+                variant="outline"
+                className="border-2 border-purple-300 hover:bg-purple-50"
+              >
+                <Link href="/notifications/settings">
+                  <Settings className="w-4 h-4 mr-2" />
+                  Channel Settings
+                </Link>
+              </Button>
+            </div>
+
+            {/* Example Use Case */}
+            <div className="bg-gradient-to-r from-purple-100 to-indigo-100 rounded-lg p-3 border border-purple-200">
+              <div className="flex items-center gap-2 mb-1">
+                <Star className="w-4 h-4 text-purple-600" />
+                <span className="text-sm font-medium text-purple-700">Example: Weather Alert</span>
+              </div>
+              <p className="text-xs text-gray-600">
+                Set up a rule to notify you when it's raining - perfect for remembering to "dance in the rain"! 🌧️💃
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Additional Cards Row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
         {/* Activity Card */}
@@ -395,19 +499,7 @@ export function DashboardContent({ stats }: DashboardContentProps) {
               : "Your journey with AI companions is just beginning. Explore new possibilities!"}
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
-            <SubscriptionGuard
-              feature="maxAuras"
-              fallback={
-                <div className="flex flex-col sm:flex-row items-center gap-3 text-sm text-white/90 bg-white/20 px-4 py-3 rounded-lg border border-white/30 w-full sm:w-auto">
-                  <span className="text-center sm:text-left">Upgrade to create more auras</span>
-                  <Button asChild size="sm" className="bg-white text-purple-600 hover:bg-gray-100 w-full sm:w-auto">
-                    <Link href="/subscription">
-                      View Plans
-                    </Link>
-                  </Button>
-                </div>
-              }
-            >
+            {stats.hasAvailableSlots ? (
               <Button
                 asChild
                 size="lg"
@@ -418,7 +510,16 @@ export function DashboardContent({ stats }: DashboardContentProps) {
                   {stats.auras === 0 ? "Create Your First Aura" : "Create Another Aura"}
                 </Link>
               </Button>
-            </SubscriptionGuard>
+            ) : (
+              <div className="flex flex-col sm:flex-row items-center gap-3 text-sm text-white/90 bg-white/20 px-4 py-3 rounded-lg border border-white/30 w-full sm:w-auto">
+                <span className="text-center sm:text-left">Upgrade to create more auras</span>
+                <Button asChild size="sm" className="bg-white text-purple-600 hover:bg-gray-100 w-full sm:w-auto">
+                  <Link href="/subscription">
+                    View Plans
+                  </Link>
+                </Button>
+              </div>
+            )}
             <div className="relative">
               <Button
                 size="lg"
