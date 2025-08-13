@@ -2,6 +2,7 @@
 import { createClient } from '@/lib/supabase/client'
 import { SenseDataService } from './sense-data-service'
 import { RuleEngine, RuleContext } from './rule-engine'
+import { InAppMessenger } from './channels/in-app-messenger'
 import type { Aura, Message, BehaviorRule, Personality } from '@/types'
 
 /** Raw sense entry from SenseDataService */
@@ -40,6 +41,24 @@ export class ConversationService {
     if (error) throw error
     if (!data?.id) throw new Error('Failed to create conversation')
     return data.id
+  }
+
+  /** Mark proactive messages as read when user opens a conversation */
+  static async markProactiveMessagesAsRead(conversationId: string): Promise<void> {
+    const inAppMessenger = new InAppMessenger()
+    await inAppMessenger.markConversationProactiveMessagesAsRead(conversationId)
+  }
+
+  /** Get unread proactive notification count for user */
+  static async getUnreadProactiveCount(userId: string, auraId?: string): Promise<number> {
+    const inAppMessenger = new InAppMessenger()
+    return await inAppMessenger.getUnreadCount(userId, auraId)
+  }
+
+  /** Get recent proactive messages for a conversation */
+  static async getProactiveMessages(conversationId: string, limit: number = 10) {
+    const inAppMessenger = new InAppMessenger()
+    return await inAppMessenger.getRecentProactiveMessages(conversationId, limit)
   }
 
   /**

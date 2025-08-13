@@ -10,14 +10,16 @@ datasource db {
 }
 
 model User {
-  id            String    @id @default(cuid())
-  email         String    @unique
-  name          String?
-  passwordHash  String
-  subscription  Subscription?
-  auras         Aura[]
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                     String                   @id @default(cuid())
+  email                  String                   @unique
+  name                   String?
+  passwordHash           String
+  subscription           Subscription?
+  auras                  Aura[]
+  notificationPreferences NotificationPreference[]
+  pushSubscriptions      PushSubscription[]
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime                 @updatedAt
 }
 
 model Subscription {
@@ -56,11 +58,16 @@ model Aura {
   selectedStudyId       String?        // For wildlife tracking
   selectedIndividualId  String?        // For specific individual tracking
   locationConfigs       Json?          // Location configurations for senses
+  proactiveEnabled      Boolean        @default(true)
+  lastEvaluationAt      DateTime?
   senses                AuraSense[]
   rules                 BehaviorRule[]
   knowledge             Knowledge[]
   conversations         Conversation[]
   analytics             Analytics?
+  proactiveMessages     ProactiveMessage[]
+  ruleExecutionLogs     RuleExecutionLog[]
+  notificationPreferences NotificationPreference[]
   createdAt             DateTime       @default(now())
   updatedAt             DateTime       @updatedAt
   
@@ -93,27 +100,38 @@ model AuraSense {
 }
 
 model BehaviorRule {
-  id        String   @id @default(cuid())
-  auraId    String
-  aura      Aura     @relation(fields: [auraId], references: [id])
-  name      String
-  trigger   Json     // Trigger conditions
-  action    Json     // Action configuration
-  priority  Int      @default(0)
-  enabled   Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                    String   @id @default(cuid())
+  auraId                String
+  aura                  Aura     @relation(fields: [auraId], references: [id])
+  name                  String
+  trigger               Json     // Trigger conditions
+  action                Json     // Action configuration
+  priority              Int      @default(0)
+  enabled               Boolean  @default(true)
+  lastTriggeredAt       DateTime?
+  triggerCount          Int      @default(0)
+  notificationTemplate  String?
+  notificationChannels  String[] @default(["in_app"])
+  createdAt             DateTime @default(now())
+  updatedAt             DateTime @updatedAt
+  
+  // Relations
+  proactiveMessages     ProactiveMessage[]
+  ruleExecutionLogs     RuleExecutionLog[]
 }
 
 model Conversation {
-  id        String    @id @default(cuid())
-  auraId    String
-  aura      Aura      @relation(fields: [auraId], references: [id])
-  sessionId String    @unique
-  messages  Message[]
-  context   Json?
-  startedAt DateTime  @default(now())
-  endedAt   DateTime?
+  id                     String             @id @default(cuid())
+  auraId                 String
+  aura                   Aura               @relation(fields: [auraId], references: [id])
+  sessionId              String             @unique
+  messages               Message[]
+  proactiveMessages      ProactiveMessage[]
+  context                Json?
+  hasUnreadProactive     Boolean            @default(false)
+  unreadProactiveCount   Int                @default(0)
+  startedAt              DateTime           @default(now())
+  endedAt                DateTime?
   
   @@index([auraId])
 }
@@ -149,6 +167,125 @@ model Analytics {
   updatedAt DateTime @updatedAt
 }
 
+// Proactive Notifications Models
+
+model ProactiveMessage {
+  id              String                    @id @default(cuid())
+  auraId          String
+  aura            Aura                      @relation(fields: [auraId], references: [id], onDelete: Cascade)
+  ruleId          String?
+  rule            BehaviorRule?             @relation(fields: [ruleId], references: [id], onDelete: SetNull)
+  conversationId  String
+  conversation    Conversation              @relation(fields: [conversationId], references: [id], onDelete: Cascade)
+  message         String
+  triggerData     Json                      // Sensor values that triggered the rule
+  metadata        Json                      @default("{}")
+  createdAt       DateTime                  @default(now())
+  deliveredAt     DateTime?
+  readAt          DateTime?
+  status          NotificationStatus        @default(PENDING)
+  deliveryChannel NotificationChannel       @default(IN_APP)
+  retryCount      Int                       @default(0)
+  errorMessage    String?
+  deliveryLogs    NotificationDeliveryLog[]
+  
+  @@index([auraId])
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("proactive_messages")
+}
+
+model RuleExecutionLog {
+  id                String            @id @default(cuid())
+  ruleId            String
+  rule              BehaviorRule      @relation(fields: [ruleId], references: [id], onDelete: Cascade)
+  auraId            String
+  aura              Aura              @relation(fields: [auraId], references: [id], onDelete: Cascade)
+  executedAt        DateTime          @default(now())
+  triggered         Boolean           @default(false)
+  sensorValues      Json
+  evaluationResult  Json?             // Details about why rule did/didn't trigger
+  notificationSent  Boolean           @default(false)
+  notificationId    String?
+  notification      ProactiveMessage? @relation(fields: [notificationId], references: [id])
+  executionTimeMs   Int?              // Performance tracking
+  
+  @@index([ruleId])
+  @@index([auraId])
+  @@index([executedAt(sort: Desc)])
+  @@map("rule_execution_log")
+}
+
+model NotificationPreference {
+  id                String              @id @default(cuid())
+  userId            String
+  user              User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auraId            String?             // NULL means global preference
+  aura              Aura?               @relation(fields: [auraId], references: [id], onDelete: Cascade)
+  channel           NotificationChannel
+  enabled           Boolean             @default(true)
+  quietHoursEnabled Boolean             @default(false)
+  quietHoursStart   String?             // Time format: HH:MM
+  quietHoursEnd     String?             // Time format: HH:MM
+  timezone          String              @default("UTC")
+  maxPerDay         Int?                // Rate limiting per channel
+  priorityThreshold Int                 @default(5)
+  metadata          Json                @default("{}")  // Channel-specific settings
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+  
+  @@unique([userId, auraId, channel])
+  @@index([userId])
+  @@map("notification_preferences")
+}
+
+model NotificationDeliveryLog {
+  id             String            @id @default(cuid())
+  notificationId String
+  notification   ProactiveMessage  @relation(fields: [notificationId], references: [id], onDelete: Cascade)
+  channel        NotificationChannel
+  attemptedAt    DateTime          @default(now())
+  deliveredAt    DateTime?
+  failedAt       DateTime?
+  errorMessage   String?
+  externalId     String?           // ID from external service
+  metadata       Json              @default("{}")
+  
+  @@index([notificationId])
+  @@map("notification_delivery_log")
+}
+
+model PushSubscription {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint     String    @unique
+  keys         Json      // p256dh and auth keys
+  userAgent    String?
+  createdAt    DateTime  @default(now())
+  lastUsedAt   DateTime?
+  
+  @@index([userId])
+  @@map("push_subscriptions")
+}
+
+model BackgroundJob {
+  id          String          @id @default(cuid())
+  jobType     String
+  status      BackgroundJobStatus @default(PENDING)
+  startedAt   DateTime?
+  completedAt DateTime?
+  errorMessage String?
+  metadata    Json            @default("{}")
+  createdAt   DateTime        @default(now())
+  
+  @@index([status])
+  @@index([createdAt(sort: Desc)])
+  @@map("background_jobs")
+}
+
+// Update User model to include new relations (done above)
+
 // Enums
 enum Tier {
   FREE
@@ -183,4 +320,28 @@ enum MessageRole {
   USER
   AURA
   SYSTEM
+}
+
+enum NotificationStatus {
+  PENDING
+  QUEUED
+  DELIVERED
+  READ
+  FAILED
+  EXPIRED
+}
+
+enum NotificationChannel {
+  IN_APP
+  WEB_PUSH
+  SMS
+  WHATSAPP
+  EMAIL
+}
+
+enum BackgroundJobStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
 }
