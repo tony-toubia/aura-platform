@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Test different sensor types
-      const baseSenseId = senseId ? senseId.split('.')[0] : ''
+      const baseSenseId = senseId ? (senseId.split('.')[0] || '') : ''
 
       switch (baseSenseId) {
         case 'weather':
@@ -115,7 +115,7 @@ export async function POST(request: NextRequest) {
 }
 
 async function testWeatherSense(senseId: string, auraConfig: any, supabase: any) {
-  const weatherField = senseId ? senseId.split('.')[1] : 'temperature' // temperature, conditions, humidity, etc.
+  const weatherField = senseId ? (senseId.split('.')[1] || 'temperature') : 'temperature' // temperature, conditions, humidity, etc.
   
   // Try to get location from aura configuration
   let lat = 39.0997 // Default Kansas City
@@ -175,7 +175,7 @@ async function testWeatherSense(senseId: string, auraConfig: any, supabase: any)
 }
 
 async function testAirQualitySense(senseId: string, auraConfig: any, supabase: any) {
-  const field = senseId ? senseId.split('.')[1] : 'aqi' // aqi, pm25, etc.
+  const field = senseId ? (senseId.split('.')[1] || 'aqi') : 'aqi' // aqi, pm25, etc.
   
   // Mock air quality data for now (would integrate with real API)
   const mockData = {
@@ -221,7 +221,7 @@ async function testNewsSense(senseId: string, auraConfig: any, supabase: any) {
 }
 
 async function testFitnessSense(senseId: string, auraConfig: any, supabase: any, userId: string) {
-  const field = senseId ? senseId.split('.')[1] : 'steps' // steps, heartRate, calories, etc.
+  const field = senseId ? (senseId.split('.')[1] || 'steps') : 'steps' // steps, heartRate, calories, etc.
   
   // Check for OAuth connections
   const { data: oauthConnections } = await supabase
@@ -250,7 +250,7 @@ async function testFitnessSense(senseId: string, auraConfig: any, supabase: any,
 }
 
 async function testSleepSense(senseId: string, auraConfig: any, supabase: any, userId: string) {
-  const field = senseId ? senseId.split('.')[1] : 'duration' // duration, quality, stage, etc.
+  const field = senseId ? (senseId.split('.')[1] || 'duration') : 'duration' // duration, quality, stage, etc.
   
   const { data: oauthConnections } = await supabase
     .from('oauth_connections')
@@ -278,7 +278,7 @@ async function testSleepSense(senseId: string, auraConfig: any, supabase: any, u
 }
 
 async function testCalendarSense(senseId: string, auraConfig: any, supabase: any, userId: string) {
-  const field = senseId ? senseId.split('.')[1] : 'nextEvent'
+  const field = senseId ? (senseId.split('.')[1] || 'nextEvent') : 'nextEvent'
   
   const { data: oauthConnections } = await supabase
     .from('oauth_connections')
@@ -304,7 +304,7 @@ async function testCalendarSense(senseId: string, auraConfig: any, supabase: any
 }
 
 async function testLocationSense(senseId: string, auraConfig: any, supabase: any, userId: string) {
-  const field = senseId ? senseId.split('.')[1] : 'place'
+  const field = senseId ? (senseId.split('.')[1] || 'place') : 'place'
   
   const { data: oauthConnections } = await supabase
     .from('oauth_connections')
@@ -330,7 +330,7 @@ async function testLocationSense(senseId: string, auraConfig: any, supabase: any
 }
 
 async function testSoilMoistureSense(senseId: string) {
-  const field = (senseId ? senseId.split('.')[1] : null) || 'value'
+  const field = senseId ? (senseId.split('.')[1] || 'value') : 'value'
   
   const moistureValue = Math.floor(Math.random() * 70) + 20 // 20-90%
   
@@ -379,7 +379,7 @@ function generateTestSensorData(senseId: string, config: any): any {
   }
 
   return {
-    field: (senseId ? senseId.split('.')[1] : null) || 'value',
+    field: senseId ? (senseId.split('.')[1] || 'value') : 'value',
     value,
     unit: config.unit,
     type: config.type,

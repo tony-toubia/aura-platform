@@ -162,7 +162,7 @@ export async function GET() {
 
       try {
         // Get base sense ID safely
-        const baseSenseId = senseId ? senseId.split('.')[0] : ''
+        const baseSenseId = senseId ? (senseId.split('.')[0] || '') : ''
         
         // Test connected senses (OAuth-based)
         if (['fitness', 'sleep', 'calendar', 'location'].includes(senseId)) {
@@ -257,7 +257,7 @@ export async function GET() {
 
 // Helper function to generate mock sensor data
 async function generateMockSenseData(senseId: string): Promise<any> {
-  const baseSenseId = senseId ? senseId.split('.')[0] : ''
+  const baseSenseId = senseId ? (senseId.split('.')[0] || '') : ''
   
   switch (baseSenseId) {
     case 'weather':
