@@ -96,6 +96,16 @@ Utility functions:
 - Comprehensive system validation and health check
 - Returns test results, recommendations, and system status
 
+### Basic Test Endpoint
+- **GET** `/api/debug/test-basic`
+- Simple authentication and database connectivity test
+- Useful for troubleshooting 500 errors
+
+### Debug Test Page
+- **GET** `/debug/test`
+- Interactive test interface for troubleshooting issues
+- Run basic and full diagnostics tests with detailed error reporting
+
 ### Existing Debug Endpoints
 - **GET** `/api/debug/senses` - Raw database senses
 - **GET** `/api/debug/subscription-guard` - Subscription system test
@@ -160,6 +170,15 @@ curl https://your-domain.com/api/debug/senses
 - Verify OAuth connections haven't expired
 
 ### Troubleshooting Workflow
+
+#### For 500 Errors:
+1. **Debug Test Page**: Visit `/debug/test` for interactive troubleshooting
+2. **Basic Test**: Run basic connectivity and auth tests first
+3. **Check Server Logs**: Look for detailed console output with `[DIAGNOSTICS]` prefix
+4. **Database Permissions**: Verify RLS policies and table access
+5. **Full Test**: Run comprehensive diagnostics test if basic test passes
+
+#### For UI Issues:
 1. **System Test**: Run `/api/debug/test-diagnostics` first
 2. **System Overview**: Check System Status dashboard
 3. **Identify Issues**: Look for red/yellow status indicators  

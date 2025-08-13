@@ -17,15 +17,22 @@ interface SenseData {
 
 export async function GET() {
   try {
+    console.log('[DIAGNOSTICS] Starting diagnostics fetch...')
+    
     const supabase = await createServerSupabase()
+    console.log('[DIAGNOSTICS] Supabase client created')
 
     // Get user ID from session
-    const { data: { user } } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    console.log('[DIAGNOSTICS] Auth check result:', { user: !!user, error: authError })
+    
     if (!user) {
+      console.log('[DIAGNOSTICS] No user found, returning 401')
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
     // Fetch all auras for this user
+    console.log('[DIAGNOSTICS] Fetching auras for user:', user.id)
     const { data: auras, error: aurasError } = await supabase
       .from('auras')
       .select(`
@@ -42,18 +49,28 @@ export async function GET() {
       .order('created_at', { ascending: false })
 
     if (aurasError) {
-      console.error('Failed to fetch auras:', aurasError)
+      console.error('[DIAGNOSTICS] Failed to fetch auras:', aurasError)
       return NextResponse.json({ error: `Failed to fetch auras: ${aurasError.message}` }, { status: 500 })
     }
 
+    console.log('[DIAGNOSTICS] Auras fetched:', { count: auras?.length || 0 })
+
     // Fetch behavior rules
-    const { data: rules } = await supabase
+    console.log('[DIAGNOSTICS] Fetching behavior rules...')
+    const { data: rules, error: rulesError } = await supabase
       .from('behavior_rules')
       .select('id, aura_id, name, enabled, trigger, last_triggered_at')
       .in('aura_id', (auras || []).map((a: any) => a.id))
 
+    if (rulesError) {
+      console.error('[DIAGNOSTICS] Error fetching rules:', rulesError)
+    } else {
+      console.log('[DIAGNOSTICS] Rules fetched:', { count: rules?.length || 0 })
+    }
+
     // Fetch recent notifications
-    const { data: notifications } = await supabase
+    console.log('[DIAGNOSTICS] Fetching notifications...')
+    const { data: notifications, error: notificationsError } = await supabase
       .from('proactive_messages')
       .select(`
         id,
@@ -68,73 +85,119 @@ export async function GET() {
       .order('created_at', { ascending: false })
       .limit(50)
 
+    if (notificationsError) {
+      console.error('[DIAGNOSTICS] Error fetching notifications:', notificationsError)
+    } else {
+      console.log('[DIAGNOSTICS] Notifications fetched:', { count: notifications?.length || 0 })
+    }
+
     // Fetch OAuth connections from oauth_connections table
-    const { data: oauthConnections } = await supabase
+    console.log('[DIAGNOSTICS] Fetching OAuth connections...')
+    const { data: oauthConnections, error: oauthError } = await supabase
       .from('oauth_connections')
       .select('*')
       .eq('user_id', user.id)
 
+    if (oauthError) {
+      console.error('[DIAGNOSTICS] Error fetching OAuth connections:', oauthError)
+    } else {
+      console.log('[DIAGNOSTICS] OAuth connections fetched:', { count: oauthConnections?.length || 0 })
+    }
+
     // Get today's notification count
+    console.log('[DIAGNOSTICS] Fetching today\'s notification count...')
     const startOfDay = new Date()
     startOfDay.setHours(0, 0, 0, 0)
     
-    const { count: notificationsToday } = await supabase
+    const { count: notificationsToday, error: countError } = await supabase
       .from('proactive_messages')
       .select('*', { count: 'exact', head: true })
       .in('aura_id', (auras || []).map((a: any) => a.id))
       .gte('created_at', startOfDay.toISOString())
 
+    if (countError) {
+      console.error('[DIAGNOSTICS] Error fetching notification count:', countError)
+    } else {
+      console.log('[DIAGNOSTICS] Today\'s notification count:', notificationsToday)
+    }
+
     // Process auras data
+    console.log('[DIAGNOSTICS] Processing auras data...')
     const processedAuras = (auras || []).map((aura: any) => {
-      // Find notifications for this aura
-      const auraNotifications = (notifications || []).filter(n => n.aura_id === aura.id)
-      
-      return {
-        id: aura.id,
-        name: aura.name,
-        enabled: aura.enabled,
-        senseCount: aura.senses?.length || 0,
-        ruleCount: (rules || []).filter(r => r.aura_id === aura.id).length,
-        notificationCount: auraNotifications.length
+      try {
+        // Find notifications for this aura
+        const auraNotifications = (notifications || []).filter((n: any) => n.aura_id === aura.id)
+        
+        return {
+          id: aura.id,
+          name: aura.name,
+          enabled: aura.enabled,
+          senseCount: aura.senses?.length || 0,
+          ruleCount: (rules || []).filter((r: any) => r.aura_id === aura.id).length,
+          notificationCount: auraNotifications.length
+        }
+      } catch (error) {
+        console.error('[DIAGNOSTICS] Error processing aura:', aura.id, error)
+        return {
+          id: aura.id,
+          name: aura.name,
+          enabled: false,
+          senseCount: 0,
+          ruleCount: 0,
+          notificationCount: 0
+        }
       }
     })
+    
+    console.log('[DIAGNOSTICS] Auras processed:', { count: processedAuras.length })
 
     // Collect all unique senses across auras
+    console.log('[DIAGNOSTICS] Collecting senses data...')
     const allSenses = new Set<string>()
     const senseConfigurations = new Map<string, any>()
     const senseConnections = new Map<string, any[]>()
 
-    ;(auras || []).forEach((aura: any) => {
-      // Add senses
-      ;(aura.senses || []).forEach((sense: string) => allSenses.add(sense))
+    try {
+      ;(auras || []).forEach((aura: any) => {
+        // Add senses
+        ;(aura.senses || []).forEach((sense: string) => allSenses.add(sense))
+        
+        // Store configurations
+        if (aura.location_configs) {
+          Object.entries(aura.location_configs).forEach(([key, config]: [string, any]) => {
+            senseConfigurations.set(`location:${key}`, config)
+          })
+        }
+        if (aura.news_configurations) {
+          Object.entries(aura.news_configurations).forEach(([key, config]: [string, any]) => {
+            senseConfigurations.set(`news:${key}`, config)
+          })
+        }
+        if (aura.weather_air_quality_configurations) {
+          Object.entries(aura.weather_air_quality_configurations).forEach(([key, config]: [string, any]) => {
+            senseConfigurations.set(`weather:${key}`, config)
+          })
+        }
+        
+        // Store OAuth connections
+        if (aura.oauth_connections) {
+          Object.entries(aura.oauth_connections).forEach(([senseId, connections]: [string, any]) => {
+            if (!senseConnections.has(senseId)) {
+              senseConnections.set(senseId, [])
+            }
+            senseConnections.get(senseId)?.push(...(connections as any[]))
+          })
+        }
+      })
       
-      // Store configurations
-      if (aura.location_configs) {
-        Object.entries(aura.location_configs).forEach(([key, config]: [string, any]) => {
-          senseConfigurations.set(`location:${key}`, config)
-        })
-      }
-      if (aura.news_configurations) {
-        Object.entries(aura.news_configurations).forEach(([key, config]: [string, any]) => {
-          senseConfigurations.set(`news:${key}`, config)
-        })
-      }
-      if (aura.weather_air_quality_configurations) {
-        Object.entries(aura.weather_air_quality_configurations).forEach(([key, config]: [string, any]) => {
-          senseConfigurations.set(`weather:${key}`, config)
-        })
-      }
-      
-      // Store OAuth connections
-      if (aura.oauth_connections) {
-        Object.entries(aura.oauth_connections).forEach(([senseId, connections]: [string, any]) => {
-          if (!senseConnections.has(senseId)) {
-            senseConnections.set(senseId, [])
-          }
-          senseConnections.get(senseId)?.push(...(connections as any[]))
-        })
-      }
-    })
+      console.log('[DIAGNOSTICS] Senses collected:', { 
+        totalSenses: allSenses.size,
+        configurations: senseConfigurations.size,
+        connections: senseConnections.size 
+      })
+    } catch (error) {
+      console.error('[DIAGNOSTICS] Error collecting senses data:', error)
+    }
 
     // Group OAuth connections by provider type
     const oauthConnectionsByType: Record<string, any[]> = {}
@@ -247,10 +310,35 @@ export async function GET() {
     })
 
   } catch (error) {
-    console.error('Senses diagnostics error:', error)
+    console.error('[DIAGNOSTICS] Critical error occurred:', {
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString()
+    })
+    
     return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Unknown error',
-      details: error instanceof Error ? error.stack : undefined
+      success: false,
+      error: 'Diagnostics system error',
+      message: error instanceof Error ? error.message : 'Unknown error occurred',
+      details: error instanceof Error ? error.stack : undefined,
+      timestamp: new Date().toISOString(),
+      // Provide basic fallback data to help with debugging
+      fallback: {
+        auras: [],
+        senseData: [],
+        oauthConnections: {},
+        notifications: [],
+        systemStatus: {
+          totalSenses: 0,
+          activeSenses: 0,
+          totalRules: 0,
+          activeRules: 0,
+          notificationsToday: 0,
+          lastCronRun: undefined,
+          lastRuleEvaluation: undefined,
+          lastNotificationProcessed: undefined
+        }
+      }
     }, { status: 500 })
   }
 }
