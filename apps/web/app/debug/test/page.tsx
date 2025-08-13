@@ -8,13 +8,29 @@ import { Badge } from '@/components/ui/badge'
 import { RefreshCw, CheckCircle, XCircle } from 'lucide-react'
 
 interface TestResult {
-  success: boolean
+  success?: boolean
   error?: string
+  message?: string
   timestamp?: string
   user?: any
   tests?: any
   details?: any
   stack?: string
+  systemStatus?: {
+    totalSenses: number
+    activeSenses: number
+    totalRules: number
+    activeRules: number
+    notificationsToday: number
+    lastCronRun?: string
+    lastRuleEvaluation?: string
+    lastNotificationProcessed?: string
+  }
+  auras?: any[]
+  senseData?: any[]
+  oauthConnections?: Record<string, any[]>
+  notifications?: any[]
+  fallback?: any
 }
 
 export default function DiagnosticsTestPage() {
