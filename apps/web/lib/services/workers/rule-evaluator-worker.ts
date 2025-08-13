@@ -180,7 +180,7 @@ export class RuleEvaluatorWorker {
     try {
       // Get aura with rules
       const aura = await this.getAuraWithRules(auraId)
-      if (!aura || !aura.proactiveEnabled) {
+      if (!aura || !(aura as any).proactiveEnabled) {
         return {
           auraId,
           triggered: false,
@@ -209,7 +209,7 @@ export class RuleEvaluatorWorker {
       for (const ruleResult of triggeredRules) {
         try {
           // Check if we should trigger based on subscription limits and cooldowns
-          const shouldTrigger = await this.shouldTrigger(ruleResult.rule, aura.userId)
+          const shouldTrigger = await this.shouldTrigger(ruleResult.rule, (aura as any).userId || (aura as any).user_id)
           
           if (shouldTrigger) {
             // Queue notification
@@ -308,7 +308,7 @@ export class RuleEvaluatorWorker {
       if (!lastEvaluation) return true // Never evaluated
       
       const timeSinceLastEval = now.getTime() - lastEvaluation.getTime()
-      return timeSinceLastEval >= limits.evaluationFrequency
+      return timeSinceLastEval >= (limits?.evaluationFrequency || 30 * 60 * 1000)
     })
   }
 
@@ -414,18 +414,19 @@ export class RuleEvaluatorWorker {
 
     if (error) return false
 
-    const tier = user?.subscription?.tier || 'FREE'
+    const subscription = user?.subscription as any
+    const tier = subscription?.tier || 'FREE'
     const limits = TIER_LIMITS[tier]
 
     // Check daily notification limit
-    if (limits.maxNotificationsPerDay > 0) {
+    if (limits && limits.maxNotificationsPerDay > 0) {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
       const { count, error: countError } = await this.supabase
         .from('proactive_messages')
         .select('id', { count: 'exact' })
-        .eq('aura_id', rule.auraId)
+        .eq('aura_id', (rule as any).auraId || (rule as any).aura_id)
         .gte('created_at', today.toISOString())
 
       if (countError) return false
@@ -450,9 +451,9 @@ export class RuleEvaluatorWorker {
     const payload: NotificationPayload = {
       auraId: aura.id,
       ruleId: rule.id,
-      message: rule.notificationTemplate || message,
+      message: (rule as any).notificationTemplate || message,
       priority: rule.priority || 0,
-      channels: rule.notificationChannels as any[] || ['IN_APP'],
+      channels: (rule as any).notificationChannels || ['IN_APP'],
       context: {
         sensorData: context.senseData,
         triggerData: context

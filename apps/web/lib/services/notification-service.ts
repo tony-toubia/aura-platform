@@ -227,7 +227,10 @@ export class NotificationService {
           succeeded++
         } else {
           failed++
-          errors.push(`Notification ${notifications[index].id}: ${result.reason}`)
+          const notification = notifications[index]
+          if (notification) {
+            errors.push(`Notification ${notification.id}: ${result.reason}`)
+          }
         }
       })
 
