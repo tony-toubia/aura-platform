@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
         if (!byAura[pref.aura_id]) {
           byAura[pref.aura_id] = []
         }
-        byAura[pref.aura_id].push(preference)
+        byAura[pref.aura_id]!.push(preference)
       } else {
         global.push(preference)
       }
