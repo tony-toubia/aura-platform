@@ -61,8 +61,8 @@ export async function POST(request: NextRequest) {
  */
 export async function GET() {
   try {
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = createClient()
+    const { createServerSupabase } = await import('@/lib/supabase/server.server')
+    const supabase = await createServerSupabase()
 
     // Get queue statistics
     const [queuedCount, recentStats] = await Promise.all([

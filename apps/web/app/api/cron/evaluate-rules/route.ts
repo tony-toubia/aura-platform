@@ -80,8 +80,8 @@ export async function POST(request: NextRequest) {
  */
 export async function GET(request: NextRequest) {
   try {
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = createClient()
+    const { createServerSupabase } = await import('@/lib/supabase/server.server')
+    const supabase = await createServerSupabase()
 
     // Get recent background job status
     const { data: recentJobs, error } = await supabase
@@ -121,8 +121,8 @@ export async function GET(request: NextRequest) {
  */
 async function isEvaluationRunning(): Promise<boolean> {
   try {
-    const { createClient } = await import('@/lib/supabase/server')
-    const supabase = createClient()
+    const { createServerSupabase } = await import('@/lib/supabase/server.server')
+    const supabase = await createServerSupabase()
 
     // Check for running background jobs of type 'rule_evaluation'
     const { data, error } = await supabase

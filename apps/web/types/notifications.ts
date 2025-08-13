@@ -113,3 +113,46 @@ export interface GetHistoryResponse {
   total: number
   hasMore: boolean
 }
+
+export interface RuleEvaluatorConfig {
+  batchSize: number
+  evaluationTimeout: number
+  sensorDataTTL: number
+  maxRetries: number
+}
+
+export interface WorkerResult {
+  processed: number
+  succeeded: number
+  failed: number
+  duration: number
+  errors: string[]
+}
+
+export interface BatchResult {
+  succeeded: number
+  failed: number
+  errors: string[]
+}
+
+export interface EvaluationResult {
+  auraId: string
+  triggered: boolean
+  rules: Array<{
+    ruleId: string
+    triggered: boolean
+    message?: string
+    error?: string
+  }>
+  sensorData: Record<string, any>
+  duration: number
+}
+
+export interface TierLimits {
+  evaluationFrequency: number
+  maxNotificationsPerDay: number
+  maxRulesPerAura: number
+  channels: NotificationChannel[]
+  sensorDataCacheTTL: number
+  priority: number
+}
