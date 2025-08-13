@@ -15,7 +15,7 @@ interface MarkReadResponse {
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const supabase = await createServerSupabase()
@@ -25,7 +25,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const notificationId = params.id
+    const { id: notificationId } = await params
 
     if (!notificationId) {
       return NextResponse.json({ error: 'Notification ID is required' }, { status: 400 })
@@ -37,7 +37,8 @@ export async function PATCH(
       .select(`
         id,
         status,
-        aura:auras!inner(user_id)
+        aura_id,
+        auras!inner(user_id)
       `)
       .eq('id', notificationId)
       .single()
@@ -46,7 +47,9 @@ export async function PATCH(
       return NextResponse.json({ error: 'Notification not found' }, { status: 404 })
     }
 
-    if (notification.aura.user_id !== user.id) {
+    // Check if the aura belongs to the user
+    const auraData = notification.auras as any
+    if (!auraData || auraData.user_id !== user.id) {
       return NextResponse.json({ error: 'Notification not owned by user' }, { status: 403 })
     }
 
