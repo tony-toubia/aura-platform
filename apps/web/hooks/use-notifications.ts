@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useAuth } from '@/hooks/use-auth'
+import { useAuth } from './use-auth'
 import type { 
   NotificationPreference, 
   ProactiveMessage, 
@@ -37,6 +37,8 @@ interface UseNotificationsReturn {
   loadHistory: (options?: {
     auraId?: string
     status?: string
+    startDate?: string
+    endDate?: string
     limit?: number
     offset?: number
   }) => Promise<void>
@@ -141,6 +143,8 @@ export function useNotifications(): UseNotificationsReturn {
   const loadHistory = useCallback(async (options: {
     auraId?: string
     status?: string
+    startDate?: string
+    endDate?: string
     limit?: number
     offset?: number
   } = {}) => {
@@ -152,6 +156,8 @@ export function useNotifications(): UseNotificationsReturn {
       const params = new URLSearchParams()
       if (options.auraId) params.append('auraId', options.auraId)
       if (options.status) params.append('status', options.status)
+      if (options.startDate) params.append('startDate', options.startDate)
+      if (options.endDate) params.append('endDate', options.endDate)
       if (options.limit) params.append('limit', options.limit.toString())
       if (options.offset) params.append('offset', options.offset.toString())
 
@@ -244,16 +250,25 @@ export function useNotifications(): UseNotificationsReturn {
     if (!user) return
 
     try {
+      // First get user's aura IDs
+      const { data: auras, error: auraError } = await supabase
+        .from('auras')
+        .select('id')
+        .eq('user_id', user.id)
+
+      if (auraError || !auras || auras.length === 0) {
+        setUnreadCount(0)
+        return
+      }
+
+      const auraIds = auras.map(a => a.id)
+
       // Get unread count from local supabase query
       const { count, error } = await supabase
         .from('proactive_messages')
         .select('id', { count: 'exact' })
         .eq('status', 'DELIVERED')
-        .in('aura_id', supabase
-          .from('auras')
-          .select('id')
-          .eq('user_id', user.id)
-        )
+        .in('aura_id', auraIds)
 
       if (error) {
         console.error('Failed to get unread count:', error)
