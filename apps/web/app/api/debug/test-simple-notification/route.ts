@@ -46,29 +46,75 @@ export async function POST(request: NextRequest) {
 
     console.log('[TEST-NOTIF] Using aura:', targetAura.name)
 
-    // Try to insert directly into proactive_messages
+    // First check if proactive_messages table exists
+    console.log('[TEST-NOTIF] Checking proactive_messages table...')
+    const { data: tableCheck, error: tableError } = await supabase
+      .from('proactive_messages')
+      .select('id')
+      .limit(1)
+
+    if (tableError && tableError.code === 'PGRST106') {
+      // Table doesn't exist
+      return NextResponse.json({ 
+        error: 'Database migration required', 
+        details: 'proactive_messages table not found. Please run the database migration first.',
+        migrationFile: 'apps/web/supabase/migrations/20250113_proactive_notifications_fixed.sql'
+      }, { status: 503 })
+    }
+
+    console.log('[TEST-NOTIF] Table exists, proceeding with insert...')
+
+    // Try to insert directly into proactive_messages with proper enum handling
+    console.log('[TEST-NOTIF] Inserting with minimal required fields...')
     const { data: message, error: insertError } = await supabase
       .from('proactive_messages')
       .insert({
         aura_id: targetAura.id,
-        rule_id: 'test-rule',
         message: `🧪 Simple test message from ${targetAura.name}`,
-        priority: 10,
-        delivery_channel: 'IN_APP',
-        status: 'QUEUED',
-        scheduled_for: new Date().toISOString(),
-        retry_count: 0
+        trigger_data: { isTest: true, timestamp: new Date().toISOString() }
+        // Let other fields use their defaults
       })
       .select()
       .single()
 
     if (insertError) {
       console.log('[TEST-NOTIF] Failed to insert message:', insertError)
-      return NextResponse.json({ 
-        error: 'Failed to create test message', 
-        details: insertError.message,
-        code: insertError.code 
-      }, { status: 500 })
+      
+      // If it's an enum type issue, try with explicit enum values
+      if (insertError.code === 'PGRST204' || insertError.message.includes('enum') || insertError.message.includes('type')) {
+        console.log('[TEST-NOTIF] Retrying with explicit enum values...')
+        const { data: retryMessage, error: retryError } = await supabase
+          .from('proactive_messages')
+          .insert({
+            aura_id: targetAura.id,
+            message: `🧪 Test message from ${targetAura.name} (retry)`,
+            trigger_data: { isTest: true, timestamp: new Date().toISOString() },
+            status: 'pending',
+            delivery_channel: 'in_app'
+          })
+          .select()
+          .single()
+
+        if (retryError) {
+          console.log('[TEST-NOTIF] Retry also failed:', retryError)
+          return NextResponse.json({ 
+            error: 'Failed to create test message (retry failed)', 
+            details: retryError.message,
+            originalError: insertError.message,
+            code: retryError.code,
+            suggestion: 'Check USER-DEFINED enum types in database'
+          }, { status: 500 })
+        }
+        
+        message = retryMessage
+        console.log('[TEST-NOTIF] Retry successful:', message)
+      } else {
+        return NextResponse.json({ 
+          error: 'Failed to create test message', 
+          details: insertError.message,
+          code: insertError.code 
+        }, { status: 500 })
+      }
     }
 
     console.log('[TEST-NOTIF] Created message:', message)
