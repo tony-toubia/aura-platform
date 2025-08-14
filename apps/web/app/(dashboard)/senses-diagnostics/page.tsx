@@ -149,7 +149,8 @@ export default function SensesDiagnosticsPage() {
 
   const triggerNotificationTest = async () => {
     try {
-      const response = await fetch('/api/notifications/test', {
+      console.log('Sending test notification...')
+      const response = await fetch('/api/debug/test-simple-notification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -159,9 +160,14 @@ export default function SensesDiagnosticsPage() {
         })
       })
       
+      const result = await response.json()
+      console.log('Test notification result:', result)
+      
       if (response.ok) {
         // Refresh to show new notification
         setTimeout(() => fetchDiagnosticData(true), 2000)
+      } else {
+        console.error('Test notification failed:', result)
       }
     } catch (err) {
       console.error('Failed to send test notification:', err)
@@ -483,12 +489,12 @@ export default function SensesDiagnosticsPage() {
                     {connections.map((conn: any, idx: number) => (
                       <div key={idx} className="flex items-center justify-between p-3 bg-gray-50 rounded">
                         <div>
-                          <span className="font-medium">{conn.name || conn.providerId}</span>
-                          {conn.accountEmail && (
-                            <span className="text-sm text-gray-600 ml-2">({conn.accountEmail})</span>
+                          <span className="font-medium">{conn.name || conn.provider_id || conn.sense_type}</span>
+                          {(conn.account_email || conn.accountEmail) && (
+                            <span className="text-sm text-gray-600 ml-2">({conn.account_email || conn.accountEmail})</span>
                           )}
                           <div className="text-xs text-gray-500 mt-1">
-                            Connected: {formatDateSafely(conn.connectedAt, 'MMM dd, yyyy HH:mm')}
+                            Connected: {formatDateSafely(conn.created_at || conn.connected_at || conn.connectedAt, 'MMM dd, yyyy HH:mm')}
                           </div>
                         </div>
                         <Badge variant={conn.isActive ? 'default' : 'secondary'}>

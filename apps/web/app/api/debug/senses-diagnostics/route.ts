@@ -137,6 +137,28 @@ export async function GET() {
       tableErrors.oauth_connections = errorMsg
     }
 
+    // Safely fetch senses table
+    console.log('[DIAGNOSTICS] Fetching senses table...')
+    let sensesTable: any[] = []
+    try {
+      const { data, error } = await supabase
+        .from('senses')
+        .select('*')
+        .limit(100)
+
+      if (error) {
+        console.error('[DIAGNOSTICS] Error fetching senses table:', error)
+        tableErrors.senses = error.message
+      } else {
+        sensesTable = data || []
+        console.log('[DIAGNOSTICS] Senses table fetched:', { count: sensesTable.length })
+      }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+      console.error('[DIAGNOSTICS] Exception fetching senses table:', errorMsg)
+      tableErrors.senses = errorMsg
+    }
+
     // Safely get today's notification count
     console.log('[DIAGNOSTICS] Fetching today\'s notification count...')
     try {
@@ -199,8 +221,9 @@ export async function GET() {
     const senseConnections = new Map<string, any[]>()
 
     try {
+      // Add senses from aura configurations
       ;(auras || []).forEach((aura: any) => {
-        // Add senses
+        // Add senses from aura.senses array
         ;(aura.senses || []).forEach((sense: string) => allSenses.add(sense))
         
         // Store configurations
@@ -208,6 +231,19 @@ export async function GET() {
           Object.entries(aura.location_configs).forEach(([key, config]: [string, any]) => {
             senseConfigurations.set(`location:${key}`, config)
           })
+        }
+      })
+
+      // Add senses from senses table
+      ;(sensesTable || []).forEach((sense: any) => {
+        if (sense.id || sense.name || sense.sense_id) {
+          const senseId = sense.id || sense.name || sense.sense_id
+          allSenses.add(senseId)
+          
+          // Store any configurations from the senses table
+          if (sense.config) {
+            senseConfigurations.set(`table:${senseId}`, sense.config)
+          }
         }
       })
       
@@ -224,6 +260,8 @@ export async function GET() {
       
       console.log('[DIAGNOSTICS] Senses collected:', { 
         totalSenses: allSenses.size,
+        fromAuras: (auras || []).reduce((count: number, aura: any) => count + (aura.senses?.length || 0), 0),
+        fromSensesTable: sensesTable.length,
         configurations: senseConfigurations.size,
         connections: senseConnections.size 
       })

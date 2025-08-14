@@ -116,6 +116,12 @@ Utility functions:
 - Tests date validation functions with various input types
 - Useful for diagnosing "RangeError: Invalid time value" issues
 
+### Simple Test Notification
+- **POST** `/api/debug/test-simple-notification`
+- Bypasses complex notification service logic
+- Directly inserts test message into database
+- Useful for testing notification system without external dependencies
+
 ### Existing Debug Endpoints
 - **GET** `/api/debug/senses` - Raw database senses
 - **GET** `/api/debug/subscription-guard` - Subscription system test
@@ -194,6 +200,18 @@ curl https://your-domain.com/api/debug/senses
 2. **Check Console**: Look for "Date formatting error" warnings in browser console
 3. **Database Cleanup**: Invalid dates in database will show "Invalid Date" or "Format Error" in UI
 4. **Fixed Components**: All date rendering in senses-diagnostics page now has safe fallbacks
+
+#### For Empty Sensor Data (0 Total Senses):
+1. **Check Aura Configuration**: Ensure auras have `senses` arrays populated
+2. **Check Senses Table**: Verify the `senses` table has data
+3. **Enhanced Logic**: Diagnostics now pulls from both aura.senses and senses table
+4. **Console Logging**: Check for `[DIAGNOSTICS] Senses collected` logs showing fromAuras vs fromSensesTable counts
+
+#### For Test Notification 500 Errors:
+1. **Use Simple Test**: senses-diagnostics page now uses `/api/debug/test-simple-notification`
+2. **Check Logs**: Look for `[TEST-NOTIF]` prefix in server logs
+3. **Database Access**: Ensures proper insertion into `proactive_messages` table
+4. **Bypass Complex Logic**: Avoids NotificationService and external dependencies
 
 #### For UI Issues:
 1. **System Test**: Run `/api/debug/test-diagnostics` first
