@@ -189,6 +189,12 @@ curl https://your-domain.com/api/debug/senses
 5. **Database Permissions**: Verify RLS policies and table access based on error details
 6. **Full Test**: Run comprehensive diagnostics test if both simple and basic tests pass
 
+#### For "RangeError: Invalid time value":
+1. **Date Test**: Visit `/api/debug/test-dates` to check date validation
+2. **Check Console**: Look for "Date formatting error" warnings in browser console
+3. **Database Cleanup**: Invalid dates in database will show "Invalid Date" or "Format Error" in UI
+4. **Fixed Components**: All date rendering in senses-diagnostics page now has safe fallbacks
+
 #### For UI Issues:
 1. **System Test**: Run `/api/debug/test-diagnostics` first
 2. **System Overview**: Check System Status dashboard

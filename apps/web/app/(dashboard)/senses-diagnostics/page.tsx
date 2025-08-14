@@ -35,6 +35,22 @@ import {
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 
+// Safe date formatting utility
+const formatDateSafely = (dateString: string | undefined, formatStr: string): string => {
+  if (!dateString) return 'Unknown'
+  
+  try {
+    const date = new Date(dateString)
+    if (isNaN(date.getTime())) {
+      return 'Invalid Date'
+    }
+    return format(date, formatStr)
+  } catch (error) {
+    console.warn('Date formatting error:', error, 'for date:', dateString)
+    return 'Format Error'
+  }
+}
+
 interface SenseData {
   id: string
   name: string
@@ -298,10 +314,7 @@ export default function SensesDiagnosticsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Last Cron Run</p>
                 <p className="text-sm">
-                  {data?.systemStatus.lastCronRun 
-                    ? format(new Date(data.systemStatus.lastCronRun), 'HH:mm:ss')
-                    : 'Unknown'
-                  }
+                  {formatDateSafely(data?.systemStatus.lastCronRun, 'HH:mm:ss')}
                 </p>
               </div>
               <RefreshCw className="h-8 w-8 text-orange-500" />
@@ -475,7 +488,7 @@ export default function SensesDiagnosticsPage() {
                             <span className="text-sm text-gray-600 ml-2">({conn.accountEmail})</span>
                           )}
                           <div className="text-xs text-gray-500 mt-1">
-                            Connected: {format(new Date(conn.connectedAt), 'MMM dd, yyyy HH:mm')}
+                            Connected: {formatDateSafely(conn.connectedAt, 'MMM dd, yyyy HH:mm')}
                           </div>
                         </div>
                         <Badge variant={conn.isActive ? 'default' : 'secondary'}>
@@ -526,9 +539,9 @@ export default function SensesDiagnosticsPage() {
                     </div>
                     <p className="text-sm text-gray-700 mb-2">{notification.message}</p>
                     <div className="text-xs text-gray-500 space-y-1">
-                      <div>Created: {format(new Date(notification.createdAt), 'MMM dd, HH:mm:ss')}</div>
+                      <div>Created: {formatDateSafely(notification.createdAt, 'MMM dd, HH:mm:ss')}</div>
                       {notification.deliveredAt && (
-                        <div>Delivered: {format(new Date(notification.deliveredAt), 'MMM dd, HH:mm:ss')}</div>
+                        <div>Delivered: {formatDateSafely(notification.deliveredAt, 'MMM dd, HH:mm:ss')}</div>
                       )}
                       {notification.errorMessage && (
                         <div className="text-red-600">Error: {notification.errorMessage}</div>
@@ -607,22 +620,18 @@ export default function SensesDiagnosticsPage() {
               </CardHeader>
               <CardContent>
                 <div className="space-y-2">
-                  {data?.systemStatus.lastRuleEvaluation && (
-                    <div className="flex justify-between">
-                      <span>Last Rule Evaluation:</span>
-                      <span className="font-medium">
-                        {format(new Date(data.systemStatus.lastRuleEvaluation), 'HH:mm:ss')}
-                      </span>
-                    </div>
-                  )}
-                  {data?.systemStatus.lastNotificationProcessed && (
-                    <div className="flex justify-between">
-                      <span>Last Notification:</span>
-                      <span className="font-medium">
-                        {format(new Date(data.systemStatus.lastNotificationProcessed), 'HH:mm:ss')}
-                      </span>
-                    </div>
-                  )}
+                  <div className="flex justify-between">
+                    <span>Last Rule Evaluation:</span>
+                    <span className="font-medium">
+                      {formatDateSafely(data?.systemStatus.lastRuleEvaluation, 'HH:mm:ss')}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Last Notification:</span>
+                    <span className="font-medium">
+                      {formatDateSafely(data?.systemStatus.lastNotificationProcessed, 'HH:mm:ss')}
+                    </span>
+                  </div>
                 </div>
               </CardContent>
             </Card>
