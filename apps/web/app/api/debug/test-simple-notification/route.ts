@@ -1,6 +1,7 @@
 // app/api/debug/test-simple-notification/route.ts
 import { NextRequest, NextResponse } from 'next/server'
 import { createServerSupabase } from '@/lib/supabase/server.server'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
@@ -46,9 +47,29 @@ export async function POST(request: NextRequest) {
 
     console.log('[TEST-NOTIF] Using aura:', targetAura.name)
 
+    // Create service role client to bypass RLS for test operations
+    console.log('[TEST-NOTIF] Creating service role client...')
+    const serviceSupabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
+      return NextResponse.json({ 
+        error: 'Service role key not configured', 
+        details: 'SUPABASE_SERVICE_ROLE_KEY environment variable is missing'
+      }, { status: 500 })
+    }
+
     // First check if proactive_messages table exists
     console.log('[TEST-NOTIF] Checking proactive_messages table...')
-    const { data: tableCheck, error: tableError } = await supabase
+    const { data: tableCheck, error: tableError } = await serviceSupabase
       .from('proactive_messages')
       .select('id')
       .limit(1)
@@ -65,8 +86,8 @@ export async function POST(request: NextRequest) {
     console.log('[TEST-NOTIF] Table exists, proceeding with insert...')
 
     // Try to insert directly into proactive_messages with proper enum handling
-    console.log('[TEST-NOTIF] Inserting with minimal required fields...')
-    const { data: messageData, error: insertError } = await supabase
+    console.log('[TEST-NOTIF] Inserting with service role (bypasses RLS)...')
+    const { data: messageData, error: insertError } = await serviceSupabase
       .from('proactive_messages')
       .insert({
         aura_id: targetAura.id,
@@ -83,7 +104,7 @@ export async function POST(request: NextRequest) {
       // If it's an enum type issue, try with explicit enum values
       if (insertError.code === 'PGRST204' || insertError.message.includes('enum') || insertError.message.includes('type')) {
         console.log('[TEST-NOTIF] Retrying with explicit enum values...')
-        const { data: retryMessage, error: retryError } = await supabase
+        const { data: retryMessage, error: retryError } = await serviceSupabase
           .from('proactive_messages')
           .insert({
             aura_id: targetAura.id,
@@ -129,11 +150,16 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: 'Simple test notification created',
+      message: 'Simple test notification created successfully',
       notificationId: messageData?.id,
       auraName: targetAura.name,
+      auraId: targetAura.id,
       user: user.id,
-      aurasFound: auras.length
+      aurasFound: auras.length,
+      createdAt: messageData?.created_at,
+      deliveryChannel: messageData?.delivery_channel,
+      status: messageData?.status,
+      method: 'service_role_bypass_rls'
     })
 
   } catch (error) {
