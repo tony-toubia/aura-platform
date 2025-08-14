@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
 
     // Try to insert directly into proactive_messages with proper enum handling
     console.log('[TEST-NOTIF] Inserting with minimal required fields...')
-    const { data: message, error: insertError } = await supabase
+    const { data: messageData, error: insertError } = await supabase
       .from('proactive_messages')
       .insert({
         aura_id: targetAura.id,
@@ -106,8 +106,16 @@ export async function POST(request: NextRequest) {
           }, { status: 500 })
         }
         
-        message = retryMessage
-        console.log('[TEST-NOTIF] Retry successful:', message)
+        console.log('[TEST-NOTIF] Retry successful:', retryMessage)
+        
+        return NextResponse.json({
+          success: true,
+          message: 'Simple test notification created (after retry)',
+          notificationId: retryMessage?.id,
+          auraName: targetAura.name,
+          user: user.id,
+          aurasFound: auras.length
+        })
       } else {
         return NextResponse.json({ 
           error: 'Failed to create test message', 
@@ -117,12 +125,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    console.log('[TEST-NOTIF] Created message:', message)
+    console.log('[TEST-NOTIF] Created message:', messageData)
 
     return NextResponse.json({
       success: true,
       message: 'Simple test notification created',
-      notificationId: message?.id,
+      notificationId: messageData?.id,
       auraName: targetAura.name,
       user: user.id,
       aurasFound: auras.length
