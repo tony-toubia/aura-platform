@@ -370,12 +370,24 @@ export default function DiagnosticsTestPage() {
             <li>If all tests pass, try accessing <code>/senses-diagnostics</code> directly</li>
           </ol>
           
-          <div className="mt-4 p-3 bg-blue-50 rounded text-sm">
-            <p className="font-medium text-blue-800">💡 Tip:</p>
-            <p className="text-blue-600">
-              If the Simple Test fails, check your database permissions and RLS policies. 
-              The error message will show exactly which step failed.
-            </p>
+          <div className="mt-4 space-y-3">
+            <div className="p-3 bg-blue-50 rounded text-sm">
+              <p className="font-medium text-blue-800">💡 Tip:</p>
+              <p className="text-blue-600">
+                If the Simple Test fails, check your database permissions and RLS policies. 
+                The error message will show exactly which step failed.
+              </p>
+            </div>
+            
+            <div className="p-3 bg-purple-50 rounded text-sm">
+              <p className="font-medium text-purple-800">🐛 Date Issues?</p>
+              <p className="text-purple-600">
+                If you're seeing "RangeError: Invalid time value" errors, test the date validation: 
+                <a href="/api/debug/test-dates" className="underline ml-1" target="_blank">
+                  Test Date Functions
+                </a>
+              </p>
+            </div>
           </div>
         </CardContent>
       </Card>

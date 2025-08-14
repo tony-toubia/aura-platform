@@ -232,17 +232,39 @@ export async function GET() {
     }
 
     // Group OAuth connections by provider type
+    console.log('[DIAGNOSTICS] Processing OAuth connections:', oauthConnections.length)
     const oauthConnectionsByType: Record<string, any[]> = {}
+    
     ;(oauthConnections || []).forEach((conn: any) => {
       const type = conn.provider || conn.sense_type || 'unknown'
       if (!oauthConnectionsByType[type]) {
         oauthConnectionsByType[type] = []
       }
-      oauthConnectionsByType[type].push({
-        ...conn,
-        isActive: conn.expires_at ? new Date(conn.expires_at) > new Date() : true
-      })
+      
+      try {
+        let isActive = true
+        if (conn.expires_at) {
+          if (isValidDate(conn.expires_at)) {
+            isActive = new Date(conn.expires_at) > new Date()
+          } else {
+            console.warn('[DIAGNOSTICS] Invalid expires_at date in OAuth connection:', conn.id, conn.expires_at)
+          }
+        }
+        
+        oauthConnectionsByType[type].push({
+          ...conn,
+          isActive
+        })
+      } catch (error) {
+        console.error('[DIAGNOSTICS] Error processing OAuth connection:', conn.id, error)
+        oauthConnectionsByType[type].push({
+          ...conn,
+          isActive: true // Default to active if we can't determine
+        })
+      }
     })
+    
+    console.log('[DIAGNOSTICS] OAuth connections grouped by type:', Object.keys(oauthConnectionsByType))
 
     // Build senses data with simulated testing
     const sensesData: SenseData[] = []
@@ -305,7 +327,8 @@ export async function GET() {
       sensesData.push(senseData)
     }
 
-    // Calculate system status
+    // Calculate system status with safe date handling
+    console.log('[DIAGNOSTICS] Calculating system status...')
     const systemStatus = {
       totalSenses: allSenses.size,
       activeSenses: sensesData.filter(s => s.status === 'active').length,
@@ -316,6 +339,8 @@ export async function GET() {
       lastRuleEvaluation: getLastRuleEvaluation(rules || []),
       lastNotificationProcessed: getLastNotificationProcessed(notifications || [])
     }
+    
+    console.log('[DIAGNOSTICS] System status calculated:', systemStatus)
 
     // Format notifications for response
     const formattedNotifications = (notifications || []).map(notif => {
@@ -459,17 +484,68 @@ function getLastCronRun(): string | undefined {
 }
 
 function getLastRuleEvaluation(rules: any[]): string | undefined {
-  const triggeredRules = rules.filter(r => r.last_triggered_at)
+  console.log('[DIAGNOSTICS] Processing rule evaluation dates for', rules.length, 'rules')
+  
+  const triggeredRules = rules.filter(r => {
+    const hasDate = r.last_triggered_at && isValidDate(r.last_triggered_at)
+    if (r.last_triggered_at && !isValidDate(r.last_triggered_at)) {
+      console.warn('[DIAGNOSTICS] Invalid date in rule:', r.id, r.last_triggered_at)
+    }
+    return hasDate
+  })
+  
+  console.log('[DIAGNOSTICS] Found', triggeredRules.length, 'rules with valid trigger dates')
+  
   if (triggeredRules.length === 0) return undefined
   
-  const lastTriggered = triggeredRules.reduce((latest, rule) => {
-    return new Date(rule.last_triggered_at) > new Date(latest) ? rule.last_triggered_at : latest
-  }, triggeredRules[0].last_triggered_at)
-  
-  return lastTriggered
+  try {
+    const lastTriggered = triggeredRules.reduce((latest, rule) => {
+      const ruleDate = new Date(rule.last_triggered_at)
+      const latestDate = new Date(latest)
+      return ruleDate > latestDate ? rule.last_triggered_at : latest
+    }, triggeredRules[0].last_triggered_at)
+    
+    return isValidDate(lastTriggered) ? lastTriggered : undefined
+  } catch (error) {
+    console.error('[DIAGNOSTICS] Error processing rule evaluation dates:', error)
+    return undefined
+  }
 }
 
 function getLastNotificationProcessed(notifications: any[]): string | undefined {
+  console.log('[DIAGNOSTICS] Processing notification dates for', notifications.length, 'notifications')
+  
   if (notifications.length === 0) return undefined
-  return notifications[0].created_at
+  
+  try {
+    // Find the most recent notification with a valid created_at
+    const validNotifications = notifications.filter(n => {
+      const hasDate = n.created_at && isValidDate(n.created_at)
+      if (n.created_at && !isValidDate(n.created_at)) {
+        console.warn('[DIAGNOSTICS] Invalid date in notification:', n.id, n.created_at)
+      }
+      return hasDate
+    })
+    
+    console.log('[DIAGNOSTICS] Found', validNotifications.length, 'notifications with valid dates')
+    
+    if (validNotifications.length === 0) return undefined
+    
+    const mostRecent = validNotifications.reduce((latest, notification) => {
+      const notifDate = new Date(notification.created_at)
+      const latestDate = new Date(latest.created_at)
+      return notifDate > latestDate ? notification : latest
+    }, validNotifications[0])
+    
+    return mostRecent.created_at
+  } catch (error) {
+    console.error('[DIAGNOSTICS] Error processing notification dates:', error)
+    return undefined
+  }
+}
+
+function isValidDate(dateString: any): boolean {
+  if (!dateString) return false
+  const date = new Date(dateString)
+  return !isNaN(date.getTime())
 }

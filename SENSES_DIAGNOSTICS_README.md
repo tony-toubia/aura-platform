@@ -111,6 +111,11 @@ Utility functions:
 - Interactive test interface for troubleshooting issues
 - Run simple, basic, and full diagnostics tests with detailed error reporting
 
+### Date Validation Test
+- **GET** `/api/debug/test-dates`
+- Tests date validation functions with various input types
+- Useful for diagnosing "RangeError: Invalid time value" issues
+
 ### Existing Debug Endpoints
 - **GET** `/api/debug/senses` - Raw database senses
 - **GET** `/api/debug/subscription-guard` - Subscription system test
