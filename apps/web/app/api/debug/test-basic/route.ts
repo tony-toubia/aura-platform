@@ -43,15 +43,27 @@ export async function GET() {
       'auras',
       'behavior_rules', 
       'proactive_messages',
-      'oauth_connections'
+      'oauth_connections',
+      'subscriptions',
+      'senses',
+      'notification_preferences',
+      'profiles'
     ]
 
     for (const table of tables) {
       try {
-        const { count, error } = await supabase
-          .from(table)
-          .select('*', { count: 'exact', head: true })
-          .limit(1)
+        console.log(`[TEST-BASIC] Testing table: ${table}`)
+        
+        // Use a more specific query for user-scoped tables
+        let query = supabase.from(table).select('*', { count: 'exact', head: true }).limit(1)
+        
+        if (['auras', 'oauth_connections', 'subscriptions', 'notification_preferences'].includes(table)) {
+          query = query.eq('user_id', user.id)
+        } else if (table === 'profiles') {
+          query = query.eq('id', user.id)
+        }
+
+        const { count, error } = await query
 
         tableTests.push({
           table,
@@ -59,16 +71,26 @@ export async function GET() {
           count: count || 0,
           error: error ? error.message : null
         })
+        
+        console.log(`[TEST-BASIC] Table ${table}: ${error ? 'ERROR' : 'OK'} (${count || 0} rows)`)
+        
       } catch (e) {
+        const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+        console.log(`[TEST-BASIC] Table ${table}: EXCEPTION - ${errorMsg}`)
+        
         tableTests.push({
           table,
           accessible: false,
           count: 0,
-          error: e instanceof Error ? e.message : 'Unknown error'
+          error: errorMsg
         })
       }
     }
 
+    // Check which tables are missing
+    const missingTables = tableTests.filter(t => !t.accessible).map(t => t.table)
+    const availableTables = tableTests.filter(t => t.accessible).map(t => t.table)
+    
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
@@ -84,8 +106,20 @@ export async function GET() {
       },
       details: {
         aurasError: aurasError ? aurasError.message : null,
-        firstAura: auras?.[0] || null
-      }
+        firstAura: auras?.[0] || null,
+        availableTables,
+        missingTables,
+        missingTablesCount: missingTables.length,
+        totalTablesCount: tableTests.length
+      },
+      recommendations: missingTables.length > 0 ? [
+        `Missing ${missingTables.length} database tables: ${missingTables.join(', ')}`,
+        'This may indicate that the proactive notifications system hasn\'t been fully deployed.',
+        'Run the database migration to create missing tables.'
+      ] : [
+        'All database tables are accessible!',
+        'The system should work correctly.'
+      ]
     })
 
   } catch (error) {

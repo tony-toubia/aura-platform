@@ -40,10 +40,11 @@ export async function GET() {
         name,
         enabled,
         senses,
-        oauth_connections,
         location_configs,
-        news_configurations,
-        weather_air_quality_configurations
+        proactive_enabled,
+        last_evaluation_at,
+        vessel_type,
+        created_at
       `)
       .eq('user_id', user.id)
       .order('created_at', { ascending: false })
@@ -55,70 +56,110 @@ export async function GET() {
 
     console.log('[DIAGNOSTICS] Auras fetched:', { count: auras?.length || 0 })
 
-    // Fetch behavior rules
-    console.log('[DIAGNOSTICS] Fetching behavior rules...')
-    const { data: rules, error: rulesError } = await supabase
-      .from('behavior_rules')
-      .select('id, aura_id, name, enabled, trigger, last_triggered_at')
-      .in('aura_id', (auras || []).map((a: any) => a.id))
-
-    if (rulesError) {
-      console.error('[DIAGNOSTICS] Error fetching rules:', rulesError)
-    } else {
-      console.log('[DIAGNOSTICS] Rules fetched:', { count: rules?.length || 0 })
-    }
-
-    // Fetch recent notifications
-    console.log('[DIAGNOSTICS] Fetching notifications...')
-    const { data: notifications, error: notificationsError } = await supabase
-      .from('proactive_messages')
-      .select(`
-        id,
-        aura_id,
-        message,
-        status,
-        created_at,
-        delivered_at,
-        error_message
-      `)
-      .in('aura_id', (auras || []).map((a: any) => a.id))
-      .order('created_at', { ascending: false })
-      .limit(50)
-
-    if (notificationsError) {
-      console.error('[DIAGNOSTICS] Error fetching notifications:', notificationsError)
-    } else {
-      console.log('[DIAGNOSTICS] Notifications fetched:', { count: notifications?.length || 0 })
-    }
-
-    // Fetch OAuth connections from oauth_connections table
-    console.log('[DIAGNOSTICS] Fetching OAuth connections...')
-    const { data: oauthConnections, error: oauthError } = await supabase
-      .from('oauth_connections')
-      .select('*')
-      .eq('user_id', user.id)
-
-    if (oauthError) {
-      console.error('[DIAGNOSTICS] Error fetching OAuth connections:', oauthError)
-    } else {
-      console.log('[DIAGNOSTICS] OAuth connections fetched:', { count: oauthConnections?.length || 0 })
-    }
-
-    // Get today's notification count
-    console.log('[DIAGNOSTICS] Fetching today\'s notification count...')
-    const startOfDay = new Date()
-    startOfDay.setHours(0, 0, 0, 0)
+    // Initialize data with safe defaults
+    let rules: any[] = []
+    let notifications: any[] = []
+    let oauthConnections: any[] = []
+    let notificationsToday = 0
     
-    const { count: notificationsToday, error: countError } = await supabase
-      .from('proactive_messages')
-      .select('*', { count: 'exact', head: true })
-      .in('aura_id', (auras || []).map((a: any) => a.id))
-      .gte('created_at', startOfDay.toISOString())
+    const tableErrors: Record<string, string> = {}
 
-    if (countError) {
-      console.error('[DIAGNOSTICS] Error fetching notification count:', countError)
-    } else {
-      console.log('[DIAGNOSTICS] Today\'s notification count:', notificationsToday)
+    // Safely fetch behavior rules
+    console.log('[DIAGNOSTICS] Fetching behavior rules...')
+    try {
+      const { data, error } = await supabase
+        .from('behavior_rules')
+        .select('id, aura_id, name, enabled, trigger, last_triggered_at')
+        .in('aura_id', (auras || []).map((a: any) => a.id))
+
+      if (error) {
+        console.error('[DIAGNOSTICS] Error fetching rules:', error)
+        tableErrors.behavior_rules = error.message
+      } else {
+        rules = data || []
+        console.log('[DIAGNOSTICS] Rules fetched:', { count: rules.length })
+      }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+      console.error('[DIAGNOSTICS] Exception fetching rules:', errorMsg)
+      tableErrors.behavior_rules = errorMsg
+    }
+
+    // Safely fetch recent notifications
+    console.log('[DIAGNOSTICS] Fetching notifications...')
+    try {
+      const { data, error } = await supabase
+        .from('proactive_messages')
+        .select(`
+          id,
+          aura_id,
+          message,
+          status,
+          created_at,
+          delivered_at,
+          error_message
+        `)
+        .in('aura_id', (auras || []).map((a: any) => a.id))
+        .order('created_at', { ascending: false })
+        .limit(50)
+
+      if (error) {
+        console.error('[DIAGNOSTICS] Error fetching notifications:', error)
+        tableErrors.proactive_messages = error.message
+      } else {
+        notifications = data || []
+        console.log('[DIAGNOSTICS] Notifications fetched:', { count: notifications.length })
+      }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+      console.error('[DIAGNOSTICS] Exception fetching notifications:', errorMsg)
+      tableErrors.proactive_messages = errorMsg
+    }
+
+    // Safely fetch OAuth connections
+    console.log('[DIAGNOSTICS] Fetching OAuth connections...')
+    try {
+      const { data, error } = await supabase
+        .from('oauth_connections')
+        .select('*')
+        .eq('user_id', user.id)
+
+      if (error) {
+        console.error('[DIAGNOSTICS] Error fetching OAuth connections:', error)
+        tableErrors.oauth_connections = error.message
+      } else {
+        oauthConnections = data || []
+        console.log('[DIAGNOSTICS] OAuth connections fetched:', { count: oauthConnections.length })
+      }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+      console.error('[DIAGNOSTICS] Exception fetching OAuth connections:', errorMsg)
+      tableErrors.oauth_connections = errorMsg
+    }
+
+    // Safely get today's notification count
+    console.log('[DIAGNOSTICS] Fetching today\'s notification count...')
+    try {
+      const startOfDay = new Date()
+      startOfDay.setHours(0, 0, 0, 0)
+      
+      const { count, error } = await supabase
+        .from('proactive_messages')
+        .select('*', { count: 'exact', head: true })
+        .in('aura_id', (auras || []).map((a: any) => a.id))
+        .gte('created_at', startOfDay.toISOString())
+
+      if (error) {
+        console.error('[DIAGNOSTICS] Error fetching notification count:', error)
+        tableErrors.proactive_messages_count = error.message
+      } else {
+        notificationsToday = count || 0
+        console.log('[DIAGNOSTICS] Today\'s notification count:', notificationsToday)
+      }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : 'Unknown error'
+      console.error('[DIAGNOSTICS] Exception fetching notification count:', errorMsg)
+      tableErrors.proactive_messages_count = errorMsg
     }
 
     // Process auras data
@@ -168,25 +209,16 @@ export async function GET() {
             senseConfigurations.set(`location:${key}`, config)
           })
         }
-        if (aura.news_configurations) {
-          Object.entries(aura.news_configurations).forEach(([key, config]: [string, any]) => {
-            senseConfigurations.set(`news:${key}`, config)
-          })
-        }
-        if (aura.weather_air_quality_configurations) {
-          Object.entries(aura.weather_air_quality_configurations).forEach(([key, config]: [string, any]) => {
-            senseConfigurations.set(`weather:${key}`, config)
-          })
-        }
-        
-        // Store OAuth connections
-        if (aura.oauth_connections) {
-          Object.entries(aura.oauth_connections).forEach(([senseId, connections]: [string, any]) => {
-            if (!senseConnections.has(senseId)) {
-              senseConnections.set(senseId, [])
-            }
-            senseConnections.get(senseId)?.push(...(connections as any[]))
-          })
+      })
+      
+      // Map OAuth connections to senses
+      oauthConnections.forEach((conn: any) => {
+        const senseType = conn.sense_type
+        if (senseType) {
+          if (!senseConnections.has(senseType)) {
+            senseConnections.set(senseType, [])
+          }
+          senseConnections.get(senseType)?.push(conn)
         }
       })
       
@@ -202,7 +234,7 @@ export async function GET() {
     // Group OAuth connections by provider type
     const oauthConnectionsByType: Record<string, any[]> = {}
     ;(oauthConnections || []).forEach((conn: any) => {
-      const type = conn.provider_type || conn.provider_id || 'unknown'
+      const type = conn.provider || conn.sense_type || 'unknown'
       if (!oauthConnectionsByType[type]) {
         oauthConnectionsByType[type] = []
       }
@@ -301,12 +333,22 @@ export async function GET() {
       }
     })
 
+    console.log('[DIAGNOSTICS] Request completed successfully!')
+    
     return NextResponse.json({
+      success: true,
+      timestamp: new Date().toISOString(),
       auras: processedAuras,
       senseData: sensesData,
       oauthConnections: oauthConnectionsByType,
       notifications: formattedNotifications,
-      systemStatus
+      systemStatus,
+      // Include any table access issues
+      tableErrors: Object.keys(tableErrors).length > 0 ? tableErrors : undefined,
+      warnings: Object.keys(tableErrors).length > 0 ? [
+        'Some database tables may not be available in this environment.',
+        'This is expected if the proactive notifications system hasn\'t been fully deployed.'
+      ] : undefined
     })
 
   } catch (error) {

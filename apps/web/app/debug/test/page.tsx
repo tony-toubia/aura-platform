@@ -14,7 +14,15 @@ interface TestResult {
   timestamp?: string
   user?: any
   tests?: any
-  details?: any
+  details?: {
+    aurasError?: string | null
+    firstAura?: any
+    availableTables?: string[]
+    missingTables?: string[]
+    missingTablesCount?: number
+    totalTablesCount?: number
+  }
+  recommendations?: string[]
   stack?: string
   systemStatus?: {
     totalSenses: number
@@ -31,12 +39,31 @@ interface TestResult {
   oauthConnections?: Record<string, any[]>
   notifications?: any[]
   fallback?: any
+  tableErrors?: Record<string, string>
+  warnings?: string[]
 }
 
 export default function DiagnosticsTestPage() {
+  const [simpleTest, setSimpleTest] = useState<TestResult | null>(null)
   const [basicTest, setBasicTest] = useState<TestResult | null>(null)
   const [diagnosticsTest, setDiagnosticsTest] = useState<TestResult | null>(null)
   const [loading, setLoading] = useState<string | null>(null)
+
+  const runSimpleTest = async () => {
+    setLoading('simple')
+    try {
+      const response = await fetch('/api/debug/simple-test')
+      const result = await response.json()
+      setSimpleTest(result)
+    } catch (error) {
+      setSimpleTest({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      })
+    } finally {
+      setLoading(null)
+    }
+  }
 
   const runBasicTest = async () => {
     setLoading('basic')
@@ -79,7 +106,73 @@ export default function DiagnosticsTestPage() {
         </p>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-6">
+      <div className="grid lg:grid-cols-3 md:grid-cols-2 gap-6">
+        {/* Simple Test */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center justify-between">
+              Simple Test
+              <Button
+                onClick={runSimpleTest}
+                disabled={loading === 'simple'}
+                size="sm"
+                variant="outline"
+              >
+                {loading === 'simple' ? (
+                  <RefreshCw className="h-4 w-4 animate-spin" />
+                ) : (
+                  'Run'
+                )}
+              </Button>
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {simpleTest && (
+              <div className="space-y-4">
+                <div className="flex items-center gap-2">
+                  {simpleTest.success ? (
+                    <CheckCircle className="h-5 w-5 text-green-600" />
+                  ) : (
+                    <XCircle className="h-5 w-5 text-red-600" />
+                  )}
+                  <Badge variant={simpleTest.success ? 'default' : 'destructive'}>
+                    {simpleTest.success ? 'PASS' : 'FAIL'}
+                  </Badge>
+                </div>
+
+                {simpleTest.success && (simpleTest as any).results && (
+                  <div className="space-y-2">
+                    <p className="font-medium text-sm">Core Tables:</p>
+                    <div className="text-xs space-y-1">
+                      {Object.entries((simpleTest as any).results).map(([table, result]: [string, any], idx: number) => (
+                        <div key={idx} className="flex justify-between">
+                          <span>{table}:</span>
+                          <Badge 
+                            variant={result.accessible ? 'default' : 'destructive'}
+                            className="text-xs"
+                          >
+                            {result.accessible ? `${result.count} rows` : 'ERROR'}
+                          </Badge>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {simpleTest.error && (
+                  <div className="bg-red-50 p-3 rounded text-sm">
+                    <p className="font-medium text-red-800">Error:</p>
+                    <p className="text-red-600">{simpleTest.error}</p>
+                    {(simpleTest as any).step && (
+                      <p className="text-red-500 text-xs mt-1">Failed at: {(simpleTest as any).step}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
         {/* Basic Test */}
         <Card>
           <CardHeader>
@@ -142,6 +235,23 @@ export default function DiagnosticsTestPage() {
                               </Badge>
                             </div>
                           ))}
+                          
+                          {basicTest.details?.missingTables && basicTest.details.missingTables.length > 0 && (
+                            <div className="mt-2 p-2 bg-yellow-50 rounded text-xs">
+                              <p className="font-medium text-yellow-800">Missing Tables:</p>
+                              <p className="text-yellow-600">{basicTest.details.missingTables.join(', ')}</p>
+                            </div>
+                          )}
+                          
+                          {basicTest.recommendations && (
+                            <div className="mt-2 text-xs space-y-1">
+                              {basicTest.recommendations.map((rec: string, idx: number) => (
+                                <p key={idx} className={(basicTest.details?.missingTablesCount ?? 0) > 0 ? "text-yellow-700" : "text-green-700"}>
+                                  • {rec}
+                                </p>
+                              ))}
+                            </div>
+                          )}
                         </div>
                       )}
                     </div>
@@ -201,6 +311,24 @@ export default function DiagnosticsTestPage() {
                         <div>Total Rules: {diagnosticsTest.systemStatus.totalRules}</div>
                       </div>
                     )}
+                    
+                    {diagnosticsTest.warnings && diagnosticsTest.warnings.length > 0 && (
+                      <div className="mt-2 p-2 bg-yellow-50 rounded text-xs">
+                        <p className="font-medium text-yellow-800">Warnings:</p>
+                        {diagnosticsTest.warnings.map((warning: string, idx: number) => (
+                          <p key={idx} className="text-yellow-600">• {warning}</p>
+                        ))}
+                      </div>
+                    )}
+                    
+                    {diagnosticsTest.tableErrors && Object.keys(diagnosticsTest.tableErrors).length > 0 && (
+                      <div className="mt-2 p-2 bg-red-50 rounded text-xs">
+                        <p className="font-medium text-red-800">Table Access Issues:</p>
+                        {Object.entries(diagnosticsTest.tableErrors).map(([table, error]: [string, any], idx: number) => (
+                          <p key={idx} className="text-red-600">• {table}: {error}</p>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
@@ -215,7 +343,9 @@ export default function DiagnosticsTestPage() {
                       <details className="mt-2">
                         <summary className="cursor-pointer text-red-700 font-medium">Stack Trace</summary>
                         <pre className="text-xs mt-1 bg-red-100 p-2 rounded overflow-auto">
-                          {diagnosticsTest.details}
+                          {typeof diagnosticsTest.details === 'string' 
+                            ? diagnosticsTest.details 
+                            : JSON.stringify(diagnosticsTest.details, null, 2)}
                         </pre>
                       </details>
                     )}
@@ -233,11 +363,20 @@ export default function DiagnosticsTestPage() {
         </CardHeader>
         <CardContent>
           <ol className="list-decimal list-inside space-y-2 text-sm">
-            <li>Run the <strong>Basic System Test</strong> first to verify authentication and database access</li>
-            <li>If the basic test passes, run the <strong>Full Diagnostics Test</strong></li>
+            <li>Start with the <strong>Simple Test</strong> to verify basic table access</li>
+            <li>Run the <strong>Basic System Test</strong> for comprehensive table verification</li>
+            <li>If both pass, run the <strong>Full Diagnostics Test</strong></li>
             <li>Check browser console and server logs for detailed error information</li>
-            <li>If both tests pass, try accessing <code>/senses-diagnostics</code> directly</li>
+            <li>If all tests pass, try accessing <code>/senses-diagnostics</code> directly</li>
           </ol>
+          
+          <div className="mt-4 p-3 bg-blue-50 rounded text-sm">
+            <p className="font-medium text-blue-800">💡 Tip:</p>
+            <p className="text-blue-600">
+              If the Simple Test fails, check your database permissions and RLS policies. 
+              The error message will show exactly which step failed.
+            </p>
+          </div>
         </CardContent>
       </Card>
     </div>

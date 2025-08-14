@@ -96,15 +96,20 @@ Utility functions:
 - Comprehensive system validation and health check
 - Returns test results, recommendations, and system status
 
+### Simple Test Endpoint
+- **GET** `/api/debug/simple-test`
+- Minimal test of core tables (auras, behavior_rules, proactive_messages)
+- Fastest way to identify basic database issues
+
 ### Basic Test Endpoint
 - **GET** `/api/debug/test-basic`
-- Simple authentication and database connectivity test
-- Useful for troubleshooting 500 errors
+- Comprehensive authentication and database table verification
+- Tests all required tables with detailed error reporting
 
 ### Debug Test Page
 - **GET** `/debug/test`
 - Interactive test interface for troubleshooting issues
-- Run basic and full diagnostics tests with detailed error reporting
+- Run simple, basic, and full diagnostics tests with detailed error reporting
 
 ### Existing Debug Endpoints
 - **GET** `/api/debug/senses` - Raw database senses
@@ -173,10 +178,11 @@ curl https://your-domain.com/api/debug/senses
 
 #### For 500 Errors:
 1. **Debug Test Page**: Visit `/debug/test` for interactive troubleshooting
-2. **Basic Test**: Run basic connectivity and auth tests first
-3. **Check Server Logs**: Look for detailed console output with `[DIAGNOSTICS]` prefix
-4. **Database Permissions**: Verify RLS policies and table access
-5. **Full Test**: Run comprehensive diagnostics test if basic test passes
+2. **Simple Test**: Run the quickest test to identify core table issues
+3. **Basic Test**: If simple test passes, run comprehensive table verification
+4. **Check Server Logs**: Look for detailed console output with `[DIAGNOSTICS]`, `[TEST-BASIC]`, or `[SIMPLE-TEST]` prefixes
+5. **Database Permissions**: Verify RLS policies and table access based on error details
+6. **Full Test**: Run comprehensive diagnostics test if both simple and basic tests pass
 
 #### For UI Issues:
 1. **System Test**: Run `/api/debug/test-diagnostics` first
