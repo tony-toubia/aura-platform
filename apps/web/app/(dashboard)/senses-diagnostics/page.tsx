@@ -30,7 +30,8 @@ import {
   Smartphone,
   ExternalLink,
   Copy,
-  Download
+  Download,
+  MessageCircle
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -583,6 +584,69 @@ export default function SensesDiagnosticsPage() {
               >
                 <Database className="h-4 w-4 mr-2" />
                 Check DB
+              </Button>
+              
+              <Button 
+                onClick={async () => {
+                  console.log('Checking messages accessibility...')
+                  try {
+                    const response = await fetch('/api/debug/check-messages')
+                    const result = await response.json()
+                    console.log('Message check results:', result)
+                    
+                    const serviceCount = result.results?.serviceRoleMessages?.count || 0
+                    const userCount = result.results?.userMessages?.count || 0
+                    const totalConvMessages = result.results?.allConversationMessages?.count || 0
+                    
+                    if (serviceCount === 0) {
+                      toast.error('Messages not found in database!')
+                    } else if (userCount === 0 && serviceCount > 0) {
+                      toast.error(`RLS blocking access! ${serviceCount} messages exist but user can't see them`)
+                    } else if (userCount === serviceCount) {
+                      toast.success(`✅ Found ${serviceCount} messages. Total in conversation: ${totalConvMessages}`)
+                    } else {
+                      toast.warning(`Partial access: ${userCount}/${serviceCount} messages visible to user`)
+                    }
+                  } catch (error) {
+                    console.error('Message check error:', error)
+                    toast.error('Failed to check message accessibility')
+                  }
+                }}
+                size="sm"
+                variant="outline"
+              >
+                <Eye className="h-4 w-4 mr-2" />
+                Check Messages
+              </Button>
+              
+              <Button 
+                onClick={async () => {
+                  const conversationId = '2f72d024-48fe-4dae-be2b-c5addb5fa0f0'
+                  console.log(`Testing conversation API for: ${conversationId}`)
+                  try {
+                    const response = await fetch(`/api/conversations/${conversationId}/messages`)
+                    const result = await response.json()
+                    console.log('Conversation API result:', result)
+                    
+                    if (result.success) {
+                      const messageCount = result.messageCount || 0
+                      toast.success(`✅ Conversation API working! Found ${messageCount} messages`)
+                      if (messageCount > 0) {
+                        console.log('Sample messages:', result.messages.slice(-3))
+                      }
+                    } else {
+                      toast.error(`API Error: ${result.error}`)
+                    }
+                  } catch (error) {
+                    console.error('Conversation API error:', error)
+                    toast.error('Failed to test conversation API')
+                  }
+                }}
+                size="sm"
+                variant="outline"
+              >
+                <MessageCircle className="h-4 w-4 mr-2" />
+                Test Conv API
               </Button>
             </div>
           </div>
