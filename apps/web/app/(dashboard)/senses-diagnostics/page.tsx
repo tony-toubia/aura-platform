@@ -648,6 +648,84 @@ export default function SensesDiagnosticsPage() {
                 <MessageCircle className="h-4 w-4 mr-2" />
                 Test Conv API
               </Button>
+              
+              <Button 
+                onClick={async () => {
+                  console.log('Testing rule evaluation via webhook...')
+                  try {
+                    const response = await fetch('/api/notifications/webhook', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                        'x-cron-secret': 'X9kL2mP8vQ3nR7wT5yB6jC4hF1gA0sD9eU3iO7zN2xM='
+                      },
+                      body: JSON.stringify({ task: 'evaluate-rules', source: 'manual-test' })
+                    })
+                    const result = await response.json()
+                    console.log('Rule evaluation result:', result)
+                    
+                    if (result.success) {
+                      const processed = result.result?.processed || 0
+                      const succeeded = result.result?.succeeded || 0
+                      const failed = result.result?.failed || 0
+                      toast.success(`✅ Rule evaluation complete! ${processed} auras checked, ${succeeded} succeeded, ${failed} failed`)
+                    } else {
+                      toast.error(`Rule evaluation failed: ${result.error}`)
+                    }
+                  } catch (error) {
+                    console.error('Rule evaluation error:', error)
+                    toast.error('Failed to test rule evaluation')
+                  }
+                }}
+                size="sm"
+                className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Test Rules
+              </Button>
+              
+              <Button 
+                onClick={async () => {
+                  console.log('Creating test notification rule...')
+                  try {
+                    const response = await fetch('/api/test/create-rule', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json'
+                      },
+                      body: JSON.stringify({
+                        aura_id: 'c662eca0-c663-472b-b096-e88edecfe51c', // Gh aura
+                        rule_name: 'Daily Morning Check-in',
+                        message_template: 'Good morning! ☀️ Ready to make today amazing? What\'s one thing you\'re excited about today?',
+                        conditions: { 
+                          schedule: '0 9 * * *', // Daily at 9 AM
+                          timeOfDay: 'morning',
+                          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+                        },
+                        cooldown_minutes: 1440 // 24 hours
+                      })
+                    })
+                    const result = await response.json()
+                    console.log('Create rule result:', result)
+                    
+                    if (result.success) {
+                      toast.success(`✅ Morning check-in rule created! Will trigger weekdays at 9 AM.`)
+                      console.log('Rule details:', result.rule)
+                      console.log('Next steps:', result.nextSteps)
+                    } else {
+                      toast.error(`Failed to create rule: ${result.error}`)
+                    }
+                  } catch (error) {
+                    console.error('Create rule error:', error)
+                    toast.error('Failed to create test rule')
+                  }
+                }}
+                size="sm"
+                className="bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600"
+              >
+                <Settings className="h-4 w-4 mr-2" />
+                Create Morning Rule
+              </Button>
             </div>
           </div>
           

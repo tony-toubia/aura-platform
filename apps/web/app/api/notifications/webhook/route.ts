@@ -34,13 +34,18 @@ export async function POST(request: NextRequest) {
         break
 
       case 'evaluate-rules':
-        // For future: evaluate behavior rules
-        console.log('[NOTIF-WEBHOOK] Rule evaluation not implemented yet')
-        result = {
-          success: true,
-          message: 'Rule evaluation not implemented yet',
-          task: 'evaluate-rules'
-        }
+        // Evaluate notification rules
+        console.log('[NOTIF-WEBHOOK] Evaluating notification rules...')
+        const evaluateResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'https://app.aura-link.app'}/api/cron/evaluate-rules`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-cron-secret': process.env.CRON_SECRET || ''
+          },
+          body: JSON.stringify({ source: 'webhook' })
+        })
+        result = await evaluateResponse.json()
+        console.log('[NOTIF-WEBHOOK] Evaluate result:', result)
         break
 
       default:
