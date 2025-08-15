@@ -232,21 +232,124 @@ export const QUICK_TEMPLATES: Record<string, any[]> = {
   ],
   time: [
     {
-      name: "Morning Motivation",
+      id: "morning-hour-8am",
+      name: "8 AM Morning Start",
       sensor: "time.hour",
       operator: "==",
       value: 8,
-      message: "Good morning! ☀️ Ready to make today amazing?",
-      priority: "4"
+      priority: "4",
+      template: {
+        message: "Good morning! ☀️ Ready to make today amazing?"
+      },
+      smart_response: {
+        promptGuidelines: "Provide a personalized 8 AM morning greeting and motivation. Consider the day ahead and inspire me to start positively.",
+        responseTones: ["energetic", "positive", "motivating"]
+      }
     },
     {
-      name: "Smart Time-based Insights",
+      id: "afternoon-insights-2pm",
+      name: "2 PM Afternoon Check",
       sensor: "time.hour",
       operator: "==",
       value: 14,
-      responseType: "smart_response",
-      promptGuidelines: "Provide time-aware insights and suggestions. Consider energy levels, productivity patterns, and suggest optimal activities for the time of day.",
-      priority: "4"
+      priority: "4",
+      template: {
+        message: "Mid-afternoon energy dip? 🔋 How about a quick walk or some deep breaths?"
+      },
+      smart_response: {
+        promptGuidelines: "Provide time-aware insights and suggestions. Consider energy levels, productivity patterns, and suggest optimal activities for the time of day.",
+        responseTones: ["energizing", "caring", "practical"]
+      }
+    },
+    {
+      id: "morning-motivation",
+      name: "Morning Motivation",
+      sensor: "time.time_of_day",
+      operator: "==",
+      value: "morning",
+      priority: "4",
+      template: {
+        message: "Good morning! ☀️ Ready to make today amazing? What's one thing you're excited about today?"
+      },
+      smart_response: {
+        promptGuidelines: "Provide a personalized morning greeting and motivation. Consider the day ahead, weather, and inspire me to start positively.",
+        responseTones: ["energetic", "positive", "motivating"]
+      }
+    },
+    {
+      id: "evening-reflection",
+      name: "Evening Check-in",
+      sensor: "time.time_of_day",
+      operator: "==",
+      value: "evening",
+      priority: "4",
+      template: {
+        message: "How was your day? 🌅 Time to wind down and reflect on what went well!"
+      },
+      smart_response: {
+        promptGuidelines: "Invite me to reflect on my day. Ask about highlights, challenges, and help me process the day with gratitude and perspective.",
+        responseTones: ["calm", "reflective", "supportive"]
+      }
+    },
+    {
+      id: "workday-reminder",
+      name: "Workday Start Reminder",
+      sensor: "time.hour",
+      operator: "==",
+      value: 9,
+      priority: "5",
+      template: {
+        message: "It's 9 AM! 💼 Time to dive into your priorities for today. What's most important?"
+      },
+      smart_response: {
+        promptGuidelines: "Help me transition into work mode. Suggest focusing strategies, ask about priorities, and provide gentle productivity motivation.",
+        responseTones: ["focused", "encouraging", "organized"]
+      }
+    },
+    {
+      id: "weekend-reminder",
+      name: "Weekend Relaxation",
+      sensor: "time.workday",
+      operator: "==",
+      value: "weekend",
+      priority: "3",
+      template: {
+        message: "It's the weekend! 🎉 Time to recharge and do something you love."
+      },
+      smart_response: {
+        promptGuidelines: "Encourage me to embrace weekend relaxation and personal time. Suggest enjoyable activities, self-care, or fun experiences based on my interests.",
+        responseTones: ["relaxed", "fun", "caring"]
+      }
+    },
+    {
+      id: "bedtime-routine",
+      name: "Bedtime Wind-down",
+      sensor: "time.hour",
+      operator: ">=",
+      value: 21,
+      priority: "4",
+      template: {
+        message: "Getting late! 🌙 How about starting your wind-down routine for better sleep?"
+      },
+      smart_response: {
+        promptGuidelines: "Gently remind me about bedtime preparation. Suggest calming activities, screen-time limits, and healthy sleep habits tailored to my routine.",
+        responseTones: ["calm", "caring", "gentle"]
+      }
+    },
+    {
+      id: "friday-celebration",
+      name: "Friday Celebration",
+      sensor: "time.day_of_week",
+      operator: "==",
+      value: "friday",
+      priority: "4",
+      template: {
+        message: "It's Friday! 🎊 You made it through another week. How will you celebrate?"
+      },
+      smart_response: {
+        promptGuidelines: "Celebrate the end of the work week with me. Acknowledge accomplishments, suggest fun weekend plans, and encourage well-deserved relaxation.",
+        responseTones: ["celebratory", "accomplished", "fun"]
+      }
     }
   ],
   news: [
@@ -340,113 +443,6 @@ export const QUICK_TEMPLATES: Record<string, any[]> = {
       responseType: "smart_response",
       promptGuidelines: "Respond to low light conditions with helpful suggestions. Consider time of day, activities, and comfort. Suggest lighting adjustments or activity changes.",
       priority: "4"
-    }
-  ],
-  time: [
-    {
-      id: "morning-motivation",
-      name: "Morning Motivation",
-      sensor: "time.time_of_day",
-      operator: "==",
-      value: "morning",
-      priority: "4",
-      template: {
-        message: "Good morning! ☀️ Ready to make today amazing? What's one thing you're excited about today?"
-      },
-      smart_response: {
-        promptGuidelines: "Provide a personalized morning greeting and motivation. Consider the day ahead, weather, and inspire me to start positively.",
-        responseTones: ["energetic", "positive", "motivating"]
-      }
-    },
-    {
-      id: "evening-reflection",
-      name: "Evening Check-in",
-      sensor: "time.time_of_day",
-      operator: "==",
-      value: "evening",
-      priority: "4",
-      template: {
-        message: "How was your day? 🌅 Time to wind down and reflect on what went well!"
-      },
-      smart_response: {
-        promptGuidelines: "Invite me to reflect on my day. Ask about highlights, challenges, and help me process the day with gratitude and perspective.",
-        responseTones: ["calm", "reflective", "supportive"]
-      }
-    },
-    {
-      id: "workday-reminder",
-      name: "Workday Start Reminder",
-      sensor: "time.hour",
-      operator: "==",
-      value: 9,
-      priority: "5",
-      template: {
-        message: "It's 9 AM! 💼 Time to dive into your priorities for today. What's most important?"
-      },
-      smart_response: {
-        promptGuidelines: "Help me transition into work mode. Suggest focusing strategies, ask about priorities, and provide gentle productivity motivation.",
-        responseTones: ["focused", "encouraging", "organized"]
-      }
-    },
-    {
-      id: "afternoon-energizer",
-      name: "Afternoon Energy Check",
-      sensor: "time.hour",
-      operator: "==",
-      value: 14,
-      priority: "4",
-      template: {
-        message: "Mid-afternoon energy dip? 🔋 How about a quick walk or some deep breaths?"
-      },
-      smart_response: {
-        promptGuidelines: "Check my afternoon energy levels and suggest revitalizing activities. Consider healthy energy boosts like movement, hydration, or mindfulness.",
-        responseTones: ["energizing", "caring", "practical"]
-      }
-    },
-    {
-      id: "weekend-reminder",
-      name: "Weekend Relaxation",
-      sensor: "time.workday",
-      operator: "==",
-      value: "weekend",
-      priority: "3",
-      template: {
-        message: "It's the weekend! 🎉 Time to recharge and do something you love."
-      },
-      smart_response: {
-        promptGuidelines: "Encourage me to embrace weekend relaxation and personal time. Suggest enjoyable activities, self-care, or fun experiences based on my interests.",
-        responseTones: ["relaxed", "fun", "caring"]
-      }
-    },
-    {
-      id: "bedtime-routine",
-      name: "Bedtime Wind-down",
-      sensor: "time.hour",
-      operator: ">=",
-      value: 21,
-      priority: "4",
-      template: {
-        message: "Getting late! 🌙 How about starting your wind-down routine for better sleep?"
-      },
-      smart_response: {
-        promptGuidelines: "Gently remind me about bedtime preparation. Suggest calming activities, screen-time limits, and healthy sleep habits tailored to my routine.",
-        responseTones: ["calm", "caring", "gentle"]
-      }
-    },
-    {
-      id: "friday-celebration",
-      name: "Friday Celebration",
-      sensor: "time.day_of_week",
-      operator: "==",
-      value: "friday",
-      priority: "4",
-      template: {
-        message: "It's Friday! 🎊 You made it through another week. How will you celebrate?"
-      },
-      smart_response: {
-        promptGuidelines: "Celebrate the end of the work week with me. Acknowledge accomplishments, suggest fun weekend plans, and encourage well-deserved relaxation.",
-        responseTones: ["celebratory", "accomplished", "fun"]
-      }
     }
   ]
 }

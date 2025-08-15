@@ -743,7 +743,17 @@ export default function SensesDiagnosticsPage() {
                         // Show specific error type
                         if (result.details.includes('foreign key constraint')) {
                           toast.info('💡 This was an aura ID mismatch - should be fixed now!')
+                        } else if (result.details.includes('violates row-level security')) {
+                          toast.error('🔒 Database permission error - RLS policy issue')
+                        } else if (result.details.includes('not null')) {
+                          toast.error('📝 Missing required field error')
                         }
+                      }
+                      if (result.troubleshooting?.length > 0) {
+                        console.log('🔧 Troubleshooting suggestions:')
+                        result.troubleshooting.forEach((tip: string, i: number) => {
+                          console.log(`${i + 1}. ${tip}`)
+                        })
                       }
                       if (result.solution) {
                         console.log('Solution steps:', result.solution)
