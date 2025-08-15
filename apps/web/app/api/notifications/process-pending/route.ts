@@ -77,13 +77,18 @@ export async function POST(request: NextRequest) {
         let conversationId = null
         
         // Try to find existing conversation
-        const { data: existingConversation } = await supabase
+        console.log(`[NOTIF-PROCESSOR] Looking for conversation for aura ${notification.aura_id}`)
+        const { data: existingConversation, error: convFindError } = await supabase
           .from('conversations')
           .select('id, session_id')
           .eq('aura_id', notification.aura_id)
           .order('started_at', { ascending: false })
           .limit(1)
           .single()
+
+        if (convFindError && convFindError.code !== 'PGRST116') {
+          console.error(`[NOTIF-PROCESSOR] Error finding conversation:`, convFindError)
+        }
 
         if (existingConversation) {
           conversationId = existingConversation.id
@@ -117,20 +122,26 @@ export async function POST(request: NextRequest) {
 
         // Create the message in the conversation
         console.log(`[NOTIF-PROCESSOR] Creating message in conversation ${conversationId}`)
+        console.log(`[NOTIF-PROCESSOR] Message content: "${notification.message}"`)
+        
+        const messageData = {
+          conversation_id: conversationId,
+          role: 'assistant',
+          content: notification.message,
+          metadata: {
+            type: 'proactive_notification',
+            notification_id: notification.id,
+            trigger_data: notification.trigger_data,
+            delivery_channel: notification.delivery_channel,
+            created_from: 'notification_processor'
+          }
+        }
+        
+        console.log(`[NOTIF-PROCESSOR] Inserting message data:`, messageData)
+        
         const { data: message, error: messageError } = await supabase
           .from('messages')
-          .insert({
-            conversation_id: conversationId,
-            role: 'assistant',
-            content: notification.message,
-            metadata: {
-              type: 'proactive_notification',
-              notification_id: notification.id,
-              trigger_data: notification.trigger_data,
-              delivery_channel: notification.delivery_channel,
-              created_from: 'notification_processor'
-            }
-          })
+          .insert(messageData)
           .select()
           .single()
 
@@ -196,13 +207,27 @@ export async function POST(request: NextRequest) {
     const failedCount = results.filter(r => r.status !== 'success').length
 
     console.log(`[NOTIF-PROCESSOR] Processing complete: ${successCount} success, ${failedCount} failed`)
+    
+    // Log failed results for debugging
+    if (failedCount > 0) {
+      console.log('[NOTIF-PROCESSOR] Failed results:', results.filter(r => r.status !== 'success'))
+    }
 
     return NextResponse.json({
       success: true,
       message: `Processed ${pendingNotifications.length} notifications`,
       processed: successCount,
       failed: failedCount,
-      results
+      results,
+      debug: {
+        foundNotifications: pendingNotifications.length,
+        successCount,
+        failedCount,
+        failedErrors: results.filter(r => r.status !== 'success').map(r => ({
+          notificationId: r.notificationId,
+          error: r.error
+        }))
+      }
     })
 
   } catch (error) {

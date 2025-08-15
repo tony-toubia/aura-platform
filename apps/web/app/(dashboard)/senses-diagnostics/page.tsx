@@ -529,9 +529,16 @@ export default function SensesDiagnosticsPage() {
                     console.log('Process result:', result)
                     
                     if (result.success) {
-                      toast.success(`Processed ${result.processed} notifications successfully!`)
-                      // Refresh data after processing
-                      setData(prev => prev ? { ...prev, lastUpdate: Date.now() } : null)
+                      if (result.processed > 0) {
+                        toast.success(`Processed ${result.processed} notifications successfully!`)
+                        // Refresh data after processing
+                        setData(prev => prev ? { ...prev, lastUpdate: Date.now() } : null)
+                      } else if (result.failed > 0) {
+                        toast.error(`All ${result.failed} notifications failed. Check console for details.`)
+                        console.log('Failed notification details:', result.debug?.failedErrors)
+                      } else {
+                        toast.info('No pending notifications to process')
+                      }
                     } else {
                       toast.error(`Failed to process: ${result.error}`)
                     }
@@ -545,6 +552,37 @@ export default function SensesDiagnosticsPage() {
               >
                 <Zap className="h-4 w-4 mr-2" />
                 Process Pending
+              </Button>
+              
+              <Button 
+                onClick={async () => {
+                  console.log('Checking database schema...')
+                  try {
+                    const response = await fetch('/api/debug/check-db-schema')
+                    const result = await response.json()
+                    console.log('Database schema check:', result)
+                    
+                    const issues = []
+                    if (!result.results.proactive_messages?.exists) issues.push('proactive_messages')
+                    if (!result.results.conversations?.exists) issues.push('conversations') 
+                    if (!result.results.messages?.exists) issues.push('messages')
+                    if (!result.results.auras?.exists) issues.push('auras')
+                    
+                    if (issues.length > 0) {
+                      toast.error(`Missing tables: ${issues.join(', ')}`)
+                    } else {
+                      toast.success(`Database schema OK. ${result.results.pending_notifications?.count || 0} pending notifications`)
+                    }
+                  } catch (error) {
+                    console.error('Schema check error:', error)
+                    toast.error('Failed to check database schema')
+                  }
+                }}
+                size="sm"
+                variant="outline"
+              >
+                <Database className="h-4 w-4 mr-2" />
+                Check DB
               </Button>
             </div>
           </div>
