@@ -126,7 +126,7 @@ export async function POST(request: NextRequest) {
         
         const messageData = {
           conversation_id: conversationId,
-          role: 'assistant',
+          role: 'aura',  // Fixed: Use 'aura' instead of 'assistant'
           content: notification.message,
           metadata: {
             type: 'proactive_notification',

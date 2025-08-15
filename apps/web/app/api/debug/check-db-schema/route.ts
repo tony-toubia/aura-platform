@@ -60,18 +60,20 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Check messages table
+    // Check messages table and get role enum values
     try {
       console.log('[DB-CHECK] Checking messages table...')
       const { data: messages, error: msgError } = await supabase
         .from('messages')
         .select('*')
-        .limit(1)
+        .limit(5)
       
       results.messages = {
         exists: !msgError,
         error: msgError?.message,
-        sampleData: messages?.[0] || null
+        sampleData: messages?.[0] || null,
+        allSampleData: messages || [],
+        roleValues: messages ? [...new Set(messages.map(m => m.role))] : []
       }
     } catch (error) {
       results.messages = {
