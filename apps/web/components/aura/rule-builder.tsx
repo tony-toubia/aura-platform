@@ -138,13 +138,23 @@ export function RuleBuilder({
     console.log('🔍 Rule Builder - All sensor configs:', Object.keys(SENSOR_CONFIGS));
     console.log('🔍 Rule Builder - SENSOR_CONFIGS sample:', Object.values(SENSOR_CONFIGS).slice(0, 3).map(s => ({ id: s.id, category: s.category })));
     
-    // If no senses are available, return empty array
+    // Time-based sensors are always available (no physical sensor required)
+    const timeSensors = Object.values(SENSOR_CONFIGS).filter(sensor => 
+      sensor.id.startsWith('time.') || sensor.category === 'digital'
+    );
+    
+    // If no senses are available, still show time-based sensors
     if (!availableSenses || availableSenses.length === 0) {
-      console.log('🔍 No available senses provided');
-      return [];
+      console.log('🔍 No available senses provided - showing time-based sensors only');
+      return timeSensors;
     }
     
     const filtered = Object.values(SENSOR_CONFIGS).filter(sensor => {
+      // Always include time-based sensors (no physical sensor configuration required)
+      if (sensor.id.startsWith('time.') || sensor.id === 'calendar.next_meeting') {
+        return true;
+      }
+      
       // Handle sensors without dot notation (like 'news')
       if (!sensor.id.includes('.')) {
         const isAvailable = availableSenses.includes(sensor.id);
@@ -171,6 +181,7 @@ export function RuleBuilder({
     
     console.log('🔍 Filtered sensor configs count:', filtered.length);
     console.log('🔍 Filtered sensor IDs:', filtered.map(s => s.id));
+    console.log('🔍 Time-based sensors available:', filtered.filter(s => s.id.startsWith('time.')).map(s => s.name));
     
     return filtered;
   }, [availableSenses]);

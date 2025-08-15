@@ -72,6 +72,30 @@ export async function POST(request: NextRequest) {
 
       targetAuraId = userAuras.id
       console.log(`[CREATE-RULE] Using user's aura: ${userAuras.name} (${targetAuraId})`)
+    } else {
+      // If aura_id was provided, verify it belongs to the user
+      const { data: auraCheck, error: auraCheckError } = await supabase
+        .from('auras')
+        .select('id, name, enabled')
+        .eq('id', targetAuraId)
+        .eq('user_id', user.id)
+        .single()
+
+      if (auraCheckError || !auraCheck) {
+        console.error('[CREATE-RULE] Specified aura not found or not owned by user:', targetAuraId, auraCheckError)
+        return NextResponse.json({
+          success: false,
+          error: 'Aura not found',
+          details: `The specified aura (${targetAuraId}) does not exist or you don't have access to it`,
+          solution: [
+            '1. Check that the aura ID is correct',
+            '2. Ensure the aura belongs to your account',
+            '3. Try using the auto-selected aura instead'
+          ]
+        }, { status: 404 })
+      }
+
+      console.log(`[CREATE-RULE] Verified aura ownership: ${auraCheck.name} (${targetAuraId})`)
     }
     
     // Default test rule parameters - meaningful conditions only
@@ -103,6 +127,7 @@ export async function POST(request: NextRequest) {
     const { data: rule, error: ruleError } = await supabase
       .from('behavior_rules')
       .insert({
+        user_id: user.id, // Required for RLS policy compliance
         aura_id: testRule.aura_id,
         name: testRule.name,
         trigger: testRule.trigger,
@@ -115,10 +140,42 @@ export async function POST(request: NextRequest) {
 
     if (ruleError) {
       console.error('[CREATE-RULE] Error creating rule:', ruleError)
+      console.error('[CREATE-RULE] Rule data that failed:', {
+        user_id: user.id,
+        aura_id: testRule.aura_id,
+        name: testRule.name,
+        trigger: JSON.stringify(testRule.trigger),
+        action: JSON.stringify(testRule.action),
+        priority: testRule.priority,
+        enabled: testRule.enabled
+      })
+      
+      // Provide specific error messages for common issues
+      let errorHelp = []
+      if (ruleError.message?.includes('violates row-level security')) {
+        errorHelp.push('🔒 This appears to be a database permission issue')
+        errorHelp.push('✅ User authentication: verified')
+        errorHelp.push('✅ Aura ownership: verified') 
+        errorHelp.push('❓ Check if behavior_rules table has correct RLS policies')
+      } else if (ruleError.message?.includes('foreign key')) {
+        errorHelp.push('🔗 This is a database relationship issue')
+        errorHelp.push('❓ Check if aura_id exists and is valid')
+      } else if (ruleError.message?.includes('not null')) {
+        errorHelp.push('📝 Missing required field in rule data')
+        errorHelp.push('❓ Check database schema for required columns')
+      }
+
       return NextResponse.json({
         success: false,
         error: 'Failed to create rule',
-        details: ruleError.message
+        details: ruleError.message,
+        errorCode: ruleError.code,
+        troubleshooting: errorHelp,
+        debugInfo: {
+          userId: user.id,
+          auraId: testRule.aura_id,
+          ruleType: 'proactive_notification'
+        }
       }, { status: 500 })
     }
 

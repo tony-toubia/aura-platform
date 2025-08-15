@@ -415,12 +415,12 @@ export const SENSOR_CONFIGS: Record<string, SensorMetadata> = {
     operators: ['==', '!=']
   },
   
-  // Time-based sensors
+  // Time-based sensors - always available for proactive notifications
   'time.hour': {
     id: 'time.hour',
     name: 'Current Hour',
     type: 'numeric',
-    unit: 'hour',
+    unit: 'hour (24h format)',
     range: { min: 0, max: 23 },
     icon: '🕐',
     category: 'digital',
@@ -452,6 +452,42 @@ export const SENSOR_CONFIGS: Record<string, SensorMetadata> = {
     icon: '📅',
     category: 'digital',
     operators: ['==', '!=']
+  },
+  'time.time_of_day': {
+    id: 'time.time_of_day',
+    name: 'Time of Day',
+    type: 'enum',
+    enumValues: [
+      { value: 'early_morning', label: 'Early Morning (5-8 AM)' },
+      { value: 'morning', label: 'Morning (8-12 PM)' },
+      { value: 'afternoon', label: 'Afternoon (12-5 PM)' },
+      { value: 'evening', label: 'Evening (5-9 PM)' },
+      { value: 'night', label: 'Night (9 PM-12 AM)' },
+      { value: 'late_night', label: 'Late Night (12-5 AM)' }
+    ],
+    icon: '🌅',
+    category: 'digital',
+    operators: ['==', '!=']
+  },
+  'time.workday': {
+    id: 'time.workday',
+    name: 'Workday vs Weekend',
+    type: 'enum',
+    enumValues: [
+      { value: 'weekday', label: 'Weekday (Mon-Fri)' },
+      { value: 'weekend', label: 'Weekend (Sat-Sun)' }
+    ],
+    icon: '📈',
+    category: 'digital',
+    operators: ['==', '!=']
+  },
+  'time.specific_time': {
+    id: 'time.specific_time',
+    name: 'Specific Time',
+    type: 'time',
+    icon: '⏰',
+    category: 'digital',
+    operators: ['<', '<=', '>', '>=', '==', '!=', 'between']
   },
   
   // Additional sleep sensors
