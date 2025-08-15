@@ -628,14 +628,14 @@ export default function SensesDiagnosticsPage() {
                     const result = await response.json()
                     console.log('Conversation API result:', result)
                     
-                    if (result.success) {
-                      const messageCount = result.messageCount || 0
+                    if (result.conversation) {
+                      const messageCount = result.messages?.length || 0
                       toast.success(`✅ Conversation API working! Found ${messageCount} messages`)
                       if (messageCount > 0) {
                         console.log('Sample messages:', result.messages.slice(-3))
                       }
                     } else {
-                      toast.error(`API Error: ${result.error}`)
+                      toast.error(`API Error: ${result.error || 'No conversation data'}`)
                     }
                   } catch (error) {
                     console.error('Conversation API error:', error)
