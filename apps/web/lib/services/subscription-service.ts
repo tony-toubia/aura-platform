@@ -167,26 +167,60 @@ export class SubscriptionService {
     console.log('SubscriptionService: Query result:', { row, error })
 
     let subscription: SubscriptionTier
-    if (error || !row) {
+    
+    if (error) {
+      console.error('SubscriptionService: Database error when fetching subscription:', error)
+      
+      // Check if we have a cached version as fallback
+      const cachedFallback = this.subscriptionCache.get(userId)
+      if (cachedFallback) {
+        console.log('SubscriptionService: Using cached subscription as fallback due to database error')
+        return cachedFallback.subscription
+      }
+      
+      // Only fallback to free if no cache exists and it's a "not found" type error
+      if (error.code === 'PGRST116' || error.message?.includes('No rows')) {
+        console.log('SubscriptionService: No subscription found, using free tier')
+        subscription = SUBSCRIPTION_TIERS.free
+      } else {
+        // For other database errors, assume personal plan to avoid breaking user experience
+        console.warn('SubscriptionService: Database error, assuming personal plan to prevent service interruption')
+        subscription = SUBSCRIPTION_TIERS.personal
+      }
+    } else if (!row) {
+      console.log('SubscriptionService: No subscription row found, using free tier')
       subscription = SUBSCRIPTION_TIERS.free
     } else {
       const key = row.tier as SubscriptionTier['id']
       subscription = SUBSCRIPTION_TIERS[key] ?? SUBSCRIPTION_TIERS.free
     }
 
-    // Get current aura count for better cache management
-    const { count: auraCount } = await supabase
-      .from('auras')
-      .select('*', { count: 'exact', head: true })
-      .eq('user_id', userId)
-      .eq('enabled', true)
+    // Get current aura count for better cache management (skip if main query failed)
+    let auraCount = 0
+    if (!error) {
+      try {
+        const { count } = await supabase
+          .from('auras')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', userId)
+          .eq('enabled', true)
+        auraCount = count ?? 0
+      } catch (auraCountError) {
+        console.warn('SubscriptionService: Could not fetch aura count:', auraCountError)
+        // Use cached aura count if available
+        const cachedFallback = this.subscriptionCache.get(userId)
+        auraCount = cachedFallback?.auraCount ?? 0
+      }
+    }
 
-    // Cache the result with aura count
-    this.subscriptionCache.set(userId, {
-      subscription,
-      timestamp: Date.now(),
-      auraCount: auraCount ?? 0
-    })
+    // Only cache successful results to prevent caching error states
+    if (!error) {
+      this.subscriptionCache.set(userId, {
+        subscription,
+        timestamp: Date.now(),
+        auraCount
+      })
+    }
 
     return subscription
   }
@@ -199,6 +233,49 @@ export class SubscriptionService {
   // Clear all cache
   static clearAllCache() {
     this.subscriptionCache.clear()
+  }
+
+  // Debug method to check subscription status
+  static async debugUserSubscription(userId: string, supabaseClient?: SupabaseClient) {
+    const supabase = supabaseClient || createClient()
+    
+    console.log(`[SubscriptionService DEBUG] Checking subscription for user: ${userId}`)
+    
+    // Check cache
+    const cached = this.subscriptionCache.get(userId)
+    if (cached) {
+      const cacheAge = Date.now() - cached.timestamp
+      console.log(`[SubscriptionService DEBUG] Cache found:`, {
+        subscription: cached.subscription.id,
+        ageMs: cacheAge,
+        expired: cacheAge > this.CACHE_DURATION
+      })
+    } else {
+      console.log(`[SubscriptionService DEBUG] No cache found`)
+    }
+    
+    // Check database directly
+    const { data: row, error } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', userId)
+      .single()
+    
+    console.log(`[SubscriptionService DEBUG] Database result:`, { row, error })
+    
+    // Get current subscription through service
+    const currentSub = await this.getUserSubscription(userId, supabaseClient, true)
+    console.log(`[SubscriptionService DEBUG] Service result:`, {
+      id: currentSub.id,
+      hasPersonalConnectedSenses: currentSub.features.hasPersonalConnectedSenses,
+      availableSenses: currentSub.features.availableSenses
+    })
+    
+    return {
+      cached,
+      database: { row, error },
+      service: currentSub
+    }
   }
 
   static async checkFeatureAccess(

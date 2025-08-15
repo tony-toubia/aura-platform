@@ -31,7 +31,8 @@ import {
   ExternalLink,
   Copy,
   Download,
-  MessageCircle
+  MessageCircle,
+  Bug
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
@@ -753,6 +754,55 @@ export default function SensesDiagnosticsPage() {
               >
                 <Settings className="h-4 w-4 mr-2" />
                 Create Morning Rule
+              </Button>
+              
+              <Button 
+                onClick={async () => {
+                  console.log('Debugging subscription status...')
+                  try {
+                    const response = await fetch('/api/debug/subscription')
+                    const result = await response.json()
+                    
+                    if (result.success) {
+                      const tier = result.debug?.service?.id || 'unknown'
+                      const hasPersonal = result.hasPersonalConnectedSenses
+                      const blockedSenses = Object.entries(result.senseAccess || {})
+                        .filter(([sense, access]) => !access)
+                        .map(([sense]) => sense)
+                      
+                      console.log('Subscription Debug Results:', result)
+                      
+                      if (tier === 'personal' && hasPersonal && blockedSenses.length === 0) {
+                        toast.success(`✅ Subscription healthy! Personal plan with full sense access`)
+                      } else if (tier === 'personal' && !hasPersonal) {
+                        toast.error(`🔥 BUG FOUND: Personal plan but hasPersonalConnectedSenses = false!`)
+                        console.error('This is the intermittent bug - service thinks you don\'t have personal access!')
+                      } else if (blockedSenses.length > 0) {
+                        toast.warning(`⚠️ Blocked senses: ${blockedSenses.join(', ')}. Current tier: ${tier}`)
+                      } else {
+                        toast.info(`📊 Subscription tier: ${tier}, Personal access: ${hasPersonal}`)
+                      }
+                      
+                      if (result.recommendations?.length > 0) {
+                        console.log('Recommendations:', result.recommendations)
+                        result.recommendations.forEach((rec: any, i: number) => {
+                          console.log(`${i + 1}. [${rec.type.toUpperCase()}] ${rec.message} → ${rec.action}`)
+                        })
+                      }
+                    } else {
+                      toast.error(`Subscription debug failed: ${result.error}`)
+                      console.error('Debug error:', result)
+                    }
+                  } catch (error) {
+                    console.error('Subscription debug error:', error)
+                    toast.error('Failed to debug subscription')
+                  }
+                }}
+                size="sm"
+                className="bg-gradient-to-r from-orange-500 to-red-500 hover:from-orange-600 hover:to-red-600"
+              >
+                <Bug className="h-4 w-4 mr-2" />
+                Debug Subscription
               </Button>
             </div>
           </div>
