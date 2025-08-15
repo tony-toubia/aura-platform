@@ -747,6 +747,8 @@ export default function SensesDiagnosticsPage() {
                           toast.error('🔒 Database permission error - RLS policy issue')
                         } else if (result.details.includes('not null')) {
                           toast.error('📝 Missing required field error')
+                        } else if (result.details.includes('schema cache')) {
+                          toast.error('🗂️ Database schema error - column not found')
                         }
                       }
                       if (result.troubleshooting?.length > 0) {

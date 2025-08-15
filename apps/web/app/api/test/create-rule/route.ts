@@ -127,7 +127,6 @@ export async function POST(request: NextRequest) {
     const { data: rule, error: ruleError } = await supabase
       .from('behavior_rules')
       .insert({
-        user_id: user.id, // Required for RLS policy compliance
         aura_id: testRule.aura_id,
         name: testRule.name,
         trigger: testRule.trigger,
@@ -141,7 +140,6 @@ export async function POST(request: NextRequest) {
     if (ruleError) {
       console.error('[CREATE-RULE] Error creating rule:', ruleError)
       console.error('[CREATE-RULE] Rule data that failed:', {
-        user_id: user.id,
         aura_id: testRule.aura_id,
         name: testRule.name,
         trigger: JSON.stringify(testRule.trigger),
@@ -153,16 +151,21 @@ export async function POST(request: NextRequest) {
       // Provide specific error messages for common issues
       let errorHelp = []
       if (ruleError.message?.includes('violates row-level security')) {
-        errorHelp.push('🔒 This appears to be a database permission issue')
+        errorHelp.push('🔒 Database permission issue - RLS policy violation')
         errorHelp.push('✅ User authentication: verified')
         errorHelp.push('✅ Aura ownership: verified') 
-        errorHelp.push('❓ Check if behavior_rules table has correct RLS policies')
+        errorHelp.push('❓ Check if behavior_rules RLS policies allow aura-based access')
       } else if (ruleError.message?.includes('foreign key')) {
-        errorHelp.push('🔗 This is a database relationship issue')
+        errorHelp.push('🔗 Database relationship issue')
         errorHelp.push('❓ Check if aura_id exists and is valid')
+        errorHelp.push('❓ Verify aura table foreign key constraints')
       } else if (ruleError.message?.includes('not null')) {
         errorHelp.push('📝 Missing required field in rule data')
         errorHelp.push('❓ Check database schema for required columns')
+      } else if (ruleError.message?.includes('schema cache')) {
+        errorHelp.push('🗂️ Database schema issue - column not found')
+        errorHelp.push('❓ Check if database migration was run correctly')
+        errorHelp.push('❓ Verify behavior_rules table has correct columns')
       }
 
       return NextResponse.json({
@@ -174,7 +177,8 @@ export async function POST(request: NextRequest) {
         debugInfo: {
           userId: user.id,
           auraId: testRule.aura_id,
-          ruleType: 'proactive_notification'
+          ruleType: 'proactive_notification',
+          tableSchema: 'behavior_rules (aura_id, name, trigger, action, priority, enabled)'
         }
       }, { status: 500 })
     }
