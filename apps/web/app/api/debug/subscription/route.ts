@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
     const debugInfo = await SubscriptionService.debugUserSubscription(user.id, supabase)
 
     // Check specific sense access
-    const testSenses = ['fitness', 'sleep', 'calendar', 'location']
-    const senseAccess = {}
+    const testSenses = ['fitness', 'sleep', 'calendar', 'location'] as const
+    const senseAccess: Record<string, boolean> = {}
     
     for (const sense of testSenses) {
       senseAccess[sense] = await SubscriptionService.canUseSense(user.id, sense)
@@ -58,7 +58,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-function generateRecommendations(debugInfo: any, hasPersonalAccess: boolean, senseAccess: any) {
+function generateRecommendations(debugInfo: any, hasPersonalAccess: boolean, senseAccess: Record<string, boolean>) {
   const recommendations = []
   
   if (debugInfo.database.error) {
