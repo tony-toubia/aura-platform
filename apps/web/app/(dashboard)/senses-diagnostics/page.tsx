@@ -715,7 +715,7 @@ export default function SensesDiagnosticsPage() {
                         'Content-Type': 'application/json'
                       },
                       body: JSON.stringify({
-                        aura_id: 'c662eca0-c663-472b-b096-e88edecfe51c', // Gh aura
+                        // aura_id removed - let backend auto-select user's first enabled aura
                         rule_name: 'Daily Morning Check-in',
                         message_template: 'Good morning! ☀️ Ready to make today amazing? What\'s one thing you\'re excited about today?',
                         conditions: { 
