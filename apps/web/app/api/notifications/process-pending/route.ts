@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
     // Process each notification
     for (const notification of pendingNotifications) {
       try {
-        console.log(`[NOTIF-PROCESSOR] Processing notification ${notification.id} for aura ${notification.auras?.name}`)
+        const auraInfo = Array.isArray(notification.auras) ? notification.auras[0] : notification.auras
+        console.log(`[NOTIF-PROCESSOR] Processing notification ${notification.id} for aura ${auraInfo?.name}`)
 
         // Find or create conversation for the aura
         let conversationId = null
@@ -178,7 +179,7 @@ export async function POST(request: NextRequest) {
           status: 'success',
           conversationId,
           messageId: message.id,
-          auraName: notification.auras?.name
+          auraName: auraInfo?.name
         })
 
       } catch (error) {
