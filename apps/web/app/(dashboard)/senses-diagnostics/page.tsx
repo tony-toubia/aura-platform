@@ -34,6 +34,7 @@ import {
 } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
+import { toast } from 'sonner'
 
 // Safe date formatting utility
 const formatDateSafely = (dateString: string | undefined, formatStr: string): string => {
@@ -512,10 +513,40 @@ export default function SensesDiagnosticsPage() {
         <TabsContent value="notifications" className="space-y-4">
           <div className="flex items-center justify-between">
             <h3 className="text-lg font-semibold">Recent Notifications</h3>
-            <Button onClick={triggerNotificationTest} size="sm">
-              <Bell className="h-4 w-4 mr-2" />
-              Send Test Notification
-            </Button>
+            <div className="flex gap-2">
+              <Button onClick={triggerNotificationTest} size="sm">
+                <Bell className="h-4 w-4 mr-2" />
+                Send Test Notification
+              </Button>
+              <Button 
+                onClick={async () => {
+                  console.log('Processing pending notifications...')
+                  try {
+                    const response = await fetch('/api/notifications/process-pending', {
+                      method: 'POST'
+                    })
+                    const result = await response.json()
+                    console.log('Process result:', result)
+                    
+                    if (result.success) {
+                      toast.success(`Processed ${result.processed} notifications successfully!`)
+                      // Refresh data after processing
+                      setData(prev => ({ ...prev, lastUpdate: Date.now() }))
+                    } else {
+                      toast.error(`Failed to process: ${result.error}`)
+                    }
+                  } catch (error) {
+                    console.error('Process error:', error)
+                    toast.error('Failed to process notifications')
+                  }
+                }}
+                size="sm"
+                className="bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600"
+              >
+                <Zap className="h-4 w-4 mr-2" />
+                Process Pending
+              </Button>
+            </div>
           </div>
           
           <div className="space-y-2">
