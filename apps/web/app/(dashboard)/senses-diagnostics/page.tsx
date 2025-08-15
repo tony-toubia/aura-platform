@@ -531,7 +531,7 @@ export default function SensesDiagnosticsPage() {
                     if (result.success) {
                       toast.success(`Processed ${result.processed} notifications successfully!`)
                       // Refresh data after processing
-                      setData(prev => ({ ...prev, lastUpdate: Date.now() }))
+                      setData(prev => prev ? { ...prev, lastUpdate: Date.now() } : null)
                     } else {
                       toast.error(`Failed to process: ${result.error}`)
                     }
