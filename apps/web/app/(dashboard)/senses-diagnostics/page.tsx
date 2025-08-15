@@ -730,14 +730,20 @@ export default function SensesDiagnosticsPage() {
                     console.log('Create rule result:', result)
                     
                     if (result.success) {
-                      toast.success(`✅ Morning check-in rule created! Will trigger weekdays at 9 AM.`)
+                      const auraName = result.auraName || 'your aura'
+                      toast.success(`✅ Morning rule created for "${auraName}"! Will trigger weekdays at 9 AM.`)
                       console.log('Rule details:', result.rule)
+                      console.log('Aura:', auraName, '(' + result.auraId + ')')
                       console.log('Next steps:', result.nextSteps)
                       console.log('Testing tips:', result.testingTips)
                     } else {
                       toast.error(`Failed to create rule: ${result.error}`)
                       if (result.details) {
                         console.error('Error details:', result.details)
+                        // Show specific error type
+                        if (result.details.includes('foreign key constraint')) {
+                          toast.info('💡 This was an aura ID mismatch - should be fixed now!')
+                        }
                       }
                       if (result.solution) {
                         console.log('Solution steps:', result.solution)

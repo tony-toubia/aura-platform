@@ -42,9 +42,50 @@ export async function POST(request: NextRequest) {
 
     const body = await request.json().catch(() => ({}))
     
+    // Get current user to find their auras
+    const { data: { user }, error: userError } = await supabase.auth.getUser()
+    if (userError || !user) {
+      return NextResponse.json({
+        success: false,
+        error: 'Authentication required',
+        details: 'User must be logged in to create rules'
+      }, { status: 401 })
+    }
+
+    // Get user's first available aura (or specified one)
+    let targetAuraId = body.aura_id
+    
+    if (!targetAuraId) {
+      const { data: userAuras, error: aurasError } = await supabase
+        .from('auras')
+        .select('id, name, enabled')
+        .eq('user_id', user.id)
+        .eq('enabled', true)
+        .limit(1)
+        .single()
+
+      if (aurasError || !userAuras) {
+        console.error('[CREATE-RULE] No enabled auras found for user:', user.id, aurasError)
+        return NextResponse.json({
+          success: false,
+          error: 'No auras available',
+          details: 'You need at least one enabled aura to create notification rules',
+          solution: [
+            '1. Go to your dashboard',
+            '2. Create an aura if you don\'t have any',
+            '3. Make sure at least one aura is enabled',
+            '4. Try creating the rule again'
+          ]
+        }, { status: 400 })
+      }
+
+      targetAuraId = userAuras.id
+      console.log(`[CREATE-RULE] Using user's aura: ${userAuras.name} (${targetAuraId})`)
+    }
+    
     // Default test rule parameters - meaningful conditions only
     const testRule = {
-      aura_id: body.aura_id || 'c662eca0-c663-472b-b096-e88edecfe51c', // Default to Gh aura
+      aura_id: targetAuraId,
       name: body.rule_name || 'Morning Motivation',
       trigger: {
         type: 'proactive_notification',
@@ -105,20 +146,29 @@ export async function POST(request: NextRequest) {
 
     console.log('[CREATE-RULE] Test rule created successfully:', rule)
 
+    // Get the aura name for the response
+    const { data: targetAura } = await supabase
+      .from('auras')
+      .select('name')
+      .eq('id', targetAuraId)
+      .single()
+
     return NextResponse.json({
       success: true,
-      message: 'Test notification rule created successfully',
+      message: 'Morning motivation rule created successfully',
       rule: rule,
+      auraName: targetAura?.name || 'Unknown',
+      auraId: targetAuraId,
       nextSteps: [
-        '1. Rule will trigger on weekday mornings at 9 AM',
-        '2. Use "Test Rules" button to manually check rule evaluation',
+        `1. Rule created for "${targetAura?.name || 'your aura'}" - triggers weekday mornings at 9 AM`,
+        '2. Use "Check Rules" button to verify the rule was created',
         '3. Check your aura conversation tomorrow morning for the message',
         '4. Monitor rule execution in rule_execution_log table'
       ],
       testingTips: [
         'This is a MEANINGFUL rule - triggers once daily on weekdays only',
         'No spam! 24-hour cooldown prevents multiple messages',
-        'Use "Test Rules" button for immediate evaluation without waiting',
+        'Use "Check Rules" button for immediate evaluation without waiting',
         'See MEANINGFUL_NOTIFICATION_RULES_EXAMPLES.md for more ideas'
       ]
     })
