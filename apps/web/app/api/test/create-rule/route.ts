@@ -1,22 +1,13 @@
 // app/api/test/create-rule/route.ts
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createServerSupabase } from '@/lib/supabase/server.server'
 
 export async function POST(request: NextRequest) {
   try {
     console.log('[CREATE-RULE] Creating morning check-in rule...')
     
-    // Create service role client
-    const supabase = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.SUPABASE_SERVICE_ROLE_KEY!,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    // Create authenticated server client
+    const supabase = await createServerSupabase()
 
     // First check if behavior_rules table exists (used for notification rules)
     console.log('[CREATE-RULE] Checking if behavior_rules table exists...')
