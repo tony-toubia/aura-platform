@@ -651,37 +651,57 @@ export default function SensesDiagnosticsPage() {
               
               <Button 
                 onClick={async () => {
-                  console.log('Testing rule evaluation via webhook...')
+                  console.log('Testing rule evaluation system...')
                   try {
-                    const response = await fetch('/api/notifications/webhook', {
+                    const response = await fetch('/api/test/evaluate-rules', {
                       method: 'POST',
                       headers: {
-                        'Content-Type': 'application/json',
-                        'x-cron-secret': 'X9kL2mP8vQ3nR7wT5yB6jC4hF1gA0sD9eU3iO7zN2xM='
-                      },
-                      body: JSON.stringify({ task: 'evaluate-rules', source: 'manual-test' })
+                        'Content-Type': 'application/json'
+                      }
                     })
                     const result = await response.json()
                     console.log('Rule evaluation result:', result)
                     
                     if (result.success) {
                       const processed = result.result?.processed || 0
-                      const succeeded = result.result?.succeeded || 0
-                      const failed = result.result?.failed || 0
-                      toast.success(`✅ Rule evaluation complete! ${processed} auras checked, ${succeeded} succeeded, ${failed} failed`)
+                      const userActive = result.result?.rules?.userActive || 0
+                      const userTotal = result.result?.rules?.userTotal || 0
+                      const proactiveAuras = result.result?.auras?.proactiveEnabled || 0
+                      
+                      if (userActive === 0) {
+                        if (userTotal === 0) {
+                          toast.info(`📋 No notification rules found. Create a rule first using "Create Morning Rule" button.`)
+                        } else {
+                          toast.warning(`⚠️ Found ${userTotal} disabled rules. Enable them to start getting notifications.`)
+                        }
+                      } else {
+                        toast.success(`✅ System ready! ${userActive} active rules for ${proactiveAuras} auras`)
+                      }
+                      
+                      // Log debug info
+                      if (result.debug) {
+                        console.log('Active rules:', result.debug.rulesFound)
+                        console.log('Proactive auras:', result.debug.aurasFound)
+                      }
                     } else {
-                      toast.error(`Rule evaluation failed: ${result.error}`)
+                      toast.error(`Rule system error: ${result.error}`)
+                      if (result.suggestion) {
+                        console.log('Suggestion:', result.suggestion)
+                      }
+                      if (result.solution) {
+                        console.log('Solution steps:', result.solution)
+                      }
                     }
                   } catch (error) {
                     console.error('Rule evaluation error:', error)
-                    toast.error('Failed to test rule evaluation')
+                    toast.error('Failed to test rule evaluation system')
                   }
                 }}
                 size="sm"
                 className="bg-gradient-to-r from-purple-500 to-pink-500 hover:from-purple-600 hover:to-pink-600"
               >
                 <Zap className="h-4 w-4 mr-2" />
-                Test Rules
+                Check Rules
               </Button>
               
               <Button 
@@ -712,8 +732,16 @@ export default function SensesDiagnosticsPage() {
                       toast.success(`✅ Morning check-in rule created! Will trigger weekdays at 9 AM.`)
                       console.log('Rule details:', result.rule)
                       console.log('Next steps:', result.nextSteps)
+                      console.log('Testing tips:', result.testingTips)
                     } else {
                       toast.error(`Failed to create rule: ${result.error}`)
+                      if (result.details) {
+                        console.error('Error details:', result.details)
+                      }
+                      if (result.solution) {
+                        console.log('Solution steps:', result.solution)
+                        toast.info('Check console for setup instructions')
+                      }
                     }
                   } catch (error) {
                     console.error('Create rule error:', error)

@@ -4,7 +4,7 @@ import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
-    console.log('[CREATE-RULE] Creating test rule...')
+    console.log('[CREATE-RULE] Creating morning check-in rule...')
     
     // Create service role client
     const supabase = createClient(
@@ -18,40 +18,65 @@ export async function POST(request: NextRequest) {
       }
     )
 
+    // First check if behavior_rules table exists (used for notification rules)
+    console.log('[CREATE-RULE] Checking if behavior_rules table exists...')
+    const { data: testQuery, error: testError } = await supabase
+      .from('behavior_rules')
+      .select('id')
+      .limit(1)
+
+    if (testError) {
+      console.error('[CREATE-RULE] behavior_rules table not found:', testError)
+      return NextResponse.json({
+        success: false,
+        error: 'Notification system not set up',
+        details: `Database table missing: ${testError.message}`,
+        solution: [
+          '1. Run the database migration first:',
+          '   apps/web/supabase/migrations/20250113_proactive_notifications_fixed.sql',
+          '2. This will create the behavior_rules table used for notifications',
+          '3. Or create the behavior_rules table manually in Supabase dashboard'
+        ]
+      }, { status: 500 })
+    }
+
     const body = await request.json().catch(() => ({}))
     
     // Default test rule parameters - meaningful conditions only
     const testRule = {
       aura_id: body.aura_id || 'c662eca0-c663-472b-b096-e88edecfe51c', // Default to Gh aura
-      rule_name: body.rule_name || 'Morning Motivation',
-      trigger_type: body.trigger_type || 'scheduled',
-      conditions: body.conditions || { 
-        schedule: '0 9 * * *', // Once daily at 9 AM - reasonable!
-        timeOfDay: 'morning',
-        dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'] // Weekdays only
+      name: body.rule_name || 'Morning Motivation',
+      trigger: {
+        type: 'proactive_notification',
+        schedule: '0 9 * * 1-5', // Weekdays at 9 AM
+        conditions: {
+          timeOfDay: 'morning',
+          dayOfWeek: ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday']
+        },
+        cooldown_minutes: 1440 // 24 hour cooldown
       },
-      message_template: body.message_template || 'Good morning! ☀️ Ready to make today amazing? What\'s one thing you\'re excited about today?',
-      delivery_channels: body.delivery_channels || ['IN_APP'],
+      action: {
+        type: 'send_message',
+        message: body.message_template || 'Good morning! ☀️ Ready to make today amazing? What\'s one thing you\'re excited about today?',
+        channels: body.delivery_channels || ['IN_APP'],
+        priority: body.priority || 4
+      },
       priority: body.priority || 4,
-      enabled: body.enabled !== false, // Default to true unless explicitly false
-      cooldown_minutes: body.cooldown_minutes || 1440 // 24 hour cooldown - no spam!
+      enabled: body.enabled !== false // Default to true unless explicitly false
     }
 
-    console.log('[CREATE-RULE] Creating rule:', testRule)
+    console.log('[CREATE-RULE] Creating behavior rule for proactive notifications:', testRule)
 
-    // Create the notification rule
+    // Create the behavior rule (used for notification rules)
     const { data: rule, error: ruleError } = await supabase
-      .from('notification_rules')
+      .from('behavior_rules')
       .insert({
         aura_id: testRule.aura_id,
-        rule_name: testRule.rule_name,
-        trigger_type: testRule.trigger_type,
-        conditions: testRule.conditions,
-        message_template: testRule.message_template,
-        delivery_channels: testRule.delivery_channels,
+        name: testRule.name,
+        trigger: testRule.trigger,
+        action: testRule.action,
         priority: testRule.priority,
-        enabled: testRule.enabled,
-        created_at: new Date().toISOString()
+        enabled: testRule.enabled
       })
       .select()
       .single()
